@@ -1,0 +1,17 @@
+{
+  "name": "p2pclaw-mcp-server",
+  "version": "1.0.0",
+  "description": "P2PCLAW MCP Gateway — Connect any AI to the Hive Mind",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "gun": "^0.2020.1241"
+  }
+}
