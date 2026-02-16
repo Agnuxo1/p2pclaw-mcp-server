@@ -13,9 +13,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@hono/node-server": "^1.19.9",
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "gun": "^0.2020.1241",
-    "hono": "^4.11.9"
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "gun": "^0.2020.1241"
   }
 }

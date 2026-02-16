@@ -6,8 +6,8 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import Gun from "gun";
-import { Hono } from "hono";
-import { serve } from "@hono/node-server";
+import express from "express";
+import cors from "cors";
 
 // ── P2P Configuration ──────────────────────────────────────────
 const RELAY_NODE = "https://p2pclaw-relay-production.up.railway.app/gun";
@@ -31,7 +31,6 @@ const server = new Server(
   }
 );
 
-// Define tools
 const tools = [
   {
     name: "get_swarm_status",
@@ -43,7 +42,7 @@ const tools = [
   },
   {
     name: "hive_chat",
-    description: "Send a message to the global P2PCLAW chat to coordinate with other agents.",
+    description: "Send a message to the global P2PCLAW chat.",
     inputSchema: {
       type: "object",
       properties: {
@@ -54,7 +53,7 @@ const tools = [
   },
   {
     name: "publish_contribution",
-    description: "Publish your research results or insights directly to the P2P mesh.",
+    description: "Publish research results directly to the P2P mesh.",
     inputSchema: {
       type: "object",
       properties: {
@@ -71,37 +70,24 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-
   try {
     if (name === "get_swarm_status") {
       const agents = [];
       const investigations = [];
-      
-      // Collect agents
       db.get("agents").map().once((data, id) => {
         if (data && data.online) agents.push({ id, name: data.name, role: data.role });
       });
-      // Collect investigations
       db.get("investigations").map().once((data, id) => {
         if (data && data.title) investigations.push({ id, title: data.title });
       });
-
       await new Promise(r => setTimeout(r, 1500));
-      return {
-        content: [{ type: "text", text: JSON.stringify({ active_agents: agents.length, agents, investigations }, null, 2) }],
-      };
+      return { content: [{ type: "text", text: JSON.stringify({ active_agents: agents.length, agents, investigations }, null, 2) }] };
     }
-
     if (name === "hive_chat") {
       const msgId = `mcp-chat-${Date.now()}`;
-      db.get("chat").get(msgId).put({
-        sender: "MCP-Agent",
-        text: args.message,
-        timestamp: Date.now(),
-      });
-      return { content: [{ type: "text", text: "Message sent to Hive." }] };
+      db.get("chat").get(msgId).put({ sender: "MCP-Agent", text: args.message, timestamp: Date.now() });
+      return { content: [{ type: "text", text: "Message sent." }] };
     }
-
     if (name === "get_papers") {
         const papers = [];
         db.get("papers").map().once((data, id) => {
@@ -109,62 +95,53 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         });
         await new Promise(r => setTimeout(r, 1500));
         return { content: [{ type: "text", text: JSON.stringify(papers.slice(0, 5), null, 2) }] };
-      }
-
+    }
     if (name === "publish_contribution") {
       const paperId = `paper-mcp-${Date.now()}`;
-      db.get("papers").get(paperId).put({
-        title: args.title,
-        abstract: args.abstract || "",
-        content: args.content,
-        author: "MCP-Gateway",
-        timestamp: Date.now(),
-      });
+      db.get("papers").get(paperId).put({ title: args.title, abstract: args.abstract || "", content: args.content, author: "MCP-Gateway", timestamp: Date.now() });
       return { content: [{ type: "text", text: `Published: ${args.title}` }] };
     }
-
     throw new Error(`Unknown tool: ${name}`);
   } catch (error) {
     return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
   }
 });
 
-// ── Remote Support (Hono + SSE) ──────────────────────────────────
-const app = new Hono();
-let sseTransport = null;
+// ── Express Implementation (Reliable SSE) ──────────────────────
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-app.get("/sse", async (c) => {
-  console.log("New SSE connection established");
-  sseTransport = new SSEServerTransport("/messages", c.res);
-  await server.connect(sseTransport);
+let transport = null;
+
+app.get("/sse", async (req, res) => {
+  console.log("New SSE session request");
+  transport = new SSEServerTransport("/messages", res);
+  await server.connect(transport);
 });
 
-app.post("/messages", async (c) => {
-  if (!sseTransport) return c.text("No active SSE session", 400);
-  await sseTransport.handlePostMessage(c.req.raw, c.res);
+app.post("/messages", async (req, res) => {
+  if (!transport) {
+    return res.status(400).send("No active SSE session");
+  }
+  await transport.handlePostMessage(req, res);
 });
 
-// ── Web LLM Support (Plain HTTP) ────────────────────────────────
-app.get("/", (c) => c.text("P2PCLAW MCP Gateway is Online. Use /sse for MCP or /status for info."));
-
-app.get("/status", async (c) => {
-    return c.json({
-        service: "P2PCLAW MCP Gateway",
-        mcp_endpoint: "https://p2p-mcp.up.railway.app/sse",
-        description: "Connect your AI to the Hive Mind. This URL provides an MCP bridge and a REST fallback.",
-        note: "If you are an LLM with browsing, read this as confirmation that the Hive is reachable."
-    });
+app.get("/status", (req, res) => {
+  res.json({ status: "online", service: "P2PCLAW MCP Gateway", endpoints: { mcp: "/sse", messages: "/messages", info: "/status" } });
 });
 
-// ── Startup ──────────────────────────────────────────────────────
+app.get("/", (req, res) => {
+  res.send("P2PCLAW MCP Gateway is active. Use /sse for MCP clients.");
+});
+
 const port = process.env.PORT || 3000;
 
 if (process.env.TRANSPORT === "stdio") {
-  const transport = new StdioServerTransport();
-  server.connect(transport).then(() => {
-    console.error("MCP Server running on stdio");
-  });
+  const stdioTransport = new StdioServerTransport();
+  server.connect(stdioTransport).then(() => console.error("Running on stdio"));
 } else {
-  console.log(`Starting HTTP/SSE server on port ${port}`);
-  serve({ fetch: app.fetch, port });
+  app.listen(port, () => {
+    console.log(`MCP HTTP/SSE server listening on port ${port}`);
+  });
 }
