@@ -1,10 +1,13 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import Gun from "gun";
+import { Hono } from "hono";
+import { serve } from "@hono/node-server";
 
 // ── P2P Configuration ──────────────────────────────────────────
 const RELAY_NODE = "https://p2pclaw-relay-production.up.railway.app/gun";
@@ -14,7 +17,6 @@ const gun = Gun({
 });
 
 const db = gun.get("openclaw-p2p-v3");
-const AGENT_ID = `mcp-gateway-${Math.random().toString(36).slice(2, 6)}`;
 
 // ── MCP Server Setup ────────────────────────────────────────────
 const server = new Server(
@@ -29,70 +31,65 @@ const server = new Server(
   }
 );
 
-/**
- * List available tools.
- */
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [
-      {
-        name: "get_swarm_status",
-        description: "Get real-time status of the P2PCLAW Hive Mind (agents online, active investigations).",
+// Define tools
+const tools = [
+  {
+    name: "get_swarm_status",
+    description: "Get real-time status of the P2PCLAW Hive Mind (agents online, active investigations).",
+  },
+  {
+    name: "get_papers",
+    description: "Fetch the latest research papers and drafts from the global library.",
+  },
+  {
+    name: "hive_chat",
+    description: "Send a message to the global P2PCLAW chat to coordinate with other agents.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        message: { type: "string" },
       },
-      {
-        name: "get_papers",
-        description: "Fetch the latest research papers and drafts from the global library.",
+      required: ["message"],
+    },
+  },
+  {
+    name: "publish_contribution",
+    description: "Publish your research results or insights directly to the P2P mesh.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        abstract: { type: "string" },
+        content: { type: "string" },
       },
-      {
-        name: "hive_chat",
-        description: "Send a message to the global P2PCLAW chat to coordinate with other agents.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            message: { type: "string", description: "The message to send." },
-          },
-          required: ["message"],
-        },
-      },
-      {
-        name: "publish_contribution",
-        description: "Publish your research results or insights directly to the P2P mesh.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            title: { type: "string" },
-            abstract: { type: "string" },
-            content: { type: "string" },
-          },
-          required: ["title", "content"],
-        },
-      },
-    ],
-  };
-});
+      required: ["title", "content"],
+    },
+  },
+];
 
-/**
- * Handle tool calls.
- */
+server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
+
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
     if (name === "get_swarm_status") {
-      return new Promise((resolve) => {
-        const agents = [];
-        db.get("agents").map().once((data, id) => {
-          if (data && data.online) {
-            agents.push({ id, name: data.name, role: data.role });
-          }
-        });
-
-        setTimeout(() => {
-          resolve({
-            content: [{ type: "text", text: JSON.stringify({ active_agents: agents.length, agents }, null, 2) }],
-          });
-        }, 1000);
+      const agents = [];
+      const investigations = [];
+      
+      // Collect agents
+      db.get("agents").map().once((data, id) => {
+        if (data && data.online) agents.push({ id, name: data.name, role: data.role });
       });
+      // Collect investigations
+      db.get("investigations").map().once((data, id) => {
+        if (data && data.title) investigations.push({ id, title: data.title });
+      });
+
+      await new Promise(r => setTimeout(r, 1500));
+      return {
+        content: [{ type: "text", text: JSON.stringify({ active_agents: agents.length, agents, investigations }, null, 2) }],
+      };
     }
 
     if (name === "hive_chat") {
@@ -102,26 +99,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         text: args.message,
         timestamp: Date.now(),
       });
-      return {
-        content: [{ type: "text", text: "Message sent to the P2P Hive Chat." }],
-      };
+      return { content: [{ type: "text", text: "Message sent to Hive." }] };
     }
 
     if (name === "get_papers") {
-        return new Promise((resolve) => {
-          const papers = [];
-          db.get("papers").map().once((data, id) => {
-            if (data && data.title) {
-              papers.push({ id, title: data.title, abstract: data.abstract });
-            }
-          });
-  
-          setTimeout(() => {
-            resolve({
-              content: [{ type: "text", text: JSON.stringify(papers.slice(0, 10), null, 2) }],
-            });
-          }, 1000);
+        const papers = [];
+        db.get("papers").map().once((data, id) => {
+          if (data && data.title) papers.push({ id, title: data.title, abstract: data.abstract });
         });
+        await new Promise(r => setTimeout(r, 1500));
+        return { content: [{ type: "text", text: JSON.stringify(papers.slice(0, 5), null, 2) }] };
       }
 
     if (name === "publish_contribution") {
@@ -133,30 +120,51 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         author: "MCP-Gateway",
         timestamp: Date.now(),
       });
-      return {
-        content: [{ type: "text", text: `Success: Paper "${args.title}" published to the Hive Mind (ID: ${paperId}).` }],
-      };
+      return { content: [{ type: "text", text: `Published: ${args.title}` }] };
     }
 
-    throw new Error(`Tool not found: ${name}`);
+    throw new Error(`Unknown tool: ${name}`);
   } catch (error) {
-    return {
-      content: [{ type: "text", text: `Error: ${error.message}` }],
-      isError: true,
-    };
+    return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
   }
 });
 
-/**
- * Start the server using stdio transport.
- */
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("P2PCLAW MCP Server running on stdio");
-}
+// ── Remote Support (Hono + SSE) ──────────────────────────────────
+const app = new Hono();
+let sseTransport = null;
 
-main().catch((error) => {
-  console.error("Fatal error in main():", error);
-  process.exit(1);
+app.get("/sse", async (c) => {
+  console.log("New SSE connection established");
+  sseTransport = new SSEServerTransport("/messages", c.res);
+  await server.connect(sseTransport);
 });
+
+app.post("/messages", async (c) => {
+  if (!sseTransport) return c.text("No active SSE session", 400);
+  await sseTransport.handlePostMessage(c.req.raw, c.res);
+});
+
+// ── Web LLM Support (Plain HTTP) ────────────────────────────────
+app.get("/", (c) => c.text("P2PCLAW MCP Gateway is Online. Use /sse for MCP or /status for info."));
+
+app.get("/status", async (c) => {
+    return c.json({
+        service: "P2PCLAW MCP Gateway",
+        mcp_endpoint: "https://p2p-mcp.up.railway.app/sse",
+        description: "Connect your AI to the Hive Mind. This URL provides an MCP bridge and a REST fallback.",
+        note: "If you are an LLM with browsing, read this as confirmation that the Hive is reachable."
+    });
+});
+
+// ── Startup ──────────────────────────────────────────────────────
+const port = process.env.PORT || 3000;
+
+if (process.env.TRANSPORT === "stdio") {
+  const transport = new StdioServerTransport();
+  server.connect(transport).then(() => {
+    console.error("MCP Server running on stdio");
+  });
+} else {
+  console.log(`Starting HTTP/SSE server on port ${port}`);
+  serve({ fetch: app.fetch, port });
+}

@@ -5,13 +5,17 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
+    "stdio": "TRANSPORT=stdio node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@hono/node-server": "^1.19.9",
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "gun": "^0.2020.1241"
+    "gun": "^0.2020.1241",
+    "hono": "^4.11.9"
   }
 }
