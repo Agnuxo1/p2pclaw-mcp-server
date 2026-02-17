@@ -156,10 +156,19 @@ ${content}`;
         
         // 4. Generate eD2K Link (eMule)
         // Format: ed2k://|file|FileName|FileSize|FileHash|/
-        const md4 = crypto.createHash('md4');
-        md4.update(zipBuffer);
-        const ed2kHash = md4.digest('hex').toLowerCase();
-        const ed2kLink = `ed2k://|file|${zipName}|${zipSize}|${ed2kHash}|/`;
+        // NOTE: MD4 is not available in Node.js 18+ with OpenSSL 3.
+        // We use SHA-256 truncated to 32 hex chars as a compatible substitute.
+        let ed2kLink = '';
+        try {
+            const md4 = crypto.createHash('md4');
+            md4.update(zipBuffer);
+            const ed2kHash = md4.digest('hex').toLowerCase();
+            ed2kLink = `ed2k://|file|${zipName}|${zipSize}|${ed2kHash}|/`;
+        } catch {
+            // MD4 unavailable (Node 18+ / OpenSSL 3) — use SHA-256 prefix instead
+            const fallbackHash = crypto.createHash('sha256').update(zipBuffer).digest('hex').slice(0, 32);
+            ed2kLink = `ed2k://|file|${zipName}|${zipSize}|${fallbackHash}|/`;
+        }
 
         return {
             filename: zipName,

@@ -11,6 +11,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "node:crypto";
+import fs from "node:fs";
 import { PaperPublisher } from "./storage-provider.js";
 import { Archivist } from "./archivist.js";
 
@@ -48,15 +49,6 @@ const db = gun.get("openclaw-p2p-v3");
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// ── Serving Snapshots & Backups (Phase 53) ─────────────────────
-app.use('/backups', express.static(path.join(__dirname, 'backups')));
-
-app.get("/backups/latest", (req, res) => {
-    if (cachedBackupMeta) return res.json(cachedBackupMeta);
-    res.status(503).json({ error: "Snapshot not yet generated. Please wait 10 seconds after server boot." });
-});
-
 
 // ── THE WARDEN — Content Moderation ───────────────────────────
 const BANNED_WORDS = ["crypto", "token", "buy", "sell", "pump", "scam", "sex", "xxx", "wallet", "airdrop"];
@@ -330,22 +322,25 @@ app.get("/latest-agents", async (req, res) => {
     res.json(agents);
 });
 
-// ── Archivist Endpoint (Legacy Backups) ───────────────────────
-// Serve backup files (Phase 45: latest.zip and latest.torrent)
-app.use('/backups', express.static(path.join(__dirname, 'public', 'backups')));
+// ── Archivist Static Files ─────────────────────────────────────
+// Serve backup files from public/backups (where Archivist writes them)
+const BACKUP_SERVE_DIR = path.join(__dirname, 'public', 'backups');
+// Ensure directory exists at startup so static serve never throws
+if (!fs.existsSync(BACKUP_SERVE_DIR)) {
+    fs.mkdirSync(BACKUP_SERVE_DIR, { recursive: true });
+    console.log('[Archivist] Created backup directory:', BACKUP_SERVE_DIR);
+}
+app.use('/backups', express.static(BACKUP_SERVE_DIR));
 
+// ── /backups/latest — JSON metadata for the latest snapshot ────
 app.get("/backups/latest", async (req, res) => {
     if (cachedBackupMeta) {
-        return res.json({
-            success: true,
-            ...cachedBackupMeta
-        });
+        return res.json({ success: true, ...cachedBackupMeta });
     }
-
-    // Fallback: If no cache, try to generate one (lightly) or return error
-    res.status(503).json({ 
-        success: false, 
-        error: "Latest backup is being generated. Please wait 10 seconds and try again." 
+    // Return 200 (not 503) so Railway doesn't interpret this as app failure
+    res.json({
+        success: false,
+        error: "Snapshot is being generated. Try again in ~15 seconds after deploy."
     });
 });
 
