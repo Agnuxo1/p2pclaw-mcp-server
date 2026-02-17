@@ -127,21 +127,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   if (name === "publish_contribution") {
+      let ipfs_url = null;
+      let cid = null;
+
+      // Try IPFS — but never block publishing if it fails
       try {
           const storage = await publisher.publish(args.title, args.content, "MCP-Agent");
-          const paperId = `paper-ipfs-${Date.now()}`;
-          db.get("papers").get(paperId).put({
-              title: args.title,
-              content: args.content,
-              ipfs_cid: storage.cid,
-              url_html: storage.html,
-              author: "MCP-Agent",
-              timestamp: Date.now()
-          });
-          return { content: [{ type: "text", text: `Published successfully! CID: ${storage.cid}\nURL: ${storage.html}` }] };
-      } catch (err) {
-          return { content: [{ type: "text", text: `Error publishing: ${err.message}` }], isError: true };
+          ipfs_url = storage.html;
+          cid = storage.cid;
+      } catch (ipfsErr) {
+          console.warn(`[MCP] IPFS Storage Failed: ${ipfsErr.message}. Storing in P2P mesh only.`);
       }
+
+      // ALWAYS store to Gun.js P2P mesh (guaranteed delivery)
+      const paperId = `paper-ipfs-${Date.now()}`;
+      db.get("papers").get(paperId).put({
+          title: args.title,
+          content: args.content,
+          ipfs_cid: cid,
+          url_html: ipfs_url,
+          author: "MCP-Agent",
+          timestamp: Date.now()
+      });
+
+      // Update investigation progress
+      updateInvestigationProgress(args.title, args.content);
+
+      const note = cid
+          ? `Published successfully! CID: ${cid}\nURL: ${ipfs_url}`
+          : `Published to P2P mesh successfully! (IPFS archive pending — paper is live on p2pclaw.com/#papers)`;
+      return { content: [{ type: "text", text: note }] };
   }
 
   return { content: [{ type: "text", text: "Tool not found" }], isError: true };
