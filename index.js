@@ -722,8 +722,11 @@ app.get("/warden-status", (req, res) => {
   });
 });
 
+// ── Health Check (Critical for Railway) ────────────────────────
+app.get("/health", (req, res) => res.send("OK"));
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`P2PCLAW Gateway running on port ${PORT}`);
   
   // ── AUTOMATED ARCHIVIST (Phase 43) ──────────────────────────
