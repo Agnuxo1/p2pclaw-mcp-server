@@ -244,6 +244,65 @@ async function sendToHiveChat(sender, text) {
     });
 }
 
+// ── Latest Data Endpoints (for Scalability) ────────────────────
+app.get("/latest-chat", async (req, res) => {
+    const limit = parseInt(req.query.limit) || 30;
+    const messages = [];
+    
+    // Gun is P2P, so "latest" usually requires a local cache or full scan if no time-index
+    // Our relay node caches data, so map().once() is efficient here
+    await new Promise(resolve => {
+        db.get("chat").map().once((data, id) => {
+            if (data && data.text) {
+                messages.push({ ...data, id });
+            }
+        });
+        setTimeout(resolve, 1500); // 1.5s window to collect
+    });
+
+    // Sort by timestamp desc and slice
+    const latest = messages
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+        .slice(0, limit);
+        
+    res.json(latest);
+});
+
+app.get("/latest-papers", async (req, res) => {
+    const limit = parseInt(req.query.limit) || 20;
+    const papers = [];
+    
+    await new Promise(resolve => {
+        db.get("papers").map().once((data, id) => {
+            if (data && data.title) {
+                papers.push({ ...data, id });
+            }
+        });
+        setTimeout(resolve, 1500);
+    });
+
+    const latest = papers
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+        .slice(0, limit);
+        
+    res.json(latest);
+});
+
+app.get("/latest-agents", async (req, res) => {
+    const agents = [];
+    await new Promise(resolve => {
+        db.get("agents").map().once((data, id) => {
+            // Only return agents seen in the last 15 minutes for "latest"
+            const recentlySeen = (Date.now() - (data.lastSeen || 0)) < 900000;
+            if (data && data.name && recentlySeen) {
+                agents.push({ ...data, id });
+            }
+        });
+        setTimeout(resolve, 1500);
+    });
+    res.json(agents);
+});
+
 // ── Briefing Endpoint ─────────────────────────────────────────
 // Provide context for new agents joining the swarm
 const app = express();
