@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import archiver from 'archiver';
-// import WebTorrent from 'webtorrent'; // Removed static import
 import crypto from 'crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -15,29 +14,11 @@ if (!fs.existsSync(BACKUP_DIR)) {
     fs.mkdirSync(BACKUP_DIR, { recursive: true });
 }
 
-// Initialize WebTorrent Client (Singleton, Lazy, Dynamic)
-// This client stays alive as long as the server runs, seeding all generated snapshots.
-let client = null;
-async function getClient() {
-    if (!client) {
-        try {
-            console.log('[Archivist] Dynamically loading WebTorrent...');
-            const { default: WebTorrent } = await import('webtorrent');
-            client = new WebTorrent();
-            client.on('error', (err) => console.error('[WebTorrent] Client Error:', err));
-            console.log('[Archivist] WebTorrent loaded successfully.');
-        } catch (err) {
-            console.error('[WebTorrent] Failed to initialize client:', err);
-        }
-    }
-    return client;
-}
-
 export const Archivist = {
     /**
-     * Creates a zip snapshot of all provided papers + system source code and Auto-Seeds it.
+     * Creates a zip snapshot of all provided papers + system source code.
      * @param {Array} papers - Array of paper objects { id, title, content, ... }
-     * @returns {Promise<Object>} - Metadata { zipUrl, magnetLink, ed2kLink, size, date }
+     * @returns {Promise<Object>} - Metadata { zipUrl, ed2kLink, size, date }
      */
     async createSnapshot(papers) {
         const dateStr = new Date().toISOString().split('T')[0];
@@ -65,7 +46,7 @@ export const Archivist = {
                 `2. The Source Code for the P2P Node (system/index.html)\n\n` +
                 `INSTRUCTIONS:\n` +
                 `- To run the node: Open 'system/index.html' in any browser.\n` +
-                `- To help the network: Keep this file seeded in your Torrent client.\n`,
+                `- To help the network: Keep this file shared to ensure redundancy.\n`,
                 { name: 'README.txt' }
             );
 
@@ -88,12 +69,10 @@ ${content}`;
                 archive.append(meta, { name: `papers/${safeTitle}.md` });
             });
 
-            // Add System Source Code (Self-Replication)
-            // We include index.html and critical assets
+            // Add System Source Code
             if (fs.existsSync(path.join(SYSTEM_DIR, 'index.html'))) {
                 archive.file(path.join(SYSTEM_DIR, 'index.html'), { name: 'system/index.html' });
             }
-             // Add PROTOCOL.md if exists
             if (fs.existsSync(path.join(SYSTEM_DIR, 'PROTOCOL.md'))) {
                 archive.file(path.join(SYSTEM_DIR, 'PROTOCOL.md'), { name: 'system/PROTOCOL.md' });
             }
@@ -105,59 +84,19 @@ ${content}`;
         const zipSize = zipBuffer.length;
         console.log(`[Archivist] ZIP created: ${zipSize} bytes`);
 
-        // 2. Auto-Seed via WebTorrent (Server becomes the first seeder)
-        const torrentData = await new Promise((resolve) => {
-            getClient().then(client => {
-                if (!client) {
-                    console.warn('[Archivist] WebTorrent client unavailable. Skipping seeding.');
-                    resolve({}); 
-                    return;
-                }
+        // 2. Seeding Disabled (Phase 55: Torrenting is Banned on Railway)
+        // We rely on static ZIP downloads and IPFS redundancy instead.
+        const torrentData = { magnetURI: null };
 
-                // Check if already seeding this exact file to avoid duplicates
-                const existing = client.torrents.find(t => t.path === BACKUP_DIR && t.files.some(f => f.name === zipName));
-                if (existing) {
-                    console.log(`[Archivist] Already seeding ${zipName}`);
-                    resolve(existing);
-                    return;
-                }
-
-                console.log(`[Archivist] Seeding new snapshot: ${zipName}`);
-                client.seed(zipPath, {
-                    name: zipName,
-                    comment: 'P2PCLAW Decentralized Scientific Library + Node Source',
-                    createdBy: 'P2PCLAW Archivist v2.0 (Auto-Seed)'
-                }, (torrent) => {
-                    console.log(`[Archivist] Seeding active! Magnet: ${torrent.magnetURI}`);
-                    resolve(torrent);
-                });
-            }).catch(err => {
-                console.error('[Archivist] WebTorrent init failed:', err);
-                resolve({});
-            });
-        });
-
-        // Save .torrent file for convenience
-        const torrentFile = path.join(BACKUP_DIR, `${zipName}.torrent`);
-        if (torrentData.torrentFile) {
-             fs.writeFileSync(torrentFile, torrentData.torrentFile);
-        }
-
-        // 3. Create 'latest' references (Phase 45 Fix)
+        // 3. Create 'latest' references
         try {
             fs.copyFileSync(zipPath, path.join(BACKUP_DIR, 'latest.zip'));
-            if (torrentData.torrentFile) {
-                fs.copyFileSync(torrentFile, path.join(BACKUP_DIR, 'latest.torrent'));
-            }
-            console.log(`[Archivist] 'latest' snapshots updated.`);
+            console.log(`[Archivist] 'latest' snapshot updated.`);
         } catch (symErr) {
             console.error(`[Archivist] Failed to update 'latest' files:`, symErr);
         }
         
-        // 4. Generate eD2K Link (eMule)
-        // Format: ed2k://|file|FileName|FileSize|FileHash|/
-        // NOTE: MD4 is not available in Node.js 18+ with OpenSSL 3.
-        // We use SHA-256 truncated to 32 hex chars as a compatible substitute.
+        // 4. Generate eD2K Link (eMule) - Handled with MD4 fallback
         let ed2kLink = '';
         try {
             const md4 = crypto.createHash('md4');
@@ -165,7 +104,6 @@ ${content}`;
             const ed2kHash = md4.digest('hex').toLowerCase();
             ed2kLink = `ed2k://|file|${zipName}|${zipSize}|${ed2kHash}|/`;
         } catch {
-            // MD4 unavailable (Node 18+ / OpenSSL 3) — use SHA-256 prefix instead
             const fallbackHash = crypto.createHash('sha256').update(zipBuffer).digest('hex').slice(0, 32);
             ed2kLink = `ed2k://|file|${zipName}|${zipSize}|${fallbackHash}|/`;
         }
@@ -176,9 +114,7 @@ ${content}`;
             date: dateStr,
             downloadUrl: relativeZipUrl,
             latestZipUrl: `/backups/latest.zip`,
-            torrentUrl: `/backups/${zipName}.torrent`,
-            latestTorrentUrl: `/backups/latest.torrent`,
-            magnetLink: torrentData.magnetURI, // Direct magnet from seeder
+            magnetLink: null, // Disabled on Railway
             ed2kLink: ed2kLink
         };
     }

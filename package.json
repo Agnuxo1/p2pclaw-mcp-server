@@ -18,13 +18,11 @@
     "archiver": "^7.0.1",
     "axios": "^1.7.9",
     "cors": "^2.8.6",
-    "create-torrent": "^6.1.0",
     "ethers": "^5.7.2",
     "express": "^5.2.1",
     "gun": "^0.2020.1241",
     "jspdf": "^4.1.0",
-    "markdown-it": "^14.1.1",
-    "webtorrent": "^2.8.5"
+    "markdown-it": "^14.1.1"
   },
   "devDependencies": {
     "dotenv": "^16.4.7"
