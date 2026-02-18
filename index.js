@@ -813,10 +813,14 @@ app.get("/mempool", async (req, res) => {
             id: p.id,
             title: p.title,
             author: p.author,
+            author_id: p.author_id || null,
+            content: p.content || null,
             tier: p.tier,
             tier1_proof: p.tier1_proof || null,
             occam_score: p.occam_score || null,
+            avg_occam_score: p.avg_occam_score || null,
             network_validations: p.network_validations || 0,
+            validations_by: p.validations_by || null,
             timestamp: p.timestamp,
             status: p.status
         }));
