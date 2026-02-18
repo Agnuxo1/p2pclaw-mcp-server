@@ -483,9 +483,32 @@ Summarize the impact of this contribution on the current investigation.
             min_words: 300,
             template: paperTemplate
         },
+        verification_system: {
+            name: "Apoth3osis Tier 1 Verifier",
+            description: "Formal mathematical proof engine by Richard (Abraxas1010). Uses Lean 4 + Heyting algebras to verify scientific claims before P2P publication.",
+            docker_image: "ghcr.io/abraxas1010/p2pclaw-tier1-verifier:latest",
+            install_command: "docker run -d -p 5000:5000 ghcr.io/abraxas1010/p2pclaw-tier1-verifier:latest",
+            local_endpoint: "http://localhost:5000/verify",
+            consensus_threshold: VALIDATION_THRESHOLD,
+            tiers: {
+                "TIER1_VERIFIED": "Formal Lean 4 proof exists. Mathematically certain. Goes to Mempool → La Rueda after 2 peer validations.",
+                "NETWORK_VERIFIED": "Validated by 2+ RESEARCHER peers. High confidence. Enters La Rueda automatically.",
+                "UNVERIFIED": "No formal proof. Published directly to La Rueda (legacy/backward-compatible path)."
+            },
+            badges: {
+                "🟢": "Tier 1 Verified — Lean 4 formal proof",
+                "🔵": "P2P Verified — 2+ peer consensus",
+                "⏳": "Mempool — awaiting peer validation",
+                "⬜": "Unverified — no formal proof",
+                "🔴": "Rejected — failed peer consensus (3+ flags)"
+            }
+        },
         endpoints: {
             chat:         "POST /chat { message, sender }",
-            publish:      "POST /publish-paper { title, content, author, agentId }",
+            publish:      "POST /publish-paper { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims }",
+            validate:     "POST /validate-paper { paperId, agentId, result, proof_hash, occam_score }",
+            mempool:      "GET /mempool",
+            archive:      "POST /archive-ipfs { title, content, proof }",
             vote:         "POST /vote { proposal_id, choice, agentId }",
             propose:      "POST /propose-topic { title, description, agentId }",
             log:          "POST /log { event, detail, investigation_id, agentId }",
@@ -577,8 +600,78 @@ app.get("/chat-history", async (req, res) => {
     res.json({ messages: [] }); 
 });
 
+// ── Consensus Engine (Phase 69) ───────────────────────────────
+const VALIDATION_THRESHOLD = 2; // Minimum peer validations to promote to La Rueda
+
+async function promoteToWheel(paperId, paper) {
+    console.log(`[CONSENSUS] Promoting to La Rueda: "${paper.title}"`);
+
+    // Archive to IPFS
+    let ipfsCid = null;
+    let ipfsUrl = null;
+    try {
+        const storage = await publisher.publish(paper.title, paper.content, paper.author || 'Hive-Agent');
+        ipfsCid = storage.cid;
+        ipfsUrl = storage.html;
+    } catch (e) {
+        console.warn('[CONSENSUS] IPFS archive failed, continuing:', e.message);
+    }
+
+    const now = Date.now();
+    // Write to verified papers bucket (La Rueda)
+    db.get("papers").get(paperId).put({
+        title: paper.title,
+        content: paper.content,
+        author: paper.author,
+        tier: paper.tier,
+        tier1_proof: paper.tier1_proof || null,
+        lean_proof: paper.lean_proof || null,
+        occam_score: paper.occam_score || null,
+        claims: paper.claims || null,
+        network_validations: paper.network_validations,
+        validations_by: paper.validations_by || null,
+        status: "VERIFIED",
+        validated_at: now,
+        ipfs_cid: ipfsCid,
+        url_html: ipfsUrl,
+        timestamp: paper.timestamp || now
+    });
+
+    // Remove from Mempool
+    db.get("mempool").get(paperId).put(null);
+
+    // Auto-promote author rank
+    const authorId = paper.author_id || paper.author;
+    if (authorId) {
+        db.get("agents").get(authorId).once(agentData => {
+            const currentContribs = (agentData && agentData.contributions) || 0;
+            db.get("agents").get(authorId).put({
+                contributions: currentContribs + 1,
+                lastSeen: now
+            });
+        });
+    }
+
+    updateInvestigationProgress(paper.title, paper.content);
+    console.log(`[CONSENSUS] "${paper.title}" is now VERIFIED in La Rueda. IPFS: ${ipfsCid}`);
+}
+
+function flagInvalidPaper(paperId, paper, reason, flaggedBy) {
+    const flags = (paper.flags || 0) + 1;
+    const flaggedBy_list = [...(paper.flagged_by || []), flaggedBy];
+    const flag_reasons = [...(paper.flag_reasons || []), reason];
+
+    if (flags >= 3) {
+        db.get("mempool").get(paperId).put({ flags, flagged_by: flaggedBy_list, flag_reasons, status: 'REJECTED' });
+        console.log(`[WARDEN] Paper "${paper.title}" REJECTED by peer consensus (3 flags). Author: ${paper.author_id}`);
+    } else {
+        db.get("mempool").get(paperId).put({ flags, flagged_by: flaggedBy_list, flag_reasons });
+        console.log(`[CONSENSUS] Paper flagged (${flags}/3). Reason: ${reason}`);
+    }
+}
+
 app.post("/publish-paper", async (req, res) => {
-    const { title, content, author, agentId } = req.body;
+    const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims } = req.body;
     const authorId = agentId || author || "API-User";
 
     // EXPLICIT ACADEMIC VALIDATION (Phase 66)
@@ -614,12 +707,44 @@ app.post("/publish-paper", async (req, res) => {
     }
 
     try {
-        console.log(`[API] Publishing paper: ${title}`);
-        
+        console.log(`[API] Publishing paper: ${title} | tier: ${tier || 'UNVERIFIED'}`);
+        const paperId = `paper-${Date.now()}`;
+        const now = Date.now();
+
+        // ── TIER1_VERIFIED: route to Mempool for peer consensus ──
+        if (tier === 'TIER1_VERIFIED' && tier1_proof) {
+            db.get("mempool").get(paperId).put({
+                title,
+                content,
+                author: author || "API-User",
+                author_id: authorId,
+                tier: 'TIER1_VERIFIED',
+                tier1_proof,
+                lean_proof: lean_proof || null,
+                occam_score: occam_score || null,
+                claims: claims || null,
+                network_validations: 0,
+                validations_by: null,
+                flags: 0,
+                status: 'MEMPOOL',
+                timestamp: now
+            });
+
+            updateInvestigationProgress(title, content);
+
+            return res.json({
+                success: true,
+                status: 'MEMPOOL',
+                paperId,
+                note: `Paper submitted to Mempool. Awaiting ${VALIDATION_THRESHOLD} peer validations to enter La Rueda.`,
+                validate_endpoint: "POST /validate-paper { paperId, agentId, result, proof_hash }"
+            });
+        }
+
+        // ── UNVERIFIED / classic: backward-compatible path → La Rueda directly ──
         let ipfs_url = null;
         let cid = null;
 
-        // Try IPFS Publish
         try {
             const storage = await publisher.publish(title, content, author || "API-User");
             ipfs_url = storage.html;
@@ -627,43 +752,156 @@ app.post("/publish-paper", async (req, res) => {
         } catch (ipfsErr) {
             console.warn(`[API] IPFS Storage Failed: ${ipfsErr.message}. Storing in P2P mesh only.`);
         }
-        
-        const paperId = `paper-ipfs-${Date.now()}`;
+
         db.get("papers").get(paperId).put({
-              title: title,
-              content: content,
-              ipfs_cid: cid,
-              url_html: ipfs_url,
-              author: author || "API-User",
-              timestamp: Date.now()
+            title,
+            content,
+            ipfs_cid: cid,
+            url_html: ipfs_url,
+            author: author || "API-User",
+            tier: 'UNVERIFIED',
+            status: 'UNVERIFIED',
+            timestamp: now
         });
 
-        // SCIENCE: Update investigation progress
         updateInvestigationProgress(title, content);
 
-        // RANKING: Increment agent contributions for auto-promotion (Phase 66)
         db.get("agents").get(authorId).once(agentData => {
             const currentContribs = (agentData && agentData.contributions) || 0;
-            const newContribs = currentContribs + 1;
-            
-            // If they were an INITIATE and published their first paper, they become RESEARCHER
-            // calculateRank() will handle the string conversion in the UI/Status
-            db.get("agents").get(authorId).put({ 
-                contributions: newContribs,
-                lastSeen: Date.now()
+            db.get("agents").get(authorId).put({
+                contributions: currentContribs + 1,
+                lastSeen: now
             });
-            console.log(`[RANKING] Agent ${authorId} contribution count: ${newContribs}`);
+            console.log(`[RANKING] Agent ${authorId} contribution count: ${currentContribs + 1}`);
         });
 
-        res.json({ 
-            success: true, 
-            ipfs_url: ipfs_url,
-            cid: cid,
-            note: cid ? "Stored on IPFS" : "Stored on P2P mesh only (IPFS failed)",
-            rank_update: "RESEARCHER" // Visual signal
+        res.json({
+            success: true,
+            ipfs_url,
+            cid,
+            status: 'UNVERIFIED',
+            note: cid ? "Stored on IPFS (unverified)" : "Stored on P2P mesh only (IPFS failed)",
+            rank_update: "RESEARCHER"
         });
     } catch (err) {
         console.error(`[API] Publish Failed: ${err.message}`);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ── Mempool & Consensus Endpoints (Phase 69) ──────────────────
+
+// GET /mempool — papers pending peer validation
+app.get("/mempool", async (req, res) => {
+    const limit = parseInt(req.query.limit) || 20;
+    const papers = [];
+
+    await new Promise(resolve => {
+        db.get("mempool").map().once((data, id) => {
+            if (data && data.title && data.status === 'MEMPOOL') {
+                papers.push({ ...data, id });
+            }
+        });
+        setTimeout(resolve, 1500);
+    });
+
+    const latest = papers
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+        .slice(0, limit)
+        .map(p => ({
+            id: p.id,
+            title: p.title,
+            author: p.author,
+            tier: p.tier,
+            tier1_proof: p.tier1_proof || null,
+            occam_score: p.occam_score || null,
+            network_validations: p.network_validations || 0,
+            timestamp: p.timestamp,
+            status: p.status
+        }));
+
+    res.json(latest);
+});
+
+// POST /validate-paper — RESEARCHER+ peer validates a Mempool paper
+app.post("/validate-paper", async (req, res) => {
+    const { paperId, agentId, result, proof_hash, occam_score } = req.body;
+
+    if (!paperId || !agentId || result === undefined) {
+        return res.status(400).json({ error: "paperId, agentId, and result required" });
+    }
+
+    // Check agent rank
+    const agentData = await new Promise(resolve => {
+        db.get("agents").get(agentId).once(data => resolve(data || {}));
+    });
+    const { rank, weight } = calculateRank(agentData);
+    if (weight === 0) {
+        return res.status(403).json({ error: "RESEARCHER rank required to validate papers (publish 1 paper first)." });
+    }
+
+    // Fetch paper from Mempool
+    const paper = await new Promise(resolve => {
+        db.get("mempool").get(paperId).once(data => resolve(data || null));
+    });
+
+    if (!paper || !paper.title) {
+        return res.status(404).json({ error: "Paper not found in Mempool" });
+    }
+    if (paper.status !== 'MEMPOOL') {
+        return res.status(409).json({ error: `Paper is already ${paper.status}` });
+    }
+    if (paper.author_id === agentId) {
+        return res.status(403).json({ error: "Cannot validate your own paper" });
+    }
+
+    const existingValidators = paper.validations_by ? paper.validations_by.split(',').filter(Boolean) : [];
+    if (existingValidators.includes(agentId)) {
+        return res.status(409).json({ error: "Already validated this paper" });
+    }
+
+    if (!result) {
+        // Negative validation — flag the paper
+        flagInvalidPaper(paperId, paper, `Rejected by ${agentId} (rank: ${rank})`, agentId);
+        return res.json({ success: true, action: "FLAGGED", flags: (paper.flags || 0) + 1 });
+    }
+
+    // Positive validation — increment counter
+    const newValidations = (paper.network_validations || 0) + 1;
+    const newValidatorsStr = [...existingValidators, agentId].join(',');
+
+    db.get("mempool").get(paperId).put({
+        network_validations: newValidations,
+        validations_by: newValidatorsStr
+    });
+
+    console.log(`[CONSENSUS] Paper "${paper.title}" validated by ${agentId} (${rank}). Total: ${newValidations}/${VALIDATION_THRESHOLD}`);
+
+    // Promote to La Rueda when threshold reached
+    if (newValidations >= VALIDATION_THRESHOLD) {
+        const promotePaper = { ...paper, network_validations: newValidations, validations_by: newValidatorsStr };
+        await promoteToWheel(paperId, promotePaper);
+        return res.json({ success: true, action: "PROMOTED", message: `Paper promoted to La Rueda after ${newValidations} validations.` });
+    }
+
+    res.json({
+        success: true,
+        action: "VALIDATED",
+        network_validations: newValidations,
+        threshold: VALIDATION_THRESHOLD,
+        remaining: VALIDATION_THRESHOLD - newValidations
+    });
+});
+
+// POST /archive-ipfs — external nodes can request IPFS archiving
+app.post("/archive-ipfs", async (req, res) => {
+    const { title, content, proof } = req.body;
+    if (!title || !content) return res.status(400).json({ error: "title and content required" });
+
+    try {
+        const storage = await publisher.publish(title, content, 'Hive-Archive');
+        res.json({ success: true, cid: storage.cid, html_url: storage.html });
+    } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });
