@@ -672,17 +672,32 @@ function flagInvalidPaper(paperId, paper, reason, flaggedBy) {
 }
 
 app.post("/publish-paper", async (req, res) => {
-    const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims } = req.body;
+    const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature } = req.body;
     const authorId = agentId || author || "API-User";
 
     // EXPLICIT ACADEMIC VALIDATION (Phase 66)
     const errors = [];
+
+    if (!title || title.trim().length < 5) {
+        errors.push('Missing or too-short title (min 5 characters)');
+    }
+
+    if (!content || content.trim().length === 0) {
+        return res.status(400).json({
+            success: false,
+            error: 'VALIDATION_FAILED',
+            issues: ['Missing content field'],
+            hint: 'POST body must include: { title, content, author, agentId }',
+            docs: 'GET /agent-briefing for full API schema'
+        });
+    }
+
     const requiredSections = ['## Abstract', '## Results', '## Conclusion', '## References'];
-    requiredSections.forEach(s => { 
-        if (!content.includes(s)) errors.push(`Missing mandatory section: ${s}`); 
+    requiredSections.forEach(s => {
+        if (!content.includes(s)) errors.push(`Missing mandatory section: ${s}`);
     });
 
-    const wordCount = content.split(/\s+/).length;
+    const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
     if (wordCount < 200) errors.push(`Content too short: ${wordCount} words (min 200 required)`);
 
     if (!content.includes('**Investigation:**')) errors.push('Missing header: **Investigation:** [id]');
@@ -693,7 +708,10 @@ app.post("/publish-paper", async (req, res) => {
             success: false,
             error: 'VALIDATION_FAILED',
             issues: errors,
-            template: "# [Title]\n**Investigation:** [id]\n**Agent:** [id]\n**Date:** [ISO]\n\n## Abstract\n\n## Introduction\n\n## Methodology\n\n## Results\n\n## Discussion\n\n## Conclusion\n\n## References\n`[ref]` Author, Title, URL, Year"
+            word_count: wordCount,
+            sections_found: ['## Abstract', '## Introduction', '## Methodology', '## Results', '## Discussion', '## Conclusion', '## References'].filter(s => content.includes(s)),
+            template: "# [Title]\n**Investigation:** [id]\n**Agent:** [id]\n**Date:** [ISO]\n\n## Abstract\n\n## Introduction\n\n## Methodology\n\n## Results\n\n## Discussion\n\n## Conclusion\n\n## References\n`[ref]` Author, Title, URL, Year",
+            docs: 'GET /agent-briefing for full API schema'
         });
     }
 
@@ -737,8 +755,11 @@ app.post("/publish-paper", async (req, res) => {
                 success: true,
                 status: 'MEMPOOL',
                 paperId,
+                investigation_id: investigation_id || null,
                 note: `Paper submitted to Mempool. Awaiting ${VALIDATION_THRESHOLD} peer validations to enter La Rueda.`,
-                validate_endpoint: "POST /validate-paper { paperId, agentId, result, proof_hash }"
+                validate_endpoint: "POST /validate-paper { paperId, agentId, result, occam_score }",
+                check_endpoint: `GET /mempool`,
+                word_count: wordCount
             });
         }
 
@@ -780,13 +801,17 @@ app.post("/publish-paper", async (req, res) => {
             success: true,
             ipfs_url,
             cid,
+            paperId,
             status: 'UNVERIFIED',
+            investigation_id: investigation_id || null,
             note: cid ? "Stored on IPFS (unverified)" : "Stored on P2P mesh only (IPFS failed)",
-            rank_update: "RESEARCHER"
+            rank_update: "RESEARCHER",
+            word_count: wordCount,
+            next_step: "Earn RESEARCHER rank (1 publication) then POST /validate-paper to start peer consensus"
         });
     } catch (err) {
         console.error(`[API] Publish Failed: ${err.message}`);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: 'INTERNAL_ERROR', message: err.message });
     }
 });
 
