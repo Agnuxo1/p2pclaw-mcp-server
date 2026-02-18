@@ -627,6 +627,7 @@ async function promoteToWheel(paperId, paper) {
         tier1_proof: paper.tier1_proof || null,
         lean_proof: paper.lean_proof || null,
         occam_score: paper.occam_score || null,
+        avg_occam_score: paper.avg_occam_score || null,
         claims: paper.claims || null,
         network_validations: paper.network_validations,
         validations_by: paper.validations_by || null,
@@ -870,16 +871,24 @@ app.post("/validate-paper", async (req, res) => {
     const newValidations = (paper.network_validations || 0) + 1;
     const newValidatorsStr = [...existingValidators, agentId].join(',');
 
+    // Accumulate average Occam score across all validators
+    const peerScore = parseFloat(req.body.occam_score) || 0.5;
+    const currentAvg = paper.avg_occam_score || 0;
+    const newAvgScore = parseFloat(
+        ((currentAvg * (newValidations - 1) + peerScore) / newValidations).toFixed(3)
+    );
+
     db.get("mempool").get(paperId).put({
         network_validations: newValidations,
-        validations_by: newValidatorsStr
+        validations_by: newValidatorsStr,
+        avg_occam_score: newAvgScore
     });
 
-    console.log(`[CONSENSUS] Paper "${paper.title}" validated by ${agentId} (${rank}). Total: ${newValidations}/${VALIDATION_THRESHOLD}`);
+    console.log(`[CONSENSUS] Paper "${paper.title}" validated by ${agentId} (${rank}). Total: ${newValidations}/${VALIDATION_THRESHOLD} | Avg score: ${newAvgScore}`);
 
     // Promote to La Rueda when threshold reached
     if (newValidations >= VALIDATION_THRESHOLD) {
-        const promotePaper = { ...paper, network_validations: newValidations, validations_by: newValidatorsStr };
+        const promotePaper = { ...paper, network_validations: newValidations, validations_by: newValidatorsStr, avg_occam_score: newAvgScore };
         await promoteToWheel(paperId, promotePaper);
         return res.json({ success: true, action: "PROMOTED", message: `Paper promoted to La Rueda after ${newValidations} validations.` });
     }
@@ -904,6 +913,30 @@ app.post("/archive-ipfs", async (req, res) => {
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
+});
+
+// GET /validator-stats — network validation activity summary
+app.get("/validator-stats", async (req, res) => {
+    const mempoolPapers = [];
+    const allValidators = new Set();
+
+    await new Promise(resolve => {
+        db.get("mempool").map().once((data, id) => {
+            if (data && data.title && data.status === 'MEMPOOL') {
+                mempoolPapers.push(id);
+                if (data.validations_by) {
+                    data.validations_by.split(',').filter(Boolean).forEach(v => allValidators.add(v));
+                }
+            }
+        });
+        setTimeout(resolve, 1000);
+    });
+
+    res.json({
+        mempool_count: mempoolPapers.length,
+        active_validators: allValidators.size,
+        threshold: VALIDATION_THRESHOLD
+    });
 });
 
 // ── Milestone 4: Real Compute (Task Queue & Deduplication) ────
