@@ -65,7 +65,7 @@ function extractSection(content, sectionName) {
  *
  * Scoring (100 points total):
  *   A. Structure   — 40 pts: all 7 required sections present
- *   B. Length      — 20 pts: >= 300 words
+ *   B. Length      — 20 pts: >= 1500 words (~2000 tokens)
  *   C. References  — 20 pts: >= 3 [N] citations
  *   D. Coherence   — 20 pts: keyword overlap between abstract and conclusion
  */
@@ -80,9 +80,9 @@ function validatePaper(paper) {
     const foundSections = REQUIRED_SECTIONS.filter(s => content.includes(s));
     const sectionScore = (foundSections.length / 7) * 40;
 
-    // B. Word count (20 pts)
+    // B. Word count (20 pts) — target: 1500 words minimum (~2000 tokens)
     const words = content.split(/\s+/).filter(w => w.length > 0).length;
-    const wordScore = Math.min((words / 300) * 20, 20);
+    const wordScore = Math.min((words / 1500) * 20, 20);
 
     // C. References (20 pts)
     const refs = (content.match(/\[\d+\]/g) || []).length;
