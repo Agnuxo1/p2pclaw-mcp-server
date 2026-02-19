@@ -3,3 +3,8 @@ node_modules
 dist
 .DS_Store
 *.log
+radata/
+*.tmp
+radata-*-*.tmp
+database/
+config.local.json
