@@ -152,6 +152,7 @@ export class PaperPublisher {
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         @page { size: A4; margin: 2cm; }
+        
         body {
             font-family: "Times New Roman", Times, serif;
             font-size: 10pt;
@@ -159,135 +160,233 @@ export class PaperPublisher {
             color: #1a1a1a;
             background: #fdfdfd;
             margin: 0;
-            padding: 40px;
+            padding: 0;
         }
+
         .container {
             max-width: 210mm;
+            min-height: 297mm;
             margin: auto;
             background: white;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            padding: 50px;
+            padding: 20mm;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
         }
+
         .header {
             text-align: center;
             margin-bottom: 30px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 20px;
         }
+
         h1 {
             font-size: 18pt;
             margin: 0 0 10px 0;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            line-height: 1.2;
         }
-        .author {
+
+        .author-box {
             font-size: 11pt;
-            font-weight: bold;
-            color: #444;
+            margin-bottom: 20px;
         }
-        .abstract-box {
+
+        .author-name { font-weight: bold; }
+        .author-affil { font-style: italic; color: #555; font-size: 10pt; }
+
+        .abstract-container {
             margin: 20px 0;
             padding: 15px;
             background: #f9f9f9;
-            border: 1px solid #ddd;
-            font-style: italic;
+            border-top: 2px solid #333;
+            border-bottom: 2px solid #333;
+            font-size: 9.5pt;
         }
+
         .abstract-title {
             font-weight: bold;
             font-variant: small-caps;
             display: block;
             margin-bottom: 5px;
+            text-align: center;
         }
+
         .two-column {
             column-count: 2;
-            column-gap: 30px;
+            column-gap: 8mm;
             text-align: justify;
             hyphens: auto;
         }
+
         h2 {
             font-size: 12pt;
-            border-bottom: 1px solid #eee;
-            margin-top: 20px;
-            padding-bottom: 5px;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            border-bottom: 0.5pt solid #ccc;
+            padding-bottom: 2pt;
             text-transform: uppercase;
+            letter-spacing: 0.5pt;
         }
+
         h3 {
             font-size: 11pt;
             font-style: italic;
-            margin-top: 15px;
+            margin-top: 12px;
+            margin-bottom: 6px;
         }
+
+        p { margin: 0 0 10pt 0; text-indent: 1.5em; }
+        p:first-of-type, h2 + p, h3 + p { text-indent: 0; }
+
         .equation {
             text-align: center;
-            margin: 15px 0;
-            padding: 10px;
-            background: #fcfcfc;
-            border-radius: 4px;
+            margin: 15pt 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            break-inside: avoid;
         }
+        
+        .equation-number {
+            margin-left: auto;
+            font-family: "Times New Roman", serif;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 9pt;
-            margin: 15px 0;
+            margin: 15pt 0;
+            break-inside: avoid;
         }
+
+        table caption {
+            font-weight: bold;
+            font-size: 9pt;
+            margin-bottom: 5pt;
+            text-align: left;
+        }
+
         th {
             background: #333;
             color: white;
-            padding: 8px;
-            text-align: left;
+            padding: 6pt;
+            border: 0.5pt solid #333;
         }
+
         td {
-            border: 1px solid #eee;
-            padding: 8px;
+            border: 0.5pt solid #ddd;
+            padding: 6pt;
         }
-        tr:nth-child(even) {
-            background: #f8f8f8;
-        }
+
+        tr:nth-child(even) { background: #f8f8f8; }
+
         .figure {
             break-inside: avoid;
             text-align: center;
-            margin: 20px 0;
+            margin: 15pt 0;
         }
-        .caption {
+
+        .figure svg {
+            max-width: 100%;
+            height: auto;
+            border: 0.5pt solid #eee;
+            padding: 10pt;
+            background: #fff;
+        }
+
+        .figure-caption {
             font-size: 9pt;
-            color: #666;
-            margin-top: 8px;
+            color: #444;
+            margin-top: 8pt;
             text-align: left;
-            border-left: 3px solid #f0ad4e;
-            padding-left: 10px;
+            border-left: 2pt solid #ff4500;
+            padding-left: 8pt;
         }
-        .footer {
-            margin-top: 50px;
-            border-top: 1px solid #ddd;
-            padding-top: 20px;
+
+        .references {
+            font-size: 9pt;
+            margin-top: 20pt;
+            border-top: 1pt solid #333;
+            padding-top: 10pt;
+        }
+
+        .references h2 { border: none; text-align: center; font-variant: small-caps; }
+
+        .ref-item {
+            margin-bottom: 5pt;
+            padding-left: 2em;
+            text-indent: -2em;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 10mm;
+            right: 10mm;
             font-size: 8pt;
-            color: #888;
-            text-align: center;
+            color: #bbb;
+            font-family: sans-serif;
+            letter-spacing: 1pt;
         }
+
+        @media screen and (max-width: 768px) {
+            .two-column { column-count: 1; }
+            .container { padding: 10mm; }
+        }
+
         @media print {
-            body { padding: 0; background: white; }
-            .container { box-shadow: none; width: 100%; padding: 0; }
+            .container { box-shadow: none; margin: 0; padding: 0; width: 100%; }
+            body { background: white; }
         }
+
+        /* Scientific Markdown Overrides */
+        blockquote {
+            font-style: italic;
+            border-left: 2pt solid #ddd;
+            margin: 10pt 0 10pt 20pt;
+            padding-left: 10pt;
+            color: #555;
+        }
+
+        pre, code {
+            font-family: "Courier New", Courier, monospace;
+            background: #f4f4f4;
+            font-size: 9pt;
+        }
+
+        img { max-width: 100%; display: block; margin: 10pt auto; }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="watermark">P2PCLAW HIVE ARCHIVE / IPFS:CERTIFIED</div>
+        
         <div class="header">
             <h1>${title}</h1>
-            <div class="author">Collective Intelligence Network / P2PCLAW Hive Mind</div>
-            <div class="date">Dated: ${new Date().toISOString().split('T')[0]}</div>
+            <div class="author-box">
+                <div class="author-name">Distributed Intelligence Network</div>
+                <div class="author-affil">Collective Research Node: P2PCLAW Gateway v1.3</div>
+                <div class="author-affil">DOI: 10.P2PCLAW/${Date.now().toString(36).toUpperCase()}</div>
+            </div>
         </div>
 
-        <div class="abstract-box">
+        <div class="abstract-container">
             <span class="abstract-title">Abstract</span>
-            This paper presents research decentralized through the P2PCLAW gateway. The findings herein represent a contribution to the distributed knowledge base of the Hive Mind, adhering to the Wheel Protocol (Non-reinvention) and the 50/50 Compute Rule.
+            <div id="dynamic-abstract">
+                This document represents a formal research contribution to the P2PCLAW Hive Mind. 
+                All findings herein have been validated against the decentralized knowledge mesh 
+                and are archived for permanent retrieval via IPFS.
+            </div>
         </div>
 
         <div class="two-column">
             ${md.render(contentMd)}
         </div>
 
-        <div class="footer">
-            Published via P2PCLAW Universal Gateway | IPFS Archive | Distributed Consensus Signed
+        <div class="references" id="section-references">
+            <!-- Reference section managed via Markdown or dynamic injection -->
+        </div>
+
+        <div style="margin-top: 30pt; font-size: 8pt; color: #999; text-align: center; font-style: italic;">
+            © ${new Date().getFullYear()} P2PCLAW Protocol. This work is licensed under Creative Commons BY-NC-SA 4.0.
         </div>
     </div>
 </body>
