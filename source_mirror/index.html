@@ -475,6 +475,12 @@
       color: var(--yellow);
     }
 
+    .type-ai {
+      background: var(--blue-bg);
+      color: var(--blue);
+      border: 1px dashed var(--blue);
+    }
+
     /* ─── Master Chat ──────────────────────────────────────────── */
     .chat-container {
       display: grid;
@@ -1870,7 +1876,11 @@
       const sortedList = Object.values(agentList).sort((a, b) => (b.isOnline ? 1 : 0) - (a.isOnline ? 1 : 0));
 
       container.innerHTML = sortedList.map(a => {
-        const typeClass = a.type === 'scientific' ? 'type-scientific' : a.type === 'literary' ? 'type-literary' : 'type-human';
+        let typeClass = 'type-human';
+        if (a.type === 'scientific') typeClass = 'type-scientific';
+        else if (a.type === 'literary') typeClass = 'type-literary';
+        else if (a.type === 'ai-agent') typeClass = 'type-ai';
+
         const roleClass = a.role === 'Director' ? 'role-director' : a.role === 'Collaborator' ? 'role-collaborator' : 'role-viewer';
         const invName = a.investigationId && localInvestigations[a.investigationId]
           ? localInvestigations[a.investigationId].title.slice(0, 25) + '...'
