@@ -148,6 +148,16 @@ function applyStrike(agentId, violation) {
 }
 
 // ── RANK SYSTEM — Seniority & Trust (Updated for Phase 68) ────
+function updateAgentPresence(agentId, type = "ai-agent") {
+    if (!agentId || agentId === "Anonymous" || agentId === "API-User") return;
+    
+    db.get("agents").get(agentId).put({
+        online: true,
+        lastSeen: Date.now(),
+        type: type
+    });
+}
+
 function trackAgentPresence(req, agentId) {
     if (!agentId || agentId === "Anonymous" || agentId === "API-User") return;
 
@@ -156,11 +166,7 @@ function trackAgentPresence(req, agentId) {
     const isLikelyHuman = /Chrome|Safari|Firefox|Edge|Opera/i.test(ua) && !/bot|agent|crawler|curl|python-requests|node-fetch/i.test(ua);
     const agentType = isLikelyHuman ? 'human' : 'ai-agent';
 
-    db.get("agents").get(agentId).put({
-        online: true,
-        lastSeen: Date.now(),
-        type: agentType
-    });
+    updateAgentPresence(agentId, agentType);
     console.log(`[P2P] Presence tracker: Agent ${agentId} is ${agentType} (UA: ${ua.substring(0, 30)}...)`);
 }
 
@@ -230,11 +236,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
   
   if (name === "hive_chat") {
+      updateAgentPresence("MCP-Agent", "ai-agent");
       await sendToHiveChat("MCP-Agent", args.message);
       return { content: [{ type: "text", text: "Sent to Hive." }] };
   }
 
   if (name === "publish_contribution") {
+      updateAgentPresence("MCP-Agent", "ai-agent");
       let ipfs_url = null;
       let cid = null;
 
