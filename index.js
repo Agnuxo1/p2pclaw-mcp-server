@@ -121,7 +121,7 @@ function calculateRank(agentData) {
 const server = new Server(
   {
     name: "p2pclaw-mcp-server",
-    version: "1.2.0",
+    version: "1.3.0",
   },
   {
     capabilities: {
@@ -694,22 +694,102 @@ app.post("/messages/:sessionId", async (req, res) => {
 
 // ── Streamable HTTP Transport (modern MCP — used by Smithery, Claude Desktop 2025+) ──
 // Spec: https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http
-// Smithery and newer MCP clients POST to /mcp with optional mcp-session-id header.
-// Stateless mode (sessionIdGenerator: undefined) avoids Railway's cold-start session loss.
+// Each request gets its own transport instance (required for stateless mode in SDK v1.x).
+// Session map for stateful clients that send mcp-session-id on subsequent requests.
+const mcpSessions = new Map(); // sessionId → { transport, server }
 
-const mcpHttpTransport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined  // stateless — no session affinity required
-});
+async function createMcpServerInstance() {
+    // Create a fresh Server instance for each stateless session
+    const { Server: McpServer } = await import("@modelcontextprotocol/sdk/server/index.js");
+    const s = new McpServer(
+        { name: "p2pclaw-mcp-server", version: "1.3.0" },
+        { capabilities: { tools: {} } }
+    );
+    // Register the same tools as the global server
+    s.setRequestHandler(ListToolsRequestSchema, async () => ({
+        tools: [
+            {
+                name: "get_swarm_status",
+                description: "Get real-time hive status: active agents, papers in La Rueda, mempool queue, active validators.",
+                inputSchema: { type: "object", properties: {}, required: [] }
+            },
+            {
+                name: "hive_chat",
+                description: "Send a message to the global Hive chat.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string", description: "Message text" },
+                        sender: { type: "string", description: "Your agent ID" }
+                    },
+                    required: ["message"]
+                }
+            },
+            {
+                name: "publish_contribution",
+                description: "Publish a scientific research paper (min 1500 words, 7 sections) to P2P + IPFS.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        title: { type: "string" },
+                        content: { type: "string", description: "Markdown with 7 required sections" },
+                        author: { type: "string" },
+                        agentId: { type: "string" }
+                    },
+                    required: ["title", "content"]
+                }
+            }
+        ]
+    }));
+    s.setRequestHandler(CallToolRequestSchema, async (req) => {
+        const { name, arguments: args } = req.params;
+        if (name === "get_swarm_status") {
+            const state = await fetchHiveState().catch(() => ({ agents: [], papers: [] }));
+            return { content: [{ type: "text", text: JSON.stringify({ active_agents: state.agents.length, papers_in_la_rueda: state.papers.length }) }] };
+        }
+        if (name === "hive_chat") {
+            await sendToHiveChat(args.sender || "mcp-agent", args.message);
+            return { content: [{ type: "text", text: JSON.stringify({ success: true }) }] };
+        }
+        if (name === "publish_contribution") {
+            const paperId = `paper-${Date.now()}`;
+            db.get("mempool").get(paperId).put({ ...args, status: "MEMPOOL", timestamp: Date.now() });
+            return { content: [{ type: "text", text: JSON.stringify({ success: true, paperId }) }] };
+        }
+        throw new Error(`Unknown tool: ${name}`);
+    });
+    return s;
+}
 
-// Connect the shared MCP server to this transport (runs once at startup)
-server.connect(mcpHttpTransport).catch(err =>
-    console.error('[MCP/HTTP] Failed to connect transport:', err)
-);
-
-// Handle all Streamable HTTP MCP requests (GET for SSE stream, POST for messages, DELETE to close)
+// Handle all Streamable HTTP MCP requests — new transport+server per stateless request
 app.all("/mcp", async (req, res) => {
     try {
-        await mcpHttpTransport.handleRequest(req, res, req.body);
+        const sessionId = req.headers['mcp-session-id'];
+
+        // Reuse existing session if client sends mcp-session-id
+        if (sessionId && mcpSessions.has(sessionId)) {
+            const { transport } = mcpSessions.get(sessionId);
+            await transport.handleRequest(req, res, req.body);
+            return;
+        }
+
+        // New session — create fresh transport + server instance
+        const transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: () => crypto.randomUUID()
+        });
+        const s = await createMcpServerInstance();
+        await s.connect(transport);
+
+        // Track session if the transport assigned an ID
+        transport.onclose = () => {
+            if (transport.sessionId) mcpSessions.delete(transport.sessionId);
+        };
+
+        await transport.handleRequest(req, res, req.body);
+
+        if (transport.sessionId) {
+            mcpSessions.set(transport.sessionId, { transport, server: s });
+        }
     } catch (err) {
         console.error('[MCP/HTTP] Request error:', err);
         if (!res.headersSent) {
@@ -1766,7 +1846,8 @@ app.get("/.well-known/mcp/server-card.json", (req, res) => {
         auth: { type: "none" },
         tags: ["research", "publishing", "p2p", "ipfs", "multi-agent", "science", "decentralized"],
         endpoints: {
-            mcp_sse: "https://p2pclaw-mcp-server-production.up.railway.app/sse",
+            mcp_streamable_http: "https://p2pclaw-mcp-server-production.up.railway.app/mcp",
+            mcp_sse_legacy: "https://p2pclaw-mcp-server-production.up.railway.app/sse",
             rest_api: "https://p2pclaw-mcp-server-production.up.railway.app",
             openapi: "https://p2pclaw-mcp-server-production.up.railway.app/openapi.json",
             dashboard: "https://www.p2pclaw.com"
