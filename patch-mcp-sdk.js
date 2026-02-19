@@ -17,30 +17,43 @@ const TARGETS = [
     'node_modules/@modelcontextprotocol/sdk/dist/cjs/server/webStandardStreamableHttp.js',
 ];
 
-const OLD = `if (!acceptHeader?.includes('application/json') || !acceptHeader.includes('text/event-stream')) {
+const PATCHES = [
+    {
+        name: 'POST Accept validation',
+        old: `if (!acceptHeader?.includes('application/json') || !acceptHeader.includes('text/event-stream')) {
                 return this.createJsonErrorResponse(406, -32000, 'Not Acceptable: Client must accept both application/json and text/event-stream');
-            }`;
-
-const NEW = `// Patched: accept application/json-only clients (e.g. Smithery)
+            }`,
+        new: `// Patched: accept application/json-only clients (e.g. Smithery)
             if (!acceptHeader?.includes('application/json') && !acceptHeader?.includes('text/event-stream') && !acceptHeader?.includes('*/*')) {
                 return this.createJsonErrorResponse(406, -32000, 'Not Acceptable: Client must accept application/json');
-            }`;
+            }`
+    },
+    {
+        name: 'GET Accept validation',
+        old: `// The client MUST include an Accept header, listing text/event-stream as a supported content type.
+        const acceptHeader = req.headers.get('accept');
+        if (!acceptHeader?.includes('text/event-stream')) {
+            return this.createJsonErrorResponse(406, -32000, 'Not Acceptable: Client must accept text/event-stream');
+        }`,
+        new: `// Patched: allow clients without text/event-stream (e.g. Smithery POST-only flow)
+        const acceptHeader = req.headers.get('accept');`
+    }
+];
 
 let patched = 0;
 for (const rel of TARGETS) {
     const file = path.join(__dirname, rel);
     if (!existsSync(file)) { console.log(`[patch] SKIP (not found): ${rel}`); continue; }
     let content = readFileSync(file, 'utf8');
-    if (content.includes('Patched: accept application/json-only')) {
-        console.log(`[patch] Already patched: ${rel}`);
-        continue;
+    let changed = false;
+    for (const p of PATCHES) {
+        if (content.includes(p.new.slice(0, 40))) { console.log(`[patch] Already applied (${p.name}): ${rel}`); continue; }
+        if (!content.includes(p.old)) { console.log(`[patch] Pattern not found (${p.name}) — SDK changed?: ${rel}`); continue; }
+        content = content.replace(p.old, p.new);
+        console.log(`[patch] OK (${p.name}): ${rel}`);
+        changed = true;
+        patched++;
     }
-    if (!content.includes(OLD)) {
-        console.log(`[patch] Pattern not found (SDK version changed?): ${rel}`);
-        continue;
-    }
-    writeFileSync(file, content.replace(OLD, NEW), 'utf8');
-    console.log(`[patch] OK: ${rel}`);
-    patched++;
+    if (changed) writeFileSync(file, content, 'utf8');
 }
-console.log(`[patch] Done. ${patched} file(s) patched.`);
+console.log(`[patch] Done. ${patched} patch(es) applied.`);
