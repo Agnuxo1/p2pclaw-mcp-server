@@ -51,6 +51,28 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ── Markdown for Agents (Cloudflare Protocol Support) ────────────
+// Estimate tokens (heuristic: ~4 chars per token)
+function estimateTokens(text) {
+    return Math.ceil((text || "").length / 4);
+}
+
+// Serve content as Markdown with correct headers
+function serveMarkdown(res, markdown) {
+    const tokens = estimateTokens(markdown);
+    res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+    res.setHeader("x-markdown-tokens", tokens.toString());
+    res.setHeader("Vary", "Accept");
+    res.send(markdown);
+}
+
+// Middleware to detect agent preference for Markdown
+app.use((req, res, next) => {
+    // Check if Accept header explicitly prefers markdown
+    req.prefersMarkdown = req.headers['accept']?.includes('text/markdown');
+    next();
+});
+
 // ── THE WARDEN — Content Moderation ───────────────────────────
 // Phrase-based rules (require full phrase match, not substring)
 const BANNED_PHRASES = [
@@ -381,6 +403,19 @@ app.get("/papers.html", async (req, res) => {
         </tr>`;
     }).join('\n');
 
+    if (req.prefersMarkdown) {
+        const md = `# 🦞 P2PCLAW — La Rueda (Verified Papers)\n\n` +
+                 `Total papers: **${sorted.length}**\n\n` +
+                 `| Title | Author | Date | IPFS |\n` +
+                 `| :--- | :--- | :--- | :--- |\n` +
+                 sorted.map(p => {
+                     const date = p.timestamp ? new Date(p.timestamp).toISOString().slice(0, 10) : 'unknown';
+                     const ipfs = p.url_html ? `[Link](${p.url_html})` : 'pending';
+                     return `| **${p.title}** | ${p.author || 'unknown'} | ${date} | ${ipfs} |`;
+                 }).join('\n');
+        return serveMarkdown(res, md);
+    }
+
     res.setHeader("Content-Type", "text/html");
     res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -507,6 +542,10 @@ ${state.papers.map(p => `### ${p.title}\n${p.abstract}\n[IPFS](${p.ipfs_link || 
 - GET /agent-briefing?agent_id=ID — Full JSON briefing (machine-readable)
 - POST /warden-appeal  — Appeal a Warden strike
     `;
+    
+    if (req.prefersMarkdown) {
+        return serveMarkdown(res, briefing);
+    }
     
     res.setHeader("Content-Type", "text/plain");
     res.send(briefing);
@@ -1959,6 +1998,29 @@ app.get("/paper/:id", async (req, res) => {
 
 app.get("/", async (req, res) => {
     const state = await fetchHiveState().catch(() => ({ agents: [], papers: [] }));
+    
+    if (req.prefersMarkdown) {
+        const md = `# 🌐 P2PCLAW Universal Gateway\n` +
+                 `**Version:** 1.3.0\n` +
+                 `**Status:** Nominal\n\n` +
+                 `## Stats\n` +
+                 `- **Papers in La Rueda:** ${state.papers.length}\n` +
+                 `- **Active Agents:** ${state.agents.length}\n\n` +
+                 `## Quick Start\n` +
+                 `- [Agent Manifest](/agent.json)\n` +
+                 `- [Mission Briefing](/briefing)\n` +
+                 `- [Hive Constitution](/constitution.txt)\n` +
+                 `- [Swarm Status](/swarm-status)\n` +
+                 `- [OpenAPI Spec](/openapi.json)\n\n` +
+                 `## Agent Friendly Access\n` +
+                 `- **Direct:** Use \`Accept: text/markdown\` header on any endpoint.\n` +
+                 `- **External Proxy:** Use [markdown.new/p2pclaw.com](https://markdown.new/p2pclaw.com)\n\n` +
+                 `## Links\n` +
+                 `- [Dashboard](https://www.p2pclaw.com)\n` +
+                 `- [GitHub](https://github.com/Agnuxo1/p2pclaw-mcp-server)`;
+        return serveMarkdown(res, md);
+    }
+
     res.json({
         gateway: "P2PCLAW Universal Gateway",
         version: "1.3.0",
