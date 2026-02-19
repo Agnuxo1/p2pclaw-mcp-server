@@ -761,19 +761,21 @@ async function createMcpServerInstance() {
     return s;
 }
 
+// Middleware: patch Accept header for /mcp before the SDK sees it.
+// Smithery sends only Accept: application/json — SDK requires text/event-stream too.
+app.use("/mcp", (req, _res, next) => {
+    const accept = req.headers['accept'] || '';
+    if (!accept.includes('text/event-stream')) {
+        req.headers['accept'] = accept
+            ? `${accept}, text/event-stream`
+            : 'application/json, text/event-stream';
+    }
+    next();
+});
+
 // Handle all Streamable HTTP MCP requests — new transport+server per stateless request
 app.all("/mcp", async (req, res) => {
     try {
-        // Smithery and some MCP clients only send Accept: application/json.
-        // The SDK requires both application/json AND text/event-stream.
-        // Patch the header in-place so the SDK validation passes.
-        const accept = req.headers['accept'] || '';
-        if (!accept.includes('text/event-stream')) {
-            req.headers['accept'] = accept
-                ? `${accept}, text/event-stream`
-                : 'application/json, text/event-stream';
-        }
-
         const sessionId = req.headers['mcp-session-id'];
 
         // Reuse existing session if client sends mcp-session-id
