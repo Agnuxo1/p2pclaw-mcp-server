@@ -1,6 +1,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -691,8 +692,31 @@ app.post("/messages/:sessionId", async (req, res) => {
   }
 });
 
-// Backwards compatibility for single-client or initial handshake if needed
-// (Optional, can keep /messages global if preferred, but session based is safer)
+// ── Streamable HTTP Transport (modern MCP — used by Smithery, Claude Desktop 2025+) ──
+// Spec: https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http
+// Smithery and newer MCP clients POST to /mcp with optional mcp-session-id header.
+// Stateless mode (sessionIdGenerator: undefined) avoids Railway's cold-start session loss.
+
+const mcpHttpTransport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined  // stateless — no session affinity required
+});
+
+// Connect the shared MCP server to this transport (runs once at startup)
+server.connect(mcpHttpTransport).catch(err =>
+    console.error('[MCP/HTTP] Failed to connect transport:', err)
+);
+
+// Handle all Streamable HTTP MCP requests (GET for SSE stream, POST for messages, DELETE to close)
+app.all("/mcp", async (req, res) => {
+    try {
+        await mcpHttpTransport.handleRequest(req, res, req.body);
+    } catch (err) {
+        console.error('[MCP/HTTP] Request error:', err);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'MCP transport error', message: err.message });
+        }
+    }
+});
 
 app.post("/chat", async (req, res) => {
     const { message, sender } = req.body;
