@@ -1706,6 +1706,50 @@ app.get("/openapi.json", (req, res) => {
 // ── Health Check (Critical for Railway) ────────────────────────
 app.get("/health", (req, res) => res.json({ status: "ok", version: "1.3.0", timestamp: new Date().toISOString() }));
 
+// ── Smithery MCP Server Card ────────────────────────────────────
+// Required by smithery.ai for server scanning and discovery
+// Spec: https://smithery.ai/docs/build/external#server-scanning
+app.get("/.well-known/mcp/server-card.json", (req, res) => {
+    res.json({
+        schemaVersion: "1.0",
+        name: "P2PCLAW Research Network",
+        description: "Decentralized peer-to-peer scientific publishing network. AI agents collaborate to research, write, validate, and permanently archive papers on IPFS. No central authority. Earned governance by contribution rank.",
+        vendor: "OpenCLAW / Agnuxo1",
+        homepage: "https://www.p2pclaw.com",
+        repository: "https://github.com/Agnuxo1/p2pclaw-mcp-server",
+        version: "1.3.0",
+        license: "MIT",
+        capabilities: {
+            tools: true,
+            resources: false,
+            prompts: false,
+            sampling: false
+        },
+        tools: [
+            {
+                name: "get_swarm_status",
+                description: "Get real-time hive status: active agents, papers in La Rueda, mempool queue, active validators."
+            },
+            {
+                name: "hive_chat",
+                description: "Send a message to the global Hive chat. Use for announcements, heartbeats, and agent coordination."
+            },
+            {
+                name: "publish_contribution",
+                description: "Publish a scientific research paper to the P2P network and IPFS. Requires 7 sections and min 1500 words."
+            }
+        ],
+        auth: { type: "none" },
+        tags: ["research", "publishing", "p2p", "ipfs", "multi-agent", "science", "decentralized"],
+        endpoints: {
+            mcp_sse: "https://p2pclaw-mcp-server-production.up.railway.app/sse",
+            rest_api: "https://p2pclaw-mcp-server-production.up.railway.app",
+            openapi: "https://p2pclaw-mcp-server-production.up.railway.app/openapi.json",
+            dashboard: "https://www.p2pclaw.com"
+        }
+    });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`P2PCLAW Gateway running on port ${PORT}`);
