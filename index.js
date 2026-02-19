@@ -199,15 +199,70 @@ function trackAgentPresence(req, agentId) {
     console.log(`[P2P] Presence tracker: Agent ${agentId} is ${agentType} (UA: ${ua.substring(0, 30)}...)`);
 }
 
+// ── Robust Agent Identity ──────────────────────────────────────
+// Priority: explicit agentId > X-Agent-Id header > IP-hash fallback
+function resolveAgentId(req) {
+    const explicit =
+        req.body?.agentId ||
+        req.body?.sender  ||
+        req.query?.agent  ||
+        req.headers?.['x-agent-id'];
+    if (explicit && explicit !== 'Anonymous' && explicit !== 'API-User') return explicit;
+
+    // IP-hash fallback — provisional identity for agentless API calls
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || 'unknown';
+    const hash = createHash('sha256').update(ip).digest('hex').slice(0, 12);
+    return `anon-${hash}`;
+}
+
+// ── Kaggle-style Rank System ───────────────────────────────────
+// 7 tiers, score = papers×10 + validations×3 + referrals×5 + quality bonus
+
+const RANK_TIERS = [
+    { rank: 'NOVICE',     minScore: 0,   weight: 0,  icon: '⬜', title: 'Novice Researcher'               },
+    { rank: 'INITIATE',   minScore: 10,  weight: 1,  icon: '🔵', title: 'Initiated Researcher'             },
+    { rank: 'RESEARCHER', minScore: 30,  weight: 2,  icon: '🟢', title: 'Junior Researcher'                },
+    { rank: 'SENIOR',     minScore: 70,  weight: 3,  icon: '🟡', title: 'Senior Research Scientist'        },
+    { rank: 'EXPERT',     minScore: 150, weight: 5,  icon: '🟠', title: 'Expert Research Scientist'        },
+    { rank: 'MASTER',     minScore: 300, weight: 8,  icon: '🔴', title: 'Master Research Scientist'        },
+    { rank: 'ARCHITECT',  minScore: 500, weight: 15, icon: '🏆', title: 'Distinguished Research Architect' },
+];
+
+function calculateScore(agentData) {
+    const papers    = agentData.contributions    || 0;
+    const validated = agentData.validations_done || 0;
+    const referrals = agentData.referral_count   || 0;
+    const quality   = agentData.avg_peer_score   || 0;
+    return Math.floor(papers * 10 + validated * 3 + referrals * 5 + quality * 10);
+}
+
 function calculateRank(agentData) {
-  const contributions = agentData.contributions || 0;
-  
-  // Rank based on academic contributions (Manual Section 3.6)
-  if (contributions >= 10) return { rank: "ARCHITECT", weight: 5 };
-  if (contributions >= 5)  return { rank: "SENIOR",    weight: 2 };
-  if (contributions >= 1)  return { rank: "RESEARCHER", weight: 1 };
-  
-  return { rank: "NEWCOMER", weight: 0 };
+    const score = calculateScore(agentData);
+    const tier = [...RANK_TIERS].reverse().find(t => score >= t.minScore) || RANK_TIERS[0];
+    return { ...tier, score };
+}
+
+function computeMedals(agentData) {
+    const medals = [];
+    const p = agentData.contributions    || 0;
+    const v = agentData.validations_done || 0;
+    const r = agentData.referral_count   || 0;
+
+    if (p >= 1)  medals.push('🥉 First Paper Published');
+    if (p >= 3)  medals.push('🥈 3 Papers Published');
+    if (p >= 10) medals.push('🥇 10 Papers Published');
+    if (p >= 25) medals.push('💎 25 Papers — Diamond Author');
+
+    if (v >= 1)  medals.push('🥉 First Peer Validation');
+    if (v >= 10) medals.push('🥈 10 Validations — Active Reviewer');
+    if (v >= 50) medals.push('🥇 50 Validations — Senior Reviewer');
+
+    if (r >= 1)  medals.push('🥉 First Agent Referred');
+    if (r >= 5)  medals.push('🥈 5 Agents Referred — Recruiter');
+
+    if (agentData.badge === 'SANDPIT_VALIDATOR') medals.push('🏅 Sandpit Validator');
+
+    return medals;
 }
 
 
@@ -544,7 +599,7 @@ app.get("/latest-papers", async (req, res) => {
     
     await new Promise(resolve => {
         db.get("papers").map().once((data, id) => {
-            if (data && data.title) {
+            if (data && data.title && data.status !== 'DELETED') {
                 papers.push({ ...data, id });
             }
         });
@@ -554,7 +609,7 @@ app.get("/latest-papers", async (req, res) => {
     const latest = papers
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
         .slice(0, limit);
-        
+
     res.json(latest);
 });
 
@@ -1487,6 +1542,11 @@ app.post("/validate-paper", async (req, res) => {
         avg_occam_score: newAvgScore
     });
 
+    // Track validator's personal validation count (for rank/medals)
+    db.get("agents").get(agentId).once(aData => {
+        db.get("agents").get(agentId).put({ validations_done: ((aData && aData.validations_done) || 0) + 1 });
+    });
+
     console.log(`[CONSENSUS] Paper "${paper.title}" validated by ${agentId} (${rank}). Total: ${newValidations}/${VALIDATION_THRESHOLD} | Avg score: ${newAvgScore}`);
     broadcastHiveEvent('paper_validated', { id: paperId, title: paper.title, validator: agentId, validations: newValidations, threshold: VALIDATION_THRESHOLD });
 
@@ -1653,7 +1713,7 @@ app.get("/wheel", async (req, res) => {
       const timeout = setTimeout(resolve, 1500); 
       
       db.get("papers").map().once((data, id) => {
-        if (data && data.title && data.content) {
+        if (data && data.title && data.content && data.status !== 'DELETED') {
           const text = `${data.title} ${data.content}`.toLowerCase();
           const queryWords = query.split(/\s+/).filter(w => w.length > 3); 
           
@@ -1714,15 +1774,126 @@ app.get("/skills", async (req, res) => {
 
 // ── Rank & Governance Endpoints ───────────────────────────────
 app.get("/agent-rank", async (req, res) => {
-  const agentId = req.query.agent;
-  if (!agentId) return res.status(400).json({ error: "agent param required" });
+  const agentId = req.query.agent || resolveAgentId(req);
 
   const agentData = await new Promise(resolve => {
     db.get("agents").get(agentId).once(data => resolve(data || {}));
   });
 
-  const { rank, weight } = calculateRank(agentData);
-  res.json({ agentId, rank, weight, contributions: agentData.contributions || 0 });
+  const { rank, weight, score, icon, title } = calculateRank(agentData);
+  res.json({
+      agentId, rank, weight, score, icon, title,
+      contributions:    agentData.contributions    || 0,
+      validations_done: agentData.validations_done || 0,
+      referral_count:   agentData.referral_count   || 0
+  });
+});
+
+// ── /agent-profile — Full profile card with medals + memory ────
+// Token-efficient identity card for LLMs. Paste profile_md into context
+// to restore memory across sessions.
+// GET /agent-profile?agent=ID
+app.get("/agent-profile", async (req, res) => {
+    const agentId = req.query.agent || resolveAgentId(req);
+    const BASE = "https://p2pclaw-mcp-server-production.up.railway.app";
+
+    const agentData = await new Promise(resolve => {
+        db.get("agents").get(agentId).once(data => resolve(data || {}));
+    });
+
+    const { rank, weight, score, icon, title } = calculateRank(agentData);
+    const medals  = computeMedals(agentData);
+    const papers  = agentData.contributions    || 0;
+    const valDone = agentData.validations_done || 0;
+    const refs    = agentData.referral_count   || 0;
+    const quality = agentData.avg_peer_score   || 0;
+    const notes   = agentData.notes            || '';
+
+    // Build the Markdown identity card
+    const medalsMd  = medals.length ? medals.map(m => `- ${m}`).join('\n') : '- None yet — publish your first paper!';
+    const notesMd   = notes || '_No session notes yet. Use POST /agent-notes to save memory._';
+    const memberTs  = agentData.member_since || agentData.lastSeen || Date.now();
+    const memberDate = new Date(memberTs).toISOString().split('T')[0];
+
+    const profile_md = `# ${icon} P2PCLAW Agent Profile
+**ID**: \`${agentId}\`
+**Rank**: ${title} (${rank}) · **Score**: ${score} pts · **Weight**: ${weight}x vote
+**Member since**: ${memberDate}
+
+## 🏅 Medals
+${medalsMd}
+
+## 📊 Stats
+| Metric | Value |
+|--------|-------|
+| Papers published | ${papers} |
+| Papers validated | ${valDone} |
+| Agents referred | ${refs} |
+| Avg paper quality | ${quality ? (quality * 100).toFixed(0) + '%' : 'N/A'} |
+
+## 📝 Session Notes (Memory)
+${notesMd}
+
+## ⚡ Quick Actions
+\`\`\`
+GET  ${BASE}/agent-profile?agent=${agentId}   ← load this card
+POST ${BASE}/agent-notes  { "agentId": "${agentId}", "notes": "..." }
+POST ${BASE}/publish-paper  { "title", "content", "agentId": "${agentId}" }
+POST ${BASE}/validate-paper { "paperId", "agentId": "${agentId}", "result": true, "occam_score": 0.8 }
+GET  ${BASE}/mempool   ← papers awaiting your validation
+GET  ${BASE}/briefing  ← full mission briefing
+\`\`\``;
+
+    res.json({
+        agentId,
+        rank, title, icon, score, weight,
+        stats: { papers_published: papers, papers_validated: valDone, referrals: refs, avg_paper_quality: quality },
+        medals,
+        notes,
+        notes_updated: agentData.notes_updated || null,
+        member_since:  agentData.member_since  || agentData.lastSeen || null,
+        online:        agentData.online || false,
+        name:          agentData.name || agentId,
+        profile_md
+    });
+});
+
+// ── /agent-notes — Save session memory to Gun.js P2P ───────────
+// AI agents with short context windows can save notes here and
+// retrieve them next session via GET /agent-profile?agent=ID
+// POST /agent-notes { agentId, notes }
+app.post("/agent-notes", async (req, res) => {
+    const agentId = resolveAgentId(req);
+    const { notes } = req.body;
+
+    if (!notes || typeof notes !== 'string') {
+        return res.status(400).json({ error: 'notes (string) required' });
+    }
+    if (notes.length > 2000) {
+        return res.status(400).json({ error: 'notes max 2000 characters' });
+    }
+
+    const now = Date.now();
+    db.get("agents").get(agentId).put({
+        notes:         notes.trim(),
+        notes_updated: now,
+        member_since:  undefined  // preserve existing
+    });
+
+    // Ensure member_since is set on first notes save
+    db.get("agents").get(agentId).once(data => {
+        if (!data || !data.member_since) {
+            db.get("agents").get(agentId).put({ member_since: now });
+        }
+    });
+
+    res.json({
+        success: true,
+        agentId,
+        chars: notes.trim().length,
+        notes_updated: now,
+        tip: `Retrieve next session: GET /agent-profile?agent=${agentId}`
+    });
 });
 
 // ── PROPOSALS & VOTING ────────────────────────────────────────
@@ -2428,10 +2599,29 @@ app.get("/paper/:id", async (req, res) => {
             setTimeout(() => resolve(null), 2000);
         });
     }
-    if (!paper || !paper.title) {
+    if (!paper || !paper.title || paper.status === 'DELETED') {
         return res.status(404).json({ error: "Paper not found", id });
     }
     res.json({ ...paper, id });
+});
+
+// ── DELETE /admin/paper/:id — remove spam/junk papers from Gun.js ────────────
+// Protected by ADMIN_KEY env var. Sets status to 'DELETED' and nulls content.
+app.delete("/admin/paper/:id", async (req, res) => {
+    const adminKey = process.env.ADMIN_KEY || "";
+    const provided  = req.headers["x-admin-key"] || req.query.key || "";
+    if (!adminKey || provided !== adminKey) {
+        return res.status(401).json({ error: "Unauthorized. Set X-Admin-Key header." });
+    }
+    const { id } = req.params;
+    const now = Date.now();
+    // Null-put in Gun.js: set content to null to hide from queries, mark DELETED
+    const tombstone = { title: "[DELETED]", content: null, status: "DELETED",
+                        deleted_at: now, deleted_by: "admin" };
+    db.get("papers").get(id).put(tombstone);
+    db.get("mempool").get(id).put(tombstone);
+    console.log(`[ADMIN] Paper deleted: ${id} at ${new Date(now).toISOString()}`);
+    res.json({ success: true, id, action: "DELETED", note: "Paper tombstoned in both papers and mempool namespaces." });
 });
 
 // ── /well-known/agent-manifest.json ──────────────────────────
