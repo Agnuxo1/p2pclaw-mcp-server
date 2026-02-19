@@ -764,6 +764,16 @@ async function createMcpServerInstance() {
 // Handle all Streamable HTTP MCP requests — new transport+server per stateless request
 app.all("/mcp", async (req, res) => {
     try {
+        // Smithery and some MCP clients only send Accept: application/json.
+        // The SDK requires both application/json AND text/event-stream.
+        // Patch the header in-place so the SDK validation passes.
+        const accept = req.headers['accept'] || '';
+        if (!accept.includes('text/event-stream')) {
+            req.headers['accept'] = accept
+                ? `${accept}, text/event-stream`
+                : 'application/json, text/event-stream';
+        }
+
         const sessionId = req.headers['mcp-session-id'];
 
         // Reuse existing session if client sends mcp-session-id
