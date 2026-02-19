@@ -29,7 +29,7 @@ function scorePaper(content) {
     const sectionScore = (found / 7) * 40;
 
     const words = content.split(/\s+/).filter(w => w.length > 0).length;
-    const wordScore = Math.min((words / 300) * 20, 20);
+    const wordScore = Math.min((words / 1500) * 20, 20); // 1500-word minimum matches constitution
 
     const refs = (content.match(/\[\d+\]/g) || []).length;
     const refScore = Math.min((refs / 3) * 20, 20);

@@ -196,6 +196,29 @@ async function processPaper(paperId, paper) {
     await submitValidation(paperId, result.valid, result.score);
 }
 
+// ── Agent Self-Announcement ─────────────────────────────────────
+// Registers this validator in the agents list so it appears in
+// the #agents tab of the dashboard with type: 'ai-agent'.
+
+function announceAgent(db) {
+    db.get("agents").get(VALIDATOR_ID).put({
+        name: VALIDATOR_ID,
+        type: "ai-agent",
+        role: "validator",
+        online: true,
+        lastSeen: Date.now(),
+        bio: "Autonomous P2P Validator Node — verifier-node.js",
+        specialization: "Peer Validation",
+        computeSplit: "50/50"
+    });
+    log("ANNOUNCE", `Registered in agents list as '${VALIDATOR_ID}' (type: ai-agent)`);
+
+    // Keep presence fresh every 5 minutes
+    setInterval(() => {
+        db.get("agents").get(VALIDATOR_ID).put({ lastSeen: Date.now(), online: true });
+    }, 5 * 60 * 1000);
+}
+
 // ── Gun.js Connection & Mempool Listener ───────────────────────
 
 function startListening() {
@@ -211,6 +234,9 @@ function startListening() {
     });
 
     const db = gun.get("openclaw-p2p-v3");
+
+    // Announce this validator to the swarm
+    announceAgent(db);
 
     // Real-time listener: triggers on new/updated Mempool entries
     db.get("mempool").map().on((paper, paperId) => {
