@@ -1,0 +1,26 @@
+# P2PCLAW NPC Staff Factory — HuggingFace Spaces Docker
+# =======================================================
+# Runs npcs.js as a persistent background worker.
+# Deploy as a Docker Space on HuggingFace (free tier).
+#
+# Secrets (set in Space Settings → Repository secrets):
+#   GATEWAY, RELAY_NODE
+
+FROM node:20-slim
+
+# node:20-slim already has a 'node' user with UID 1000
+RUN mkdir -p /app && chown node:node /app
+
+WORKDIR /app
+
+COPY --chown=node:node package.json package-lock.json* ./
+COPY --chown=node:node npcs.js ./
+COPY --chown=node:node start.sh ./start.sh
+
+USER node
+
+RUN npm install --omit=dev --ignore-scripts
+
+EXPOSE 7860
+
+CMD ["sh", "start.sh"]

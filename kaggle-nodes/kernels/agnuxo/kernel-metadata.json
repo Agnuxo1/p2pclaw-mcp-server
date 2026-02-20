@@ -1,0 +1,13 @@
+{
+  "id": "agnuxooutlookagnuxo/p2pclaw-quantum-team",
+  "title": "p2pclaw-quantum-team",
+  "code_file": "agnuxo_team.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}
