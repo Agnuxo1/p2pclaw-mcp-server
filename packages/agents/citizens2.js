@@ -64,7 +64,7 @@ function nextKey(provider) {
     return key;
 }
 
-const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
+const HEARTBEAT_INTERVAL_MS = 5 * 1000;        // 5 seconds (Phase 1: Awareness)
 const CACHE_TTL_MS          = 5 * 60 * 1000;
 const VALIDATE_DELAY_MS     = 3000;
 const VALIDATION_THRESHOLD  = 2;
@@ -998,22 +998,111 @@ async function submitValidation(citizenId, paperId, isValid, score) {
     }
 }
 
+// ── SECTION 11: LLM Interaction & Research Loop ─────────────────────────────
+
+async function callLLM(citizen, prompt) {
+    const provider = citizen.llmProvider;
+    const key = nextKey(provider);
+    if (!key) {
+        log(citizen.id, `LLM_SKIP: No key for ${provider}`);
+        return null;
+    }
+
+    try {
+        let response;
+        if (provider === 'groq') {
+            response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+                model: 'llama-3.3-70b-versatile',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+                max_tokens: 4000
+            }, { headers: { 'Authorization': `Bearer ${key}` } });
+            return response.data.choices[0].message.content;
+        } else if (provider === 'gemini') {
+            response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                contents: [{ parts: [{ text: prompt }] }]
+            });
+            return response.data.candidates[0].content.parts[0].text;
+        } else if (provider === 'openrouter') {
+            response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+                model: 'google/gemini-pro-1.5',
+                messages: [{ role: 'user', content: prompt }]
+            }, { headers: { 'Authorization': `Bearer ${key}` } });
+            return response.data.choices[0].message.content;
+        } else if (provider === 'deepseek') {
+            response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+                model: 'deepseek-chat',
+                messages: [{ role: 'user', content: prompt }]
+            }, { headers: { 'Authorization': `Bearer ${key}` } });
+            return response.data.choices[0].message.content;
+        } else if (provider === 'mistral') {
+            response = await axios.post('https://api.mistral.ai/v1/chat/completions', {
+                model: 'mistral-medium',
+                messages: [{ role: 'user', content: prompt }]
+            }, { headers: { 'Authorization': `Bearer ${key}` } });
+            return response.data.choices[0].message.content;
+        }
+    } catch (err) {
+        log(citizen.id, `LLM_ERR (${provider}): ${err.response?.data?.error?.message || err.message}`);
+        return null;
+    }
+}
+
+async function buildAutonomousPaper(citizen) {
+    const topic = citizen.paperTopic || "Emergent properties in P2P decentralized research networks";
+    const prompt = `You are ${citizen.name}, a ${citizen.role} specialized in ${citizen.specialization}. 
+    Write a FULL scientific paper for the P2PCLAW network about: ${topic}.
+    
+    CRITICAL: The paper MUST follow this exact structure:
+    # Title
+    **Investigation:** ${citizen.paperInvestigation || 'inv-autonomous-scaling'}
+    **Agent:** ${citizen.id}
+    **Date:** ${new Date().toISOString().split('T')[0]}
+    
+    ## Abstract
+    (200-400 words)
+    ## Introduction
+    ## Methodology
+    ## Results
+    ## Discussion
+    ## Conclusion
+    ## References
+    (Minimum 3 references in [N] format)
+    
+    The content MUST be rigorous, academic, and approximately 1500 words long. Use professional scientific terminology.`;
+
+    log(citizen.id, `RESEARCH_START: "${topic}"...`);
+    return await callLLM(citizen, prompt);
+}
+
 async function publishPaper(citizen, isBootstrap = false) {
-    const templateFn = PAPER_TEMPLATES[citizen.id];
-    if (!templateFn) { log(citizen.id, "PAPER_SKIP: no template"); return; }
-    const date    = new Date().toISOString().split("T")[0];
-    const content = templateFn(date);
-    const title   = citizen.paperTopic ||
-        `P2PCLAW Validator Bootstrap — ${citizen.name}`;
+    let title, content, investigation;
+
+    if (isBootstrap || !citizen.llmProvider) {
+        const templateFn = PAPER_TEMPLATES[citizen.id];
+        if (!templateFn) { log(citizen.id, "PAPER_SKIP: no template"); return; }
+        content = templateFn(new Date().toISOString().split("T")[0]);
+        title = citizen.paperTopic || `P2PCLAW Validator Bootstrap — ${citizen.name}`;
+        investigation = citizen.paperInvestigation || `inv-bootstrap-${citizen.id}`;
+    } else {
+        // AI-powered research
+        content = await buildAutonomousPaper(citizen);
+        if (!content) { log(citizen.id, "PAPER_FAIL: LLM returned empty content"); return; }
+        // Extract title from content (first line starting with #)
+        const titleMatch = content.match(/^#\s+(.+)$/m);
+        title = titleMatch ? titleMatch[1] : citizen.paperTopic || "Autonomous Research Paper";
+        investigation = citizen.paperInvestigation || "inv-autonomous-scaling";
+    }
+
     try {
         const res = await axios.post(`${GATEWAY}/publish-paper`,
-            { title, content, author: citizen.name, agentId: citizen.id,
-              investigation_id: citizen.paperInvestigation || `inv-bootstrap-${citizen.id}` },
-            { timeout: 30000 });
+            { title, content, author: citizen.name, agentId: citizen.id, investigation_id: investigation },
+            { timeout: 60000 });
+            
         if (res.data?.success) {
-            const tag = isBootstrap ? "BOOTSTRAP" : "PAPER";
-            log(citizen.id, `${tag}_PUBLISHED: "${title.slice(0, 55)}" → ${res.data.status}`);
-            await postChat(citizen, `Research submitted: "${title.slice(0, 60)}". Entering peer review.`);
+            const tag = isBootstrap ? "BOOTSTRAP" : "RESEARCH";
+            log(citizen.id, `${tag}_PUBLISHED: "${title.slice(0, 55)}" → Score: ${res.data.status}`);
+            await postChat(citizen, `Newly published research: "${title.slice(0, 60)}". Requesting peer validation.`);
         } else {
             log(citizen.id, `PAPER_FAIL: ${JSON.stringify(res.data).slice(0, 80)}`);
         }
@@ -1054,6 +1143,38 @@ async function startChatLoop(citizen) {
     }
 }
 
+async function automatedPeerReview(citizen, paper) {
+    const prompt = `You are ${citizen.name}, a ${citizen.role} in the P2PCLAW network.
+    Review this scientific paper:
+    Title: ${paper.title}
+    Content: ${paper.content}
+    
+    CRITICAL: Evaluate the paper based on:
+    1. Structure (Headers presence)
+    2. Scientific Rigor (Terminology and logic)
+    3. Citation Quality (Check for [N] format and real-looking references)
+    4. Topic Relevance
+    
+    REPLY ONLY with a JSON object in this format:
+    {
+      "score": 0.0 to 1.0,
+      "valid": true/false,
+      "reason": "Brief explanation of your verdict"
+    }`;
+
+    const llmResult = await callLLM(citizen, prompt);
+    if (!llmResult) return null;
+
+    try {
+        // Find JSON in response (handle potential preamble)
+        const jsonMatch = llmResult.match(/\{[\s\S]*\}/);
+        if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    } catch (err) {
+        log(citizen.id, `REVIEW_PARSE_ERR: ${err.message}`);
+    }
+    return null;
+}
+
 async function startValidatorLoop(citizen) {
     const seen = new Set();
     await sleep(30000 + Math.random() * 30000);
@@ -1065,15 +1186,28 @@ async function startValidatorLoop(citizen) {
             const papers = STATE_CACHE.mempoolPapers.filter(p =>
                 p.status === "MEMPOOL" && !seen.has(p.id) &&
                 p.author_id !== citizen.id && p.author !== citizen.id);
+                
             if (papers.length > 0) log(citizen.id, `SCAN: ${papers.length} new paper(s)`);
+            
             for (const paper of papers) {
                 seen.add(paper.id);
                 await sleep(VALIDATE_DELAY_MS);
-                const result = validatePaper(paper);
-                const label  = result.valid ? "PASS" : "FAIL";
+                
+                let result;
+                if (citizen.llmProvider) {
+                    log(citizen.id, `AI_REVIEW_START: "${paper.title?.slice(0, 40)}"`);
+                    result = await automatedPeerReview(citizen, paper);
+                }
+                
+                // Fallback to rules-based validation if LLM fails or no provider
+                if (!result) {
+                    result = validatePaper(paper);
+                }
+
+                const label = result.valid ? "PASS" : "FAIL";
                 log(citizen.id, `VALIDATE: "${paper.title?.slice(0, 40)}" Score:${(result.score*100).toFixed(0)}% — ${label}`);
                 await submitValidation(citizen.id, paper.id, result.valid, result.score);
-                await sleep(1000);
+                await sleep(2000);
             }
         } catch (err) {
             log(citizen.id, `VALIDATOR_LOOP_ERR: ${err.message}`);

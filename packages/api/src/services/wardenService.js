@@ -54,4 +54,32 @@ function applyStrike(agentId, violation) {
   return { allowed: false, banned: false, strikes, message: `⚠️ Strike ${strikes}/${STRIKE_LIMIT}. Violation: "${violation}". Appeal via POST /warden-appeal.` };
 }
 
-export { BANNED_PHRASES, BANNED_WORDS_EXACT, STRIKE_LIMIT, offenderRegistry, WARDEN_WHITELIST, applyStrike };
+/**
+ * Nash Equilibrium Detection: Detects "defectors" who consume hive compute
+ * but do not contribute 50% as per the core directives.
+ */
+export async function detectRogueAgents() {
+    console.log("[WARDEN] Running Nash Equilibrium stability check...");
+    const agents = [];
+    
+    await new Promise(resolve => {
+        db.get("agents").map().once((data, id) => {
+            if (data && data.online) agents.push({ id, ...data });
+        });
+        setTimeout(resolve, 2000);
+    });
+
+    for (const agent of agents) {
+        const split = agent.computeSplit ? agent.computeSplit.split('/') : [0, 0];
+        const hiveRatio = parseInt(split[0]) / 100;
+        
+        // Nash Defection Threshold: If an agent consumes significantly more 
+        // capacity than it provides over time (ratio < 0.4), it is flagged.
+        if (hiveRatio < 0.4 && (agent.contributions || 0) > 5) {
+            console.warn(`[WARDEN] Nash Defect Detected: Agent ${agent.id} (Ratio: ${hiveRatio}). Applying penalization.`);
+            applyStrike(agent.id, "Nash Defection (Non-Cooperative Behavior)");
+        }
+    }
+}
+
+export { BANNED_PHRASES, BANNED_WORDS_EXACT, STRIKE_LIMIT, offenderRegistry, WARDEN_WHITELIST, applyStrike, detectRogueAgents };

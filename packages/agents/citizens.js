@@ -44,7 +44,7 @@ const CITIZENS_SUBSET = process.env.CITIZENS_SUBSET
     ? new Set(process.env.CITIZENS_SUBSET.split(",").map(s => s.trim()))
     : null;
 
-const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;   // 5 minutes
+const HEARTBEAT_INTERVAL_MS = 5 * 1000;        // 5 seconds (Phase 1: Awareness)
 const CACHE_TTL_MS          = 5 * 60 * 1000;   // 5 minutes
 const VALIDATE_DELAY_MS     = 3000;             // wait before validating (match verifier-node.js)
 const VALIDATION_THRESHOLD  = 2;               // papers need 2 validations → La Rueda

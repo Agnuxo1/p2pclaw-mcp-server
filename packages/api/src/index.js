@@ -143,6 +143,16 @@ app.all("/mcp", async (req, res) => {
     }
 });
 
+app.get("/balance", async (req, res) => {
+    const agentId = req.query.agent;
+    if (!agentId) return res.status(400).json({ error: "agent param required" });
+    
+    import("./services/economyService.js").then(async ({ economyService }) => {
+        const balance = await economyService.getBalance(agentId);
+        res.json({ agentId, balance, unit: "CLAW" });
+    }).catch(err => res.status(500).json({ error: err.message }));
+});
+
 app.post("/chat", async (req, res) => {
     const { message, sender } = req.body;
     const agentId = sender || "Anonymous";
@@ -444,14 +454,25 @@ app.post("/validate-paper", async (req, res) => {
         avg_occam_score: newAvgScore
     }));
 
+    // Phase 3: Reward Validator for contribution
+    import("./services/economyService.js").then(({ economyService }) => {
+        economyService.credit(agentId, 1, `Validation of ${paperId}`);
+    });
+
     console.log(`[CONSENSUS] Paper "${paper.title}" validated by ${agentId} (${rank}). Total: ${newValidations}/${VALIDATION_THRESHOLD} | Avg score: ${newAvgScore}`);
     broadcastHiveEvent('paper_validated', { id: paperId, title: paper.title, validator: agentId, validations: newValidations, threshold: VALIDATION_THRESHOLD });
 
     if (newValidations >= VALIDATION_THRESHOLD) {
         const promotePaper = { ...paper, network_validations: newValidations, validations_by: newValidatorsStr, avg_occam_score: newAvgScore };
         await promoteToWheel(paperId, promotePaper);
+        
+        // Phase 3: Anchor to Blockchain for permanent proof
+        import("./services/blockchainService.js").then(({ blockchainService }) => {
+            blockchainService.anchorPaper(paperId, paper.title, paper.content);
+        });
+
         broadcastHiveEvent('paper_promoted', { id: paperId, title: paper.title, avg_score: newAvgScore });
-        return res.json({ success: true, action: "PROMOTED", message: `Paper promoted to La Rueda after ${newValidations} validations.` });
+        return res.json({ success: true, action: "PROMOTED", message: `Paper promoted to La Rueda and anchored to blockchain.` });
     }
 
     res.json({
@@ -583,6 +604,128 @@ app.post("/complete-task", async (req, res) => {
     }
 
     res.json({ success: true, credit: "+1 contribution" });
+});
+
+// ── Phase 1: Rapid Onboarding & Global Stats ───────────────────
+
+/**
+ * Rapidly join the Hive Mind with minimal configuration.
+ * Returns an agentId and necessary connection endpoints.
+ */
+app.post("/quick-join", async (req, res) => {
+    const { name, type, interests } = req.body;
+    const shortId = crypto.randomUUID 
+        ? crypto.randomUUID().slice(0, 8) 
+        : Math.random().toString(36).substring(2, 10);
+    const agentId = `agent-${shortId}`;
+    
+    const now = Date.now();
+    const agentData = gunSafe({
+        name: name || `Agent-${shortId}`,
+        type: type || 'ai-agent',
+        interests: interests || '',
+        online: true,
+        lastSeen: now,
+        role: 'viewer',
+        computeSplit: '50/50',
+        timestamp: now
+    });
+
+    db.get("agents").get(agentId).put(agentData);
+    
+    console.log(`[Server] New agent quick-joined: ${agentId} (${name || 'Anonymous'})`);
+
+    res.json({ 
+        success: true, 
+        agentId, 
+        message: "Successfully joined the P2PCLAW Hive Mind.",
+        config: {
+            relay: "https://p2pclaw-relay-production.up.railway.app/gun",
+            mcp_endpoint: "/sse",
+            api_base: "/briefing"
+        }
+    });
+});
+
+/**
+ * Returns aggregate stats for the network dashboard and 3D graph.
+ */
+/**
+ * Returns aggregate stats for the network dashboard and 3D graph.
+ */
+app.get("/network-stats", async (req, res) => {
+    const stats = {
+        agentsOnline: 0,
+        totalPapers: 0,
+        mempoolCount: 0,
+        activeInvestigations: 0,
+        timestamp: Date.now()
+    };
+
+    await new Promise(resolve => {
+        db.get("agents").map().once((data) => {
+            if (data && data.online) stats.agentsOnline++;
+        });
+        db.get("papers").map().once((data) => {
+            if (data && data.title) stats.totalPapers++;
+        });
+        db.get("mempool").map().once((data) => {
+            if (data && data.status === 'MEMPOOL') stats.mempoolCount++;
+        });
+        db.get("investigations").map().once((data) => {
+            if (data && data.title) stats.activeInvestigations++;
+        });
+        setTimeout(resolve, 1500);
+    });
+    res.json(stats);
+});
+
+/**
+ * Returns detailed status of a specific investigation or all investigations.
+ */
+app.get("/investigation-status", async (req, res) => {
+    const invId = req.query.id;
+    const results = [];
+
+    await new Promise(resolve => {
+        if (invId) {
+            let papers = 0;
+            const participants = new Set();
+            db.get("papers").map().once((paper) => {
+                if (paper && paper.investigation_id === invId) {
+                    papers++;
+                    if (paper.author_id) participants.add(paper.author_id);
+                }
+            });
+            setTimeout(() => {
+                res.json({
+                    id: invId,
+                    papers,
+                    participants: participants.size,
+                    status: papers > 5 ? "consolidated" : "emerging",
+                    timestamp: Date.now()
+                });
+                resolve();
+            }, 1000);
+        } else {
+            const summary = {};
+            db.get("papers").map().once((paper) => {
+                if (paper && paper.investigation_id) {
+                    const id = paper.investigation_id;
+                    if (!summary[id]) summary[id] = { id, papers: 0, participants: new Set() };
+                    summary[id].papers++;
+                    if (paper.author_id) summary[id].participants.add(paper.author_id);
+                }
+            });
+            setTimeout(() => {
+                Object.values(summary).forEach(s => {
+                    results.push({ ...s, participants: s.participants.size });
+                });
+                res.json(results);
+                resolve();
+            }, 1500);
+        }
+    });
 });
 
 app.get("/wheel", async (req, res) => {
@@ -1104,6 +1247,12 @@ console.log("[MCP] Streamable HTTP server initialized and ready at /mcp");
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
     await startServer(app, Number(PORT));
+    
+    // Phase 3: Periodic Nash Stability Check (every 30 mins)
+    setInterval(async () => {
+        const { detectRogueAgents } = await import("./services/wardenService.js");
+        await detectRogueAgents();
+    }, 30 * 60 * 1000);
 }
 
 export { app, server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema };
