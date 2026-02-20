@@ -1,0 +1,30 @@
+# P2PCLAW Node D — KarmaKindle1 HuggingFace Space
+# =================================================
+# Runs node-server.js (HTTP gateway + Gun relay on port 7860)
+# AND citizens-node-d.js (18 KarmaKindle citizen agents)
+#
+# Secrets (Space Settings → Repository secrets):
+#   GATEWAY      — https://karmakindle1-p2pclaw-node-d.hf.space
+#   RELAY_NODE   — https://p2pclaw-relay-production.up.railway.app/gun
+#   HF_TOKEN     — hf_pCQEvu... (KarmaKindle1 account token, for free LLM)
+#   NODE_ID      — node-d
+#   EXTRA_PEERS  — (optional) additional Gun peer URLs
+
+FROM node:20-slim
+
+RUN mkdir -p /app && chown node:node /app
+
+WORKDIR /app
+
+COPY --chown=node:node package.json package-lock.json* ./
+COPY --chown=node:node node-server.js ./
+COPY --chown=node:node citizens-node-d.js ./
+COPY --chown=node:node start-node-d.sh ./start.sh
+
+USER node
+
+RUN npm install --omit=dev --ignore-scripts
+
+EXPOSE 7860
+
+CMD ["sh", "start.sh"]

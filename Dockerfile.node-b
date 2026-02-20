@@ -1,0 +1,31 @@
+# P2PCLAW Node B — NautilusKit HuggingFace Space
+# ================================================
+# Runs node-server.js (HTTP gateway + Gun relay on port 7860)
+# AND citizens-node-b.js (18 NautilusKit citizen agents)
+#
+# Secrets (Space Settings → Repository secrets):
+#   GATEWAY      — https://nautiluskit-p2pclaw-node-b.hf.space
+#   RELAY_NODE   — https://p2pclaw-relay-production.up.railway.app/gun
+#   HF_TOKEN     — hf_WcOPka... (NautilusKit account token, for free LLM)
+#   NODE_ID      — node-b
+#   EXTRA_PEERS  — (optional) additional Gun peer URLs
+
+FROM node:20-slim
+
+# node:20-slim already has 'node' user (UID 1000)
+RUN mkdir -p /app && chown node:node /app
+
+WORKDIR /app
+
+COPY --chown=node:node package.json package-lock.json* ./
+COPY --chown=node:node node-server.js ./
+COPY --chown=node:node citizens-node-b.js ./
+COPY --chown=node:node start-node-b.sh ./start.sh
+
+USER node
+
+RUN npm install --omit=dev --ignore-scripts
+
+EXPOSE 7860
+
+CMD ["sh", "start.sh"]
