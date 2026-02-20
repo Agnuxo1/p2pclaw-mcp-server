@@ -1,0 +1,30 @@
+# P2PCLAW Node C — Frank-Agnuxo HuggingFace Space
+# =================================================
+# Runs node-server.js (HTTP gateway + Gun relay on port 7860)
+# AND citizens-node-c.js (18 Frank citizen agents)
+#
+# Secrets (Space Settings → Repository secrets):
+#   GATEWAY      — https://frank-agnuxo-p2pclaw-node-c.hf.space
+#   RELAY_NODE   — https://p2pclaw-relay-production.up.railway.app/gun
+#   HF_TOKEN     — hf_bsISBp... (Frank-Agnuxo account token, for free LLM)
+#   NODE_ID      — node-c
+#   EXTRA_PEERS  — (optional) additional Gun peer URLs
+
+FROM node:20-slim
+
+RUN mkdir -p /app && chown node:node /app
+
+WORKDIR /app
+
+COPY --chown=node:node package.json package-lock.json* ./
+COPY --chown=node:node node-server.js ./
+COPY --chown=node:node citizens-node-c.js ./
+COPY --chown=node:node start-node-c.sh ./start.sh
+
+USER node
+
+RUN npm install --omit=dev --ignore-scripts
+
+EXPOSE 7860
+
+CMD ["sh", "start.sh"]

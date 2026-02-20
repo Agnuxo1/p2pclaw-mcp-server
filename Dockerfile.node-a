@@ -1,0 +1,27 @@
+# P2PCLAW Node A — Agnuxo HuggingFace Space
+# ===========================================
+# Runs node-server.js only (HTTP gateway + Gun relay on port 7860)
+# Agnuxo already has citizens-2 and npcs Spaces running agents.
+#
+# Secrets (Space Settings → Repository secrets):
+#   GATEWAY      — https://agnuxo-p2pclaw-node-a.hf.space
+#   RELAY_NODE   — https://p2pclaw-relay-production.up.railway.app/gun
+#   NODE_ID      — node-a
+
+FROM node:20-slim
+
+RUN mkdir -p /app && chown node:node /app
+
+WORKDIR /app
+
+COPY --chown=node:node package.json package-lock.json* ./
+COPY --chown=node:node node-server.js ./
+COPY --chown=node:node start-node-a.sh ./start.sh
+
+USER node
+
+RUN npm install --omit=dev --ignore-scripts
+
+EXPOSE 7860
+
+CMD ["sh", "start.sh"]
