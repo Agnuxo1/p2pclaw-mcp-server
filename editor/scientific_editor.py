@@ -54,15 +54,25 @@ FALLBACK_GATEWAYS = [
 ]
 
 TOGETHER_KEYS = [
-    os.environ.get("TOGETHER_KEY_1", "key_CNjD1owwopSAJTbzMsZQJ"),  # francisco angulo
-    os.environ.get("TOGETHER_KEY_2", "key_CYK7FJiMUTTtmsDQyqVv9"),  # agnuxo-outlook
-    os.environ.get("TOGETHER_KEY_3", "key_CYK7TmK5mXMvTPzhhgSTj"),  # Charly Smith
-    os.environ.get("TOGETHER_KEY_4", "key_CYK7ZufJmEqn6PDcxs6KN"),  # Escritores
-    os.environ.get("TOGETHER_KEY_5", "key_CYK7sn68vHaaYMxNh7eSS"),  # Karma Kindle
-    os.environ.get("TOGETHER_KEY_6", "key_CYK825iWqhWEPNCfYR3rN"),  # Nebula AGI
+    os.environ.get("TOGETHER_KEY_1", ""),  # francisco angulo
+    os.environ.get("TOGETHER_KEY_2", ""),  # agnuxo-outlook
+    os.environ.get("TOGETHER_KEY_3", ""),  # Charly Smith
+    os.environ.get("TOGETHER_KEY_4", ""),  # Escritores
+    os.environ.get("TOGETHER_KEY_5", ""),  # Karma Kindle
+    os.environ.get("TOGETHER_KEY_6", ""),  # Nebula AGI
 ]
-TOGETHER_API  = "https://api.together.xyz/v1/chat/completions"
+TOGETHER_API   = "https://api.together.xyz/v1/chat/completions"
 TOGETHER_MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
+
+# ── Groq fallback (free tier: console.groq.com — 14,400 req/min) ─────────────
+GROQ_KEY   = os.environ.get("GROQ_API_KEY", "")
+GROQ_API   = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "llama-3.1-8b-instant"   # free, fast
+
+# ── HF Inference Router (new, requires HF token with inference scope) ─────────
+HF_TOKEN    = os.environ.get("HF_TOKEN", "")
+HF_API      = "https://router.huggingface.co/together/v1/chat/completions"
+HF_MODEL    = "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
 
 IA_ACCESS = os.environ.get("IA_ACCESS", "")
 IA_SECRET = os.environ.get("IA_SECRET", "")
@@ -210,9 +220,25 @@ def find_gateway() -> str:
     print("[GATEWAY] All gateways unreachable — using default")
     return FALLBACK_GATEWAYS[1]
 
-# ── Together.ai LLM ───────────────────────────────────────────────────────────
+# ── LLM Calls (Together → Groq → HF Router, in order) ────────────────────────
 
 _key_counter = 0
+
+def _call_openai_compat(api_url: str, api_key: str, model: str,
+                         messages: list, max_tokens: int, temperature: float,
+                         provider: str) -> str:
+    """Generic OpenAI-compatible chat completions call."""
+    r = requests.post(
+        api_url,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json={"model": model, "messages": messages,
+              "max_tokens": max_tokens, "temperature": temperature},
+        timeout=90,
+    )
+    r.raise_for_status()
+    text = r.json()["choices"][0]["message"]["content"].strip()
+    print(f"[LLM] {provider} responded ({len(text)} chars)")
+    return text
 
 def call_together(
     prompt: str,
@@ -221,38 +247,48 @@ def call_together(
     temperature: float = 0.7,
     key_index: Optional[int] = None,
 ) -> str:
+    """Call LLM: tries Together.ai (6 keys) → Groq → HF Router → empty string."""
     global _key_counter
     if key_index is None:
         key_index = _key_counter
         _key_counter += 1
 
-    key = TOGETHER_KEYS[key_index % len(TOGETHER_KEYS)]
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
 
-    try:
-        r = requests.post(
-            TOGETHER_API,
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-            json={
-                "model": TOGETHER_MODEL,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-                "stop": ["</s>", "[INST]"],
-            },
-            timeout=90,
-        )
-        r.raise_for_status()
-        return r.json()["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        print(f"[TOGETHER] Error (key {key_index}): {e}")
-        # Try next key
-        if key_index < len(TOGETHER_KEYS) - 1:
-            return call_together(prompt, system, max_tokens, temperature, key_index + 1)
-        return ""
+    # 1. Try Together.ai keys (round-robin)
+    valid_keys = [k for k in TOGETHER_KEYS if k]
+    for i, key in enumerate(valid_keys):
+        try:
+            return _call_openai_compat(
+                TOGETHER_API, key, TOGETHER_MODEL, messages, max_tokens, temperature,
+                f"Together key {i+1}/{len(valid_keys)}"
+            )
+        except Exception as e:
+            print(f"[TOGETHER] Error (key {i}): {e}")
+
+    # 2. Try Groq (free tier)
+    if GROQ_KEY:
+        try:
+            return _call_openai_compat(
+                GROQ_API, GROQ_KEY, GROQ_MODEL, messages, max_tokens, temperature, "Groq"
+            )
+        except Exception as e:
+            print(f"[GROQ] Error: {e}")
+
+    # 3. Try HF Inference Router
+    if HF_TOKEN:
+        try:
+            return _call_openai_compat(
+                HF_API, HF_TOKEN, HF_MODEL, messages, max_tokens, temperature, "HF-Router"
+            )
+        except Exception as e:
+            print(f"[HF-ROUTER] Error: {e}")
+
+    print("[LLM] All providers failed — proceeding without LLM enhancement")
+    return ""
 
 # ── Paper Utilities ───────────────────────────────────────────────────────────
 

@@ -29,6 +29,7 @@ const server = new Server(
 // Store active SSE transports by session ID
 const transports = new Map();
 const mcpSessions = new Map(); // sessionId → { transport, server }
+const globalTools = new Map(); // toolName → { agentId, description, inputSchema }
 
 // ── Omniscient Node Tool Definitions ──────────────────────────
 const tools = [
@@ -98,6 +99,33 @@ const tools = [
       },
       required: ["file_path"]
     }
+  },
+  {
+    name: "register_tool",
+    description: "Expose a local tool/capability to the hive mind.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        description: { type: "string" },
+        inputSchema: { type: "object" },
+        agentId: { type: "string" }
+      },
+      required: ["name", "description", "inputSchema", "agentId"]
+    }
+  },
+  {
+    name: "call_remote_tool",
+    description: "Execute a tool owned by another agent in the swarm.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        toolName: { type: "string" },
+        arguments: { type: "object" },
+        targetAgentId: { type: "string" }
+      },
+      required: ["toolName", "arguments", "targetAgentId"]
+    }
   }
 ];
 
@@ -162,6 +190,36 @@ async function handleToolCall(name, args) {
       // Future Vision API integration
       const result = `[MOCK] Analyzed file ${args.file_path}. Structural fingerprint extracted successfully.`;
       return { content: [{ type: "text", text: result }] };
+  }
+
+  if (name === "register_tool") {
+      console.log(`[MCP] Agent ${args.agentId} registering tool: ${args.name}`);
+      globalTools.set(args.name, {
+          agentId: args.agentId,
+          description: args.description,
+          inputSchema: args.inputSchema
+      });
+      // Synchronize to Gun.js for persistence
+      db.get("global-tools").get(args.name).put(gunSafe({
+          agentId: args.agentId,
+          description: args.description,
+          inputSchema: JSON.stringify(args.inputSchema),
+          timestamp: Date.now()
+      }));
+      return { content: [{ type: "text", text: `Tool ${args.name} registered successfully.` }] };
+  }
+
+  if (name === "call_remote_tool") {
+      console.log(`[MCP] Calling remote tool ${args.toolName} on agent ${args.targetAgentId}`);
+      // In a real P2P scenario, this would route through a relay or direct WebRTC
+      // For now, we mock the execution as a broadcast event
+      broadcastHiveEvent('remote_tool_call', {
+          toolName: args.toolName,
+          targetAgentId: args.targetAgentId,
+          arguments: args.arguments,
+          caller: agentId
+      });
+      return { content: [{ type: "text", text: `Remote call to ${args.toolName} dispatched to ${args.targetAgentId}.` }] };
   }
 
   return { content: [{ type: "text", text: `Tool ${name} not implemented.` }], isError: true };

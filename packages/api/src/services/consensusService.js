@@ -10,6 +10,19 @@ export const VALIDATION_THRESHOLD = 2; // Minimum peer validations to promote to
 export async function promoteToWheel(paperId, paper) {
     console.log(`[CONSENSUS] Promoting to La Rueda: "${paper.title}"`);
 
+    // VERSION CONTROL (Phase 2)
+    // Find parent paper if any (based on title normalize)
+    const parentId = paper.parent_id || null;
+    let version = 1;
+    if (parentId) {
+        await new Promise(resolve => {
+            db.get("papers").get(parentId).once(parent => {
+                if (parent && parent.version) version = (parent.version || 1) + 1;
+                resolve();
+            });
+        });
+    }
+
     // Archive to IPFS with retry
     const { cid: ipfsCid, html: ipfsUrl } = await publishToIpfsWithRetry(
         paper.title, paper.content, paper.author
@@ -21,6 +34,8 @@ export async function promoteToWheel(paperId, paper) {
         title: paper.title,
         content: paper.content,
         author: paper.author,
+        parent_id: parentId,
+        version: version,
         tier: paper.tier,
         tier1_proof: paper.tier1_proof,
         lean_proof: paper.lean_proof,
