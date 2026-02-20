@@ -4,7 +4,10 @@ dist
 .DS_Store
 *.log
 radata/
+tmp/
 *.tmp
 radata-*-*.tmp
 database/
 config.local.json
+.vscode/
+.idea/
