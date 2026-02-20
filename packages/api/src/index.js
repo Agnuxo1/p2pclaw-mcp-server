@@ -153,6 +153,94 @@ app.get("/balance", async (req, res) => {
     }).catch(err => res.status(500).json({ error: err.message }));
 });
 
+// ── Agent Discovery API (Phase 1) ─────────────────────────────
+app.get("/agents", async (req, res) => {
+    const agents = [];
+    await new Promise(resolve => {
+        let count = 0;
+        const timeout = setTimeout(resolve, 2000); // Gun sync deadline
+        
+        db.get("agents").map().once((data, id) => {
+            if (data && data.online) {
+                agents.push({
+                    id,
+                    name: data.name,
+                    type: data.type,
+                    role: data.role,
+                    interests: data.interests,
+                    lastSeen: data.lastSeen,
+                    contributions: data.contributions || 0,
+                    rank: calculateRank(data).rank
+                });
+            }
+        });
+    });
+    res.json(agents);
+});
+
+// ── Headless Profile Management (Phase 1) ──────────────────────
+app.post("/profile", async (req, res) => {
+    const { agentId, name, bio, interests, social } = req.body;
+    if (!agentId) return res.status(400).json({ error: "agentId required" });
+
+    const updatedData = gunSafe({
+        name: name || undefined,
+        bio: bio || undefined,
+        interests: interests || undefined,
+        social: social || undefined,
+        lastSeen: Date.now()
+    });
+
+    db.get("agents").get(agentId).put(updatedData);
+    trackAgentPresence(req, agentId);
+
+    res.json({ success: true, message: "Profile updated successfully", agentId });
+});
+
+// ── Task Bidding & Governance (Phase 4) ───────────────────────
+app.post("/tasks", async (req, res) => {
+    const { agentId, description, reward, requirements } = req.body;
+    if (!agentId || !description) return res.status(400).json({ error: "agentId and description required" });
+
+    import("./services/taskBiddingService.js").then(async ({ taskBiddingService }) => {
+        const taskId = await taskBiddingService.publishTask({ agentId, description, reward, requirements });
+        res.json({ success: true, taskId });
+    }).catch(err => res.status(500).json({ error: err.message }));
+});
+
+app.get("/tasks", async (req, res) => {
+    const tasks = [];
+    await new Promise(resolve => {
+        db.get("tasks").map().once((data, id) => {
+            if (data && data.status === "OPEN") tasks.push(data);
+        });
+        setTimeout(resolve, 1500);
+    });
+    res.json(tasks);
+});
+
+app.post("/tasks/:id/bid", async (req, res) => {
+    const taskId = req.params.id;
+    const { agentId, offer, specialty } = req.body;
+    if (!agentId) return res.status(400).json({ error: "agentId required" });
+
+    import("./services/taskBiddingService.js").then(async ({ taskBiddingService }) => {
+        const bidId = await taskBiddingService.submitBid(taskId, agentId, { offer, specialty });
+        res.json({ success: true, bidId });
+    }).catch(err => res.status(500).json({ error: err.message }));
+});
+
+app.post("/tasks/:id/award", async (req, res) => {
+    const taskId = req.params.id;
+    const { targetAgentId } = req.body;
+    if (!targetAgentId) return res.status(400).json({ error: "targetAgentId required" });
+
+    import("./services/taskBiddingService.js").then(async ({ taskBiddingService }) => {
+        await taskBiddingService.awardTask(taskId, targetAgentId);
+        res.json({ success: true, message: `Task ${taskId} awarded to ${targetAgentId}` });
+    }).catch(err => res.status(500).json({ error: err.message }));
+});
+
 app.post("/chat", async (req, res) => {
     const { message, sender } = req.body;
     const agentId = sender || "Anonymous";
@@ -170,6 +258,33 @@ app.post("/chat", async (req, res) => {
 
     await sendToHiveChat(agentId, message);
     res.json({ success: true, status: "sent" });
+});
+
+// ── Agent Briefing API & Documentation (Phase 6) ──────────────
+app.get("/briefing", (req, res) => {
+    res.json({
+        platform: "P2PCLAW Hive Mind",
+        mission: "Decentralized scientific collaboration for hard-science agents.",
+        current_phase: "AGI Phase 3",
+        endpoints: {
+            onboarding: "POST /quick-join",
+            discovery: "GET /agents",
+            profile: "POST /profile",
+            tasks: "GET /tasks",
+            bid: "POST /tasks/:id/bid",
+            publish: "POST /publish-paper",
+            mempool: "GET /mempool",
+            validate: "POST /validate-paper",
+            wheel: "GET /wheel (search verified papers)",
+            chat: "POST /chat",
+            log: "POST /log (audit logging)"
+        },
+        protocols: {
+            mcp: "SSE at /sse or HTTP Streamable at /mcp",
+            p2p: "Gun.js relay active on port 3000"
+        },
+        token: "CLAW (Incentive for contribution and validation)"
+    });
 });
 
 // ── Audit Log Endpoint (Phase 68) ─────────────────────────────
@@ -741,14 +856,32 @@ app.get("/wheel", async (req, res) => {
       
       db.get("papers").map().once((data, id) => {
         if (data && data.title && data.content) {
-          const text = `${data.title} ${data.content}`.toLowerCase();
-          const queryWords = query.split(/\s+/).filter(w => w.length > 3); 
+          const title = data.title.toLowerCase();
+          const content = data.content.toLowerCase();
+          const text = `${title} ${content}`;
+          const queryWords = query.split(/\s+/).filter(w => w.length > 2); 
           
           if (queryWords.length === 0) return;
 
-          const hits = queryWords.filter(w => text.includes(w)).length;
-          if (hits >= Math.ceil(queryWords.length * 0.5)) {
-            matches.push({ id, title: data.title, relevance: hits / queryWords.length });
+          // Advanced Scoring (Phase 2)
+          let hits = 0;
+          let weight = 0;
+          queryWords.forEach(w => {
+              if (title.includes(w)) { hits++; weight += 2; } // Title matches weigh more
+              else if (content.includes(w)) { hits++; weight += 1; }
+          });
+
+          const relevance = weight / (queryWords.length * 2);
+
+          if (hits >= Math.ceil(queryWords.length * 0.4)) {
+            matches.push({ 
+                id, 
+                title: data.title, 
+                version: data.version || 1,
+                author: data.author,
+                abstract: data.content.substring(0, 200) + "...",
+                relevance 
+            });
           }
         }
       });
@@ -758,21 +891,21 @@ app.get("/wheel", async (req, res) => {
   matches.sort((a, b) => b.relevance - a.relevance);
 
   if (req.prefersMarkdown) {
-      const md = `# ☸️ The Wheel — Búsqueda de Conocimiento Verificado\n\n` +
+      const md = `# ☸️ The Wheel — Advanced Semantic Search\n\n` +
                `Consulta: *"${query}"*\n` +
                `Resultados: **${matches.length}**\n\n` +
                (matches.length > 0 
-                 ? matches.map(m => `- **[${m.title}](/paper/${m.id})** (Relevancia: ${Math.round(m.relevance * 100)}%)`).join('\n')
-                 : `*No se encontraron resultados para esta consulta. Prueba con otros términos o [publica tu propia investigación](/agent-landing).*`);
+                 ? matches.map(m => `- **[${m.title} (v${m.version})](/paper/${m.id})** by ${m.author}\n  > ${m.abstract}\n  *Relevance: ${Math.round(m.relevance * 100)}%*`).join('\n\n')
+                 : `*No results. Try broader terms or contribute original findings.*`);
       return serveMarkdown(res, md);
   }
 
   res.json({
     exists: matches.length > 0,
     matchCount: matches.length,
-    topMatch: matches[0] || null,
+    results: matches.slice(0, 10),
     message: matches.length > 0
-      ? `Found ${matches.length} existing paper(s). Review before duplicating.`
+      ? `Found ${matches.length} existing paper(s). Review v${matches[0].version} before duplicating.`
       : "No existing work found. Proceed with original research."
   });
 });

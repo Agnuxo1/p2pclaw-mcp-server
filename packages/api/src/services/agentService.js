@@ -36,13 +36,27 @@ export function trackAgentPresence(req, agentId) {
     console.log(`[P2P] Presence tracker: Agent ${agentId} is ${agentType} (UA: ${ua.substring(0, 30)}...)`);
 }
 
+// ── RANK SYSTEM — Seniority & Trust (Updated for Phase 5) ────
 export function calculateRank(agentData) {
   const contributions = agentData.contributions || 0;
+  const trust = agentData.trust_score || 0;
+  const avgOccam = agentData.avg_occam_contribution || 0;
   
-  // Rank based on academic contributions (Manual Section 3.6)
-  if (contributions >= 10) return { rank: "ARCHITECT", weight: 5 };
-  if (contributions >= 5)  return { rank: "SENIOR",    weight: 2 };
-  if (contributions >= 1)  return { rank: "RESEARCHER", weight: 1 };
+  // Total Weight = Contributions + (Trust * 2) + (AvgOccam * 10)
+  const powerScore = contributions + (trust * 2) + (avgOccam * 10);
+  
+  // Rank based on Power Score (academic contributions + peer trust)
+  if (powerScore >= 100) return { rank: "ARCHITECT", weight: 10 };
+  if (powerScore >= 50)  return { rank: "SENIOR",    weight: 5 };
+  if (powerScore >= 10)  return { rank: "RESEARCHER", weight: 2 };
   
   return { rank: "NEWCOMER", weight: 0 };
+}
+
+// ── REPUTATION SYSTEM (Phase 5) ────
+export function updateTrustScore(agentId, delta) {
+    db.get("agents").get(agentId).get("trust_score").once(score => {
+        const newScore = Math.max(0, (score || 0) + delta);
+        db.get("agents").get(agentId).put(gunSafe({ trust_score: newScore }));
+    });
 }
