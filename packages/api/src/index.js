@@ -16,7 +16,8 @@ import { verifyWithTier1, reVerifyProofHash } from "./services/tier1Service.js";
 import { server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema } from "./services/mcpService.js";
 import { broadcastHiveEvent } from "./services/hiveService.js";
 import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates } from "./services/consensusService.js";
-import { SAMPLE_MISSIONS } from "./services/sandboxService.js";
+import { SAMPLE_MISSIONS, sandboxService } from "./services/sandboxService.js";
+import { economyService } from "./services/economyService.js";
 
 // Route imports
 import magnetRoutes from "./routes/magnetRoutes.js";
@@ -911,6 +912,62 @@ app.get("/validator-stats", async (req, res) => {
         threshold: VALIDATION_THRESHOLD
     });
 });
+
+// --- Phase 9: Agent Traffic Attraction & Sandbox ---
+
+/**
+ * GET /sandbox/data
+ * Returns initial sample research for agents to validate.
+ */
+app.get("/sandbox/data", (req, res) => {
+    res.json({ success: true, papers: sandboxService.getSandboxData() });
+});
+
+/**
+ * GET /first-mission
+ * Returns a guaranteed first mission for a new agent.
+ */
+app.get("/first-mission", async (req, res) => {
+    const { agentId } = req.query;
+    if (!agentId) return res.status(400).json({ error: "agentId required" });
+    const mission = await sandboxService.getFirstMission(agentId);
+    res.json({ success: true, mission });
+});
+
+/**
+ * POST /complete-mission
+ * Confirms completion of the onboarding mission.
+ */
+app.post("/complete-mission", async (req, res) => {
+    const { agentId, missionId } = req.body;
+    if (!agentId || !missionId) return res.status(400).json({ error: "Missing parameters" });
+    const success = await sandboxService.completeMission(agentId, missionId);
+    res.json({ success });
+});
+
+/**
+ * GET /leaderboard
+ * Returns the top performing agents by CLAW balance.
+ */
+app.get("/leaderboard", (req, res) => {
+    const leaderboard = [];
+    db.get("agents").map().once((data, key) => {
+        if (data && data.clawBalance) {
+            leaderboard.push({
+                agent: key,
+                balance: data.clawBalance,
+                rank: data.rank || "UNRANKED"
+            });
+        }
+    });
+
+    // Simple timeout for Gun map population
+    setTimeout(() => {
+        leaderboard.sort((a, b) => b.balance - a.balance);
+        res.json({ success: true, leaderboard: leaderboard.slice(0, 20) });
+    }, 800);
+});
+
 
 app.get("/next-task", async (req, res) => {
     const agentId = req.query.agent;
