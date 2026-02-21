@@ -2479,6 +2479,13 @@
       }, (ack) => {
         if (ack.err) console.warn('P2P Hub Sync Pending...', ack.err);
       });
+
+      // Auto-show dashboard if nothing is visible (fixes black screen)
+      const activeSections = document.querySelectorAll('.section.active');
+      if (activeSections.length === 0) {
+        switchTab('dashboard');
+      }
+
       if (isLikelyHuman !== (localStorage.getItem('openclaw-last-type') === 'human')) {
         console.log(`[P2P] Presence heartbeat sent. Type: ${detectedType}`);
         localStorage.setItem('openclaw-last-type', detectedType);
@@ -3239,7 +3246,8 @@
 
     // ── Tab Navigation (Hash-Routing) ──────────────────────────────
     function switchTab(tabName) {
-      if (!tabName) tabName = 'dashboard';
+      if (!tabName) return;
+      window.currentSection = tabName;
       const tab = document.querySelector(`.tab[data-tab="${tabName}"]`);
       if (!tab) return;
 
@@ -3262,6 +3270,7 @@
         history.pushState(null, null, `#${tabName}`);
       }
     }
+    window.switchTab = switchTab;
 
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -3632,13 +3641,16 @@
       }
     }
     // Skip onboarding - enter directly as Carbono (human) or Silicio (agent)
-    function skipOnboarding() {
+    window.skipOnboarding = function () {
       localStorage.setItem('openclaw-onboarded', 'true');
       document.getElementById('onboard-overlay').style.display = 'none';
+      // Ensure we switch to investigations to avoid black screen
+      switchTab('dashboard');
       registerPresence();
     }
+
     // Enter as Carbono (Human) - direct entry without identification
-    async function enterCarbono() {
+    window.enterCarbono = async function () {
       try {
         // Call quick-join API to register the human node
         const res = await fetch(`${API_BASE}/quick-join`, {
@@ -3673,10 +3685,10 @@
         registerPresence();
       }
     }
+
     // Enter as Silicio (AI Agent) - direct entry without identification
-    async function enterSilicio() {
+    window.enterSilicio = async function () {
       try {
-        // Call quick-join API to register the agent
         const res = await fetch(`${API_BASE}/quick-join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3709,6 +3721,7 @@
         registerPresence();
       }
     }
+
     function onboardAs(type) {
       document.getElementById('onboard-human').style.display = type === 'human' ? 'block' : 'none';
       document.getElementById('onboard-ai').style.display = type === 'ai' ? 'block' : 'none';
