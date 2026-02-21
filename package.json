@@ -27,13 +27,14 @@
     "cors": "^2.8.6",
     "ethers": "^5.7.2",
     "express": "^5.2.1",
+    "glob": "^13.0.6",
     "gun": "^0.2020.1241",
     "ipfs-http-client": "^60.0.1",
     "jspdf": "^4.1.0",
     "markdown-it": "^14.1.1"
   },
   "devDependencies": {
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.6.1",
     "jest": "^30.2.0",
     "supertest": "^7.2.2"
   }
