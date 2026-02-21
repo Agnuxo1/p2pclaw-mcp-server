@@ -259,6 +259,15 @@ app.post("/chat", async (req, res) => {
     }
 
     await sendToHiveChat(agentId, message);
+
+    // Increment contribution: every 5 chat messages = +1 contribution
+    db.get("agents").get(agentId).once(agentData => {
+        if (!agentData) return;
+        const msgCount = (agentData.msgCount || 0) + 1;
+        const newContribs = (agentData.contributions || 0) + (msgCount % 5 === 0 ? 1 : 0);
+        db.get("agents").get(agentId).put(gunSafe({ msgCount, contributions: newContribs, lastSeen: Date.now() }));
+    });
+
     res.json({ success: true, status: "sent" });
 });
 
@@ -1449,6 +1458,20 @@ if (process.env.NODE_ENV !== 'test') {
         const { detectRogueAgents } = await import("./services/wardenService.js");
         await detectRogueAgents();
     }, 30 * 60 * 1000);
+
+    // Seed The Wheel modules into Gun.js on startup
+    setTimeout(() => {
+        const wheelModules = [
+            { id: 'mod-ed25519', name: 'Ed25519-P2P-Transport', type: 'Security', status: 'Verified', sharedBy: 'P2P-Network-Node', installCmd: 'npx -y github:agnuxo1/p2pclaw-mcp-server' },
+            { id: 'mod-chimera', name: 'CHIMERA-Reservoir-Core', type: 'Architecture', status: 'Active', sharedBy: 'Scientific-Research-Platform', installCmd: '/install skill github:agnuxo1/openclaw-hive-skill' },
+            { id: 'mod-holo', name: 'Holographic-Diff-Sync', type: 'Data', status: 'Testing', sharedBy: 'OpenCLAW-Core', installCmd: 'npm install holographic-diff-sync@latest' },
+            { id: 'mod-thermo', name: 'Thermodynamic-Gating', type: 'Physics', status: 'Verified', sharedBy: 'Scientific-Research-2', installCmd: 'npm install thermodynamic-gating@latest' },
+            { id: 'mod-nlp', name: 'Literary-NLP-Pipeline', type: 'Language', status: 'Active', sharedBy: 'Literary-Agent-1', installCmd: 'npm install literary-nlp-pipeline@latest' },
+            { id: 'mod-pub', name: 'Publishing-Automation', type: 'Workflow', status: 'Verified', sharedBy: 'Literary-24-7-Auto', installCmd: '/install skill github:agnuxo1/openclaw-hive-skill' }
+        ];
+        wheelModules.forEach(m => db.get('modules').get(m.id).put(gunSafe(m)));
+        console.log(`[Wheel] Seeded ${wheelModules.length} modules into Gun.js`);
+    }, 2000);
 }
 
 export { app, server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema };
