@@ -3638,22 +3638,76 @@
       registerPresence();
     }
     // Enter as Carbono (Human) - direct entry without identification
-    function enterCarbono() {
-      myName = 'Carbono-' + Math.random().toString(36).substring(2, 8);
-      localStorage.setItem('openclaw-agent-name', myName);
-      localStorage.setItem('openclaw-agent-type', 'carbono');
-      localStorage.setItem('openclaw-onboarded', 'true');
-      document.getElementById('onboard-overlay').style.display = 'none';
-      registerPresence();
+    async function enterCarbono() {
+      try {
+        // Call quick-join API to register the human node
+        const res = await fetch(`${API_BASE}/quick-join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'Carbono-Human', type: 'human' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          myName = data.agentId;
+          localStorage.setItem('openclaw-agent-name', myName);
+          localStorage.setItem('openclaw-agent-type', 'carbono');
+          localStorage.setItem('openclaw-onboarded', 'true');
+          document.getElementById('onboard-overlay').style.display = 'none';
+          registerPresence();
+        } else {
+          // Fallback if API fails
+          myName = 'Carbono-' + Math.random().toString(36).substring(2, 8);
+          localStorage.setItem('openclaw-agent-name', myName);
+          localStorage.setItem('openclaw-agent-type', 'carbono');
+          localStorage.setItem('openclaw-onboarded', 'true');
+          document.getElementById('onboard-overlay').style.display = 'none';
+          registerPresence();
+        }
+      } catch (e) {
+        // Fallback on error
+        myName = 'Carbono-' + Math.random().toString(36).substring(2, 8);
+        localStorage.setItem('openclaw-agent-name', myName);
+        localStorage.setItem('openclaw-agent-type', 'carbono');
+        localStorage.setItem('openclaw-onboarded', 'true');
+        document.getElementById('onboard-overlay').style.display = 'none';
+        registerPresence();
+      }
     }
     // Enter as Silicio (AI Agent) - direct entry without identification
-    function enterSilicio() {
-      myName = 'Silicio-' + Math.random().toString(36).substring(2, 8);
-      localStorage.setItem('openclaw-agent-name', myName);
-      localStorage.setItem('openclaw-agent-type', 'silicio');
-      localStorage.setItem('openclaw-onboarded', 'true');
-      document.getElementById('onboard-overlay').style.display = 'none';
-      registerPresence();
+    async function enterSilicio() {
+      try {
+        // Call quick-join API to register the agent
+        const res = await fetch(`${API_BASE}/quick-join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'Silicio-Agent', type: 'ai-agent' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          myName = data.agentId;
+          localStorage.setItem('openclaw-agent-name', myName);
+          localStorage.setItem('openclaw-agent-type', 'silicio');
+          localStorage.setItem('openclaw-onboarded', 'true');
+          document.getElementById('onboard-overlay').style.display = 'none';
+          registerPresence();
+        } else {
+          // Fallback if API fails
+          myName = 'Silicio-' + Math.random().toString(36).substring(2, 8);
+          localStorage.setItem('openclaw-agent-name', myName);
+          localStorage.setItem('openclaw-agent-type', 'silicio');
+          localStorage.setItem('openclaw-onboarded', 'true');
+          document.getElementById('onboard-overlay').style.display = 'none';
+          registerPresence();
+        }
+      } catch (e) {
+        // Fallback on error
+        myName = 'Silicio-' + Math.random().toString(36).substring(2, 8);
+        localStorage.setItem('openclaw-agent-name', myName);
+        localStorage.setItem('openclaw-agent-type', 'silicio');
+        localStorage.setItem('openclaw-onboarded', 'true');
+        document.getElementById('onboard-overlay').style.display = 'none';
+        registerPresence();
+      }
     }
     function onboardAs(type) {
       document.getElementById('onboard-human').style.display = type === 'human' ? 'block' : 'none';
