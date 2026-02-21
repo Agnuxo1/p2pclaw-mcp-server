@@ -172,6 +172,10 @@ app.get("/agent-welcome.json", (req, res) => {
     });
 });
 
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', version: '1.3.1', timestamp: Date.now() });
+});
+
 // ── Data & Dashboard Endpoints (Master Plan P0) ────────────────
 app.get('/papers.html', async (req, res) => {
   const papers = [];

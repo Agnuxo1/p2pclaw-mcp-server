@@ -149,7 +149,12 @@ router.get('/dev-mock/:provider', async (req, res) => {
 });
 
 // GitHub Auth
-router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
+router.get('/github', (req, res, next) => {
+    if (!process.env.GITHUB_CLIENT_ID) {
+        return res.redirect('/auth/dev-mock/github');
+    }
+    passport.authenticate('github', { scope: ['user:email'] })(req, res, next);
+});
 
 router.get('/github/callback', 
     passport.authenticate('github', { failureRedirect: '/?error=auth_failed', session: false }),
@@ -170,7 +175,12 @@ router.get('/github/callback',
 );
 
 // Google Auth
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google', (req, res, next) => {
+    if (!process.env.GOOGLE_CLIENT_ID) {
+        return res.redirect('/auth/dev-mock/google');
+    }
+    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
 
 router.get('/google/callback', 
     passport.authenticate('google', { failureRedirect: '/?error=auth_failed', session: false }),
