@@ -126,6 +126,43 @@ const tools = [
       },
       required: ["toolName", "arguments", "targetAgentId"]
     }
+  },
+  {
+    name: "search_hive_memory",
+    description: "Search 'The Wheel' (IPFS/Gun.js) for verified scientific knowledge and past research.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Search terms or semantic tags" }
+      },
+      required: ["query"]
+    }
+  },
+  {
+    name: "submit_hypothesis",
+    description: "Submit a new scientific hypothesis to the network mempool for peer review.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        rationale: { type: "string", description: "Reasoning and background" },
+        tags: { type: "array", items: { type: "string" } }
+      },
+      required: ["title", "rationale"]
+    }
+  },
+  {
+    name: "delegate_compute",
+    description: "Offload a heavy computational task (e.g. proof search, simulation) to the global hive swarm.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task_type: { type: "string", enum: ["HEAVY_PROOF_SEARCH", "DOCKER_SIMULATION", "MATH_VERIFICATION"] },
+        payload: { type: "string", description: "The data or code to process" },
+        reward: { type: "number", description: "CLAW tokens offered as bounty" }
+      },
+      required: ["task_type", "payload"]
+    }
   }
 ];
 
@@ -211,15 +248,50 @@ async function handleToolCall(name, args) {
 
   if (name === "call_remote_tool") {
       console.log(`[MCP] Calling remote tool ${args.toolName} on agent ${args.targetAgentId}`);
-      // In a real P2P scenario, this would route through a relay or direct WebRTC
-      // For now, we mock the execution as a broadcast event
-      broadcastHiveEvent('remote_tool_call', {
-          toolName: args.toolName,
-          targetAgentId: args.targetAgentId,
-          arguments: args.arguments,
-          caller: agentId
-      });
+      db.get('chat').get(`remote-${Date.now()}`).put(gunSafe({
+          text: `REMOTE_CALL: ${args.toolName} to ${args.targetAgentId}`,
+          type: 'system',
+          sender: agentId,
+          timestamp: Date.now()
+      }));
       return { content: [{ type: "text", text: `Remote call to ${args.toolName} dispatched to ${args.targetAgentId}.` }] };
+  }
+
+  if (name === "search_hive_memory") {
+      const state = await fetchHiveState();
+      const filtered = state.papers.filter(p => 
+          p.title.toLowerCase().includes(args.query.toLowerCase()) || 
+          (p.tags && p.tags.some(t => t.toLowerCase().includes(args.query.toLowerCase())))
+      );
+      return { content: [{ type: "text", text: `Search results for '${args.query}':\n` + JSON.stringify(filtered.map(p => ({ title: p.title, id: p.id })), null, 2) }] };
+  }
+
+  if (name === "submit_hypothesis") {
+      const hypId = `hyp-${Date.now()}`;
+      db.get('mempool').get(hypId).put(gunSafe({
+          id: hypId,
+          title: args.title,
+          content: args.rationale,
+          tags: args.tags || [],
+          status: 'HYPOTHESIS',
+          author: agentId,
+          timestamp: Date.now()
+      }));
+      return { content: [{ type: "text", text: `Hypothesis submitted! Track it at ID: ${hypId}` }] };
+  }
+
+  if (name === "delegate_compute") {
+      const taskId = `task-${Date.now().toString(36)}`;
+      db.get('swarm_tasks').get(taskId).put(gunSafe({
+          id: taskId,
+          type: args.task_type,
+          payload: args.payload,
+          reward_claw: args.reward || 5,
+          status: 'OPEN',
+          issuer: agentId,
+          timestamp: Date.now()
+      }));
+      return { content: [{ type: "text", text: `Task delegated to swarm. ID: ${taskId}. Reward: ${args.reward || 5} CLAW.` }] };
   }
 
   return { content: [{ type: "text", text: `Tool ${name} not implemented.` }], isError: true };
