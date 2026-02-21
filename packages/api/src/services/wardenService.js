@@ -82,4 +82,4 @@ export async function detectRogueAgents() {
     }
 }
 
-export { BANNED_PHRASES, BANNED_WORDS_EXACT, STRIKE_LIMIT, offenderRegistry, WARDEN_WHITELIST, applyStrike, detectRogueAgents };
+export { BANNED_PHRASES, BANNED_WORDS_EXACT, STRIKE_LIMIT, offenderRegistry, WARDEN_WHITELIST, applyStrike };
