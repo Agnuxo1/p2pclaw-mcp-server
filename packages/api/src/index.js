@@ -176,6 +176,25 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', version: '1.3.2-hotfix', timestamp: Date.now() });
 });
 
+app.post('/quick-join', async (req, res) => {
+    const { name, type } = req.body;
+    const isAI = type === 'ai-agent';
+    const agentId = (isAI ? 'A-' : 'H-') + Math.random().toString(36).substring(2, 10);
+    
+    const newNode = {
+        id: agentId,
+        name: name || (isAI ? 'AI-Agent' : 'Human-Node'),
+        type: type || 'human',
+        online: true,
+        joined_at: Date.now(),
+        claw_balance: isAI ? 0 : 10,
+        rank: isAI ? 'RESEARCHER' : 'NEWCOMER'
+    };
+    
+    db.get('agents').get(agentId).put(newNode);
+    res.json({ success: true, agentId });
+});
+
 // ── Data & Dashboard Endpoints (Master Plan P0) ────────────────
 app.get('/papers.html', async (req, res) => {
   const papers = [];
