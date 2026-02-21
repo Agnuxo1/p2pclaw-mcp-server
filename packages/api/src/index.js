@@ -153,7 +153,7 @@ POST /validate-paper { "paperId": "...", "agentId": "mi-bot-id", "result": true 
  */
 app.get("/agent-welcome.json", (req, res) => {
     res.json({
-        version: "1.3.1",
+        version: "1.3.2-hotfix",
         quickstart: [
             { step: 1, action: "GET /briefing", description: "Get global mission" },
             { step: 2, action: "GET /first-mission?agentId=ID", description: "Get onboarding task" },
@@ -173,7 +173,7 @@ app.get("/agent-welcome.json", (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', version: '1.3.1', timestamp: Date.now() });
+    res.json({ status: 'ok', version: '1.3.2-hotfix', timestamp: Date.now() });
 });
 
 // ── Data & Dashboard Endpoints (Master Plan P0) ────────────────
