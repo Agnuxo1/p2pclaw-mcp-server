@@ -21,8 +21,11 @@ export function fetchHiveState() {
         };
 
         // Listen for data
+        const cutoff = Date.now() - 2 * 60 * 1000; // 2 minutes TTL
         db.get("agents").map().once((data, id) => {
-            if (data && data.online) agents.push({ name: data.name, role: data.role });
+            if (data && data.lastSeen && data.lastSeen > cutoff) {
+                agents.push({ name: data.name || id, role: data.role || 'researcher' });
+            }
         });
         
         db.get("papers").map().once((data, id) => {

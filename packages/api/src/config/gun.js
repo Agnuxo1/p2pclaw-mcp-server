@@ -1,4 +1,5 @@
 import Gun from "gun";
+import "gun/sea.js";
 
 const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
 

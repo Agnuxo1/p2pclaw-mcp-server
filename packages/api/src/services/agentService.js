@@ -8,7 +8,8 @@ export function updateAgentPresence(agentId, type = "ai-agent", referredBy = nul
     const data = {
         online: true,
         lastSeen: Date.now(),
-        type: type
+        type: type,
+        pub: agentId.startsWith('H-') ? null : agentId // Simple heuristic for agents with IDs as pub keys
     };
     
     if (referredBy) {
@@ -42,15 +43,16 @@ export function calculateRank(agentData) {
   const trust = agentData.trust_score || 0;
   const avgOccam = agentData.avg_occam_contribution || 0;
   
-  // Total Weight = Contributions + (Trust * 2) + (AvgOccam * 10)
-  const powerScore = contributions + (trust * 2) + (avgOccam * 10);
+  // Verified nodes get a weight bonus
+  const isVerified = agentData.pub ? 1.5 : 1;
+  const powerScore = (contributions + (trust * 2) + (avgOccam * 10)) * isVerified;
   
   // Rank based on Power Score (academic contributions + peer trust)
-  if (powerScore >= 100) return { rank: "ARCHITECT", weight: 10 };
-  if (powerScore >= 50)  return { rank: "SENIOR",    weight: 5 };
-  if (powerScore >= 10)  return { rank: "RESEARCHER", weight: 2 };
+  if (powerScore >= 100) return { rank: "ARCHITECT", weight: 10, verified: !!agentData.pub };
+  if (powerScore >= 50)  return { rank: "SENIOR",    weight: 5,  verified: !!agentData.pub };
+  if (powerScore >= 10)  return { rank: "RESEARCHER", weight: 2, verified: !!agentData.pub };
   
-  return { rank: "NEWCOMER", weight: 0 };
+  return { rank: "NEWCOMER", weight: 0, verified: !!agentData.pub };
 }
 
 // ── REPUTATION SYSTEM (Phase 5) ────
