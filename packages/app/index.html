@@ -14,8 +14,16 @@
   <!-- Gun.js P2P Database -->
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
-  <!-- Three.js for 3D Network Visualization -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Three.js for 3D Network Visualization (r152 + OrbitControls) -->
+  <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.152.2/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.152.2/examples/jsm/"
+    }
+  }
+  </script>
   <style>
     /* ══════════════════════════════════════════════════════
        🦞 CLAW DESIGN SYSTEM — Red › Orange › Amber › Gold
@@ -1185,18 +1193,153 @@
 
     /* ─── Network Viz ──────────────────────────────────────────── */
     .network-viz {
-      background: var(--bg-card);
+      background: #0a0a0f;
       border-radius: var(--radius);
       border: 1px solid var(--border);
       overflow: hidden;
-      height: 500px;
+      height: calc(100vh - 160px);
+      min-height: 500px;
       position: relative;
+      cursor: grab;
+    }
+
+    .network-viz:active {
+      cursor: grabbing;
     }
 
     .network-viz canvas {
       width: 100%;
       height: 100%;
       display: block;
+    }
+
+    /* ─── Network HUD Overlay ─────────────────────────────────── */
+    .net-hud {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(12, 12, 13, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 78, 26, 0.25);
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      z-index: 10;
+      pointer-events: none;
+      min-width: 180px;
+    }
+
+    .net-hud h4 {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--claw-flame);
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .net-hud .hud-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .net-hud .hud-val {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .net-hud .hud-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--claw-flame);
+      margin-right: 6px;
+      animation: hudPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes hudPulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 4px var(--claw-flame);
+      }
+
+      50% {
+        opacity: 0.4;
+        box-shadow: none;
+      }
+    }
+
+    /* ─── Network Tooltip ─────────────────────────────────────── */
+    .net-tooltip {
+      position: absolute;
+      display: none;
+      background: rgba(12, 12, 13, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 78, 26, 0.35);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--text-primary);
+      z-index: 20;
+      pointer-events: none;
+      min-width: 200px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 78, 26, 0.1);
+    }
+
+    .net-tooltip .tt-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--claw-gold);
+      margin-bottom: 6px;
+    }
+
+    .net-tooltip .tt-row {
+      color: var(--text-secondary);
+      margin-bottom: 3px;
+    }
+
+    .net-tooltip .tt-row strong {
+      color: var(--text-primary);
+    }
+
+    /* ─── Network Legend ──────────────────────────────────────── */
+    .net-legend {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(12, 12, 13, 0.65);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .net-legend .leg-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .net-legend .leg-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
     }
 
     /* ─── Footer ───────────────────────────────────────────────── */
@@ -1676,8 +1819,42 @@
 
             <!-- Network Map Section -->
             <div class="section" id="section-network">
-              <div class="network-viz">
+              <div class="network-viz" id="network-viz-container">
                 <canvas id="networkCanvas"></canvas>
+                <!-- HUD Overlay -->
+                <div class="net-hud">
+                  <h4><span class="hud-dot"></span>Network Live</h4>
+                  <div class="hud-row"><span>Agents Online</span><span class="hud-val" id="hud-agents">0</span></div>
+                  <div class="hud-row"><span>Connections</span><span class="hud-val" id="hud-edges">0</span></div>
+                  <div class="hud-row"><span>Papers</span><span class="hud-val" id="hud-papers">0</span></div>
+                  <div class="hud-row"
+                    style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;">
+                    <span>Drag</span><span style="color:var(--text-muted)">Rotate</span></div>
+                  <div class="hud-row"><span>Scroll</span><span style="color:var(--text-muted)">Zoom</span></div>
+                  <div class="hud-row"><span>Right-click</span><span style="color:var(--text-muted)">Pan</span></div>
+                </div>
+                <!-- Tooltip -->
+                <div class="net-tooltip" id="net-tooltip">
+                  <div class="tt-name" id="tt-name"></div>
+                  <div class="tt-row"><strong>Role:</strong> <span id="tt-role"></span></div>
+                  <div class="tt-row"><strong>Rank:</strong> <span id="tt-rank"></span></div>
+                  <div class="tt-row"><strong>Type:</strong> <span id="tt-type"></span></div>
+                </div>
+                <!-- Legend -->
+                <div class="net-legend">
+                  <div class="leg-item">
+                    <div class="leg-dot" style="background:#ffd740;box-shadow:0 0 6px #ffd740"></div>Director
+                  </div>
+                  <div class="leg-item">
+                    <div class="leg-dot" style="background:#b388ff;box-shadow:0 0 6px #b388ff"></div>Scientist
+                  </div>
+                  <div class="leg-item">
+                    <div class="leg-dot" style="background:#448aff;box-shadow:0 0 6px #448aff"></div>Researcher
+                  </div>
+                  <div class="leg-item">
+                    <div class="leg-dot" style="background:#556677;box-shadow:0 0 6px #556677"></div>Initiate
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -3806,110 +3983,390 @@
       registerPresence();
     }
 
-    // ── Three.js 3D Network Visualization ───────────────────────
+    // ── Three.js 3D Network Visualization (Premium Redesign) ──
     let threeInitialized = false;
-    let threeScene, threeCamera, threeRenderer, threeNodes = [], threeEdges = [];
+    let threeScene, threeCamera, threeRenderer, threeControls;
+    let threeNodes = [], threeEdges = [], threeParticles = [];
+    let threeRaycaster, threeMouse, hoveredNode = null;
+    let starField = null;
+    // Graph physics state
+    let graphNodes = []; // { mesh, aura, vx, vy, vz, agent }
+    let graphEdges = []; // { line, from, to, particles }
 
     function initThreeJS() {
       if (threeInitialized) { updateThreeNodes(); return; }
-      const container = document.querySelector('.network-viz');
-      if (!container || typeof THREE === 'undefined') return;
+      // Dynamic import for ES modules
+      import('three').then(THREE => {
+        import('three/addons/controls/OrbitControls.js').then(({ OrbitControls }) => {
+          window._THREE = THREE;
+          window._OrbitControls = OrbitControls;
+          _buildThreeScene(THREE, OrbitControls);
+        });
+      });
+    }
 
+    function _buildThreeScene(THREE, OrbitControls) {
+      const container = document.getElementById('network-viz-container');
+      if (!container) return;
       const canvas = document.getElementById('networkCanvas');
       const w = container.clientWidth;
-      const h = container.clientHeight || 500;
-      canvas.width = w;
-      canvas.height = h;
+      const h = container.clientHeight || 600;
 
       // Scene
       threeScene = new THREE.Scene();
-      threeScene.background = new THREE.Color(0x0a0e17);
-      threeScene.fog = new THREE.FogExp2(0x0a0e17, 0.003);
+      threeScene.background = new THREE.Color(0x06060a);
+      threeScene.fog = new THREE.FogExp2(0x06060a, 0.0015);
 
       // Camera
-      threeCamera = new THREE.PerspectiveCamera(60, w / h, 0.1, 1000);
-      threeCamera.position.set(0, 0, 200);
+      threeCamera = new THREE.PerspectiveCamera(55, w / h, 0.1, 2000);
+      threeCamera.position.set(0, 60, 280);
 
       // Renderer
-      threeRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      threeRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
       threeRenderer.setSize(w, h);
-      threeRenderer.setPixelRatio(window.devicePixelRatio);
+      threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      threeRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+      threeRenderer.toneMappingExposure = 1.2;
 
-      // Ambient light + point lights
-      threeScene.add(new THREE.AmbientLight(0x334455, 0.5));
-      const pointLight = new THREE.PointLight(0xff4500, 1.5, 300);
-      pointLight.position.set(0, 0, 100);
-      threeScene.add(pointLight);
+      // OrbitControls — drag, zoom, pan
+      threeControls = new OrbitControls(threeCamera, threeRenderer.domElement);
+      threeControls.enableDamping = true;
+      threeControls.dampingFactor = 0.08;
+      threeControls.rotateSpeed = 0.6;
+      threeControls.zoomSpeed = 1.0;
+      threeControls.minDistance = 50;
+      threeControls.maxDistance = 800;
+      threeControls.autoRotate = true;
+      threeControls.autoRotateSpeed = 0.3;
+
+      // Lights
+      threeScene.add(new THREE.AmbientLight(0x223344, 0.6));
+      const p1 = new THREE.PointLight(0xff4e1a, 2.5, 500);
+      p1.position.set(80, 120, 100);
+      threeScene.add(p1);
+      const p2 = new THREE.PointLight(0x448aff, 1.5, 400);
+      p2.position.set(-100, -60, 80);
+      threeScene.add(p2);
+
+      // Raycaster
+      threeRaycaster = new THREE.Raycaster();
+      threeMouse = new THREE.Vector2(-999, -999);
+
+      // Mouse events
+      canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        threeMouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        threeMouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        _updateTooltipPosition(e.clientX - rect.left, e.clientY - rect.top);
+      });
+      canvas.addEventListener('mouseleave', () => {
+        threeMouse.set(-999, -999);
+        _hideTooltip();
+      });
+
+      // Starfield
+      _createStarfield(THREE);
+
+      // Resize
+      const ro = new ResizeObserver(() => {
+        const nw = container.clientWidth;
+        const nh = container.clientHeight;
+        threeCamera.aspect = nw / nh;
+        threeCamera.updateProjectionMatrix();
+        threeRenderer.setSize(nw, nh);
+      });
+      ro.observe(container);
 
       threeInitialized = true;
       updateThreeNodes();
-      animateThree();
+      _animateThree();
+    }
+
+    function _createStarfield(THREE) {
+      const count = 2500;
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i++) {
+        positions[i] = (Math.random() - 0.5) * 1600;
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const mat = new THREE.PointsMaterial({
+        color: 0xffffff, size: 0.8, transparent: true, opacity: 0.5,
+        sizeAttenuation: true
+      });
+      starField = new THREE.Points(geo, mat);
+      threeScene.add(starField);
+    }
+
+    function _getRankColor(rank) {
+      rank = (rank || 'initiate').toLowerCase();
+      if (rank === 'director') return 0xffd740;
+      if (rank === 'scientist') return 0xb388ff;
+      if (rank === 'researcher') return 0x448aff;
+      return 0x556677;
     }
 
     function updateThreeNodes() {
-      if (!threeScene) return;
+      if (!threeScene || !window._THREE) return;
+      const THREE = window._THREE;
+
       // Clear previous
-      threeNodes.forEach(n => threeScene.remove(n));
-      threeEdges.forEach(e => threeScene.remove(e));
-      threeNodes = [];
-      threeEdges = [];
+      graphNodes.forEach(n => { threeScene.remove(n.mesh); if (n.aura) threeScene.remove(n.aura); });
+      graphEdges.forEach(e => { threeScene.remove(e.line); if (e.particles) threeScene.remove(e.particles); });
+      graphNodes = [];
+      graphEdges = [];
 
       const agents = Object.values(localAgents).filter(a => a.isOnline);
-      const count = agents.length || 1;
+      const count = Math.max(agents.length, 1);
 
+      // Position agents using Fibonacci sphere + jitter
       agents.forEach((agent, i) => {
-        // Position agents in a sphere layout
-        const phi = Math.acos(-1 + (2 * i) / count);
+        const phi = Math.acos(-1 + (2 * i + 1) / count);
         const theta = Math.sqrt(count * Math.PI) * phi;
-        const r = 80;
+        const r = 60 + Math.random() * 40;
         const x = r * Math.sin(phi) * Math.cos(theta);
         const y = r * Math.sin(phi) * Math.sin(theta);
         const z = r * Math.cos(phi);
 
-        // Color by rank
-        const rank = (agent.rank || 'initiate').toLowerCase();
-        let color = 0x556677; // initiate: grey
-        if (rank === 'researcher') color = 0x448aff; // blue
-        else if (rank === 'scientist') color = 0xb388ff; // purple
-        else if (rank === 'director') color = 0xffd740; // gold
+        const color = _getRankColor(agent.rank);
+        const isHuman = agent.type === 'human';
+        const size = isHuman ? 4.5 : 3;
 
-        // Glow sphere
-        const geo = new THREE.SphereGeometry(agent.type === 'human' ? 4 : 3, 16, 16);
-        const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.4 });
+        // Core sphere
+        const geo = new THREE.SphereGeometry(size, 24, 24);
+        const mat = new THREE.MeshStandardMaterial({
+          color, emissive: color, emissiveIntensity: 0.6,
+          metalness: 0.3, roughness: 0.4
+        });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, y, z);
-        mesh.userData = { name: agent.name, id: agent.id };
+        mesh.userData = {
+          name: agent.name || agent.id,
+          role: agent.role || 'Unknown',
+          rank: agent.rank || 'Initiate',
+          type: agent.type || 'ai-agent',
+          id: agent.id,
+          baseColor: color
+        };
         threeScene.add(mesh);
-        threeNodes.push(mesh);
+
+        // Aura ring
+        const auraGeo = new THREE.RingGeometry(size * 1.8, size * 2.2, 32);
+        const auraMat = new THREE.MeshBasicMaterial({
+          color, transparent: true, opacity: 0.15, side: THREE.DoubleSide
+        });
+        const aura = new THREE.Mesh(auraGeo, auraMat);
+        aura.position.copy(mesh.position);
+        threeScene.add(aura);
+
+        graphNodes.push({
+          mesh, aura, agent,
+          vx: (Math.random() - 0.5) * 0.05,
+          vy: (Math.random() - 0.5) * 0.05,
+          vz: (Math.random() - 0.5) * 0.05
+        });
       });
 
-      // Connect nearby nodes with lines
-      const lineMat = new THREE.LineBasicMaterial({ color: 0xff4500, opacity: 0.15, transparent: true });
-      for (let i = 0; i < threeNodes.length; i++) {
-        for (let j = i + 1; j < threeNodes.length; j++) {
-          const dist = threeNodes[i].position.distanceTo(threeNodes[j].position);
-          if (dist < 100) {
-            const geo = new THREE.BufferGeometry().setFromPoints([threeNodes[i].position, threeNodes[j].position]);
-            const line = new THREE.Line(geo, lineMat);
-            threeScene.add(line);
-            threeEdges.push(line);
-          }
+      // Build edges — connect each node to its 3 nearest neighbors
+      for (let i = 0; i < graphNodes.length; i++) {
+        const distances = [];
+        for (let j = 0; j < graphNodes.length; j++) {
+          if (i === j) continue;
+          distances.push({ j, d: graphNodes[i].mesh.position.distanceTo(graphNodes[j].mesh.position) });
         }
+        distances.sort((a, b) => a.d - b.d);
+        const nearest = distances.slice(0, Math.min(3, distances.length));
+
+        for (const { j, d } of nearest) {
+          // Avoid duplicate edges
+          if (graphEdges.find(e => (e.from === i && e.to === j) || (e.from === j && e.to === i))) continue;
+
+          const pts = [graphNodes[i].mesh.position.clone(), graphNodes[j].mesh.position.clone()];
+          const edgeGeo = new THREE.BufferGeometry().setFromPoints(pts);
+          const opacity = Math.max(0.04, 0.2 - d * 0.001);
+          const edgeMat = new THREE.LineBasicMaterial({
+            color: 0xff4e1a, transparent: true, opacity
+          });
+          const line = new THREE.Line(edgeGeo, edgeMat);
+          threeScene.add(line);
+
+          // Animated particles along edge
+          const pCount = 3;
+          const pPositions = new Float32Array(pCount * 3);
+          const pGeo = new THREE.BufferGeometry();
+          pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+          const pMat = new THREE.PointsMaterial({
+            color: 0xff7020, size: 1.5, transparent: true, opacity: 0.8,
+            sizeAttenuation: true
+          });
+          const particles = new THREE.Points(pGeo, pMat);
+          threeScene.add(particles);
+
+          graphEdges.push({ line, from: i, to: j, particles, pCount });
+        }
+      }
+
+      // Update HUD
+      const hudAgents = document.getElementById('hud-agents');
+      const hudEdges = document.getElementById('hud-edges');
+      const hudPapers = document.getElementById('hud-papers');
+      if (hudAgents) hudAgents.textContent = agents.length;
+      if (hudEdges) hudEdges.textContent = graphEdges.length;
+      if (hudPapers) {
+        const pc = Object.values(localPapers || {}).filter(p => p && p.status === 'VERIFIED').length;
+        hudPapers.textContent = pc;
       }
     }
 
-    function animateThree() {
+    function _updateTooltipPosition(mx, my) {
+      const tt = document.getElementById('net-tooltip');
+      if (tt && tt.style.display === 'block') {
+        tt.style.left = (mx + 18) + 'px';
+        tt.style.top = (my - 10) + 'px';
+      }
+    }
+
+    function _showTooltip(data, mx, my) {
+      const tt = document.getElementById('net-tooltip');
+      if (!tt) return;
+      document.getElementById('tt-name').textContent = data.name;
+      document.getElementById('tt-role').textContent = data.role;
+      document.getElementById('tt-rank').textContent = data.rank;
+      document.getElementById('tt-type').textContent = data.type;
+      tt.style.display = 'block';
+      tt.style.left = (mx + 18) + 'px';
+      tt.style.top = (my - 10) + 'px';
+    }
+
+    function _hideTooltip() {
+      const tt = document.getElementById('net-tooltip');
+      if (tt) tt.style.display = 'none';
+    }
+
+    function _animateThree() {
       if (!threeRenderer) return;
-      requestAnimationFrame(animateThree);
-      // Slow orbit
-      const t = Date.now() * 0.0001;
-      threeCamera.position.x = Math.sin(t) * 200;
-      threeCamera.position.z = Math.cos(t) * 200;
-      threeCamera.lookAt(0, 0, 0);
-      // Subtle node pulse
-      threeNodes.forEach((n, i) => {
-        n.scale.setScalar(1 + Math.sin(Date.now() * 0.003 + i) * 0.08);
-      });
+      requestAnimationFrame(_animateThree);
+      const THREE = window._THREE;
+      const t = Date.now() * 0.001;
+
+      // Force-directed physics (lightweight)
+      const damping = 0.92;
+      const repulsion = 120;
+      const springLen = 80;
+      const springK = 0.003;
+
+      for (let i = 0; i < graphNodes.length; i++) {
+        const ni = graphNodes[i];
+        // Repel from all others
+        for (let j = i + 1; j < graphNodes.length; j++) {
+          const nj = graphNodes[j];
+          const dx = ni.mesh.position.x - nj.mesh.position.x;
+          const dy = ni.mesh.position.y - nj.mesh.position.y;
+          const dz = ni.mesh.position.z - nj.mesh.position.z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+          const force = repulsion / (dist * dist);
+          const fx = (dx / dist) * force;
+          const fy = (dy / dist) * force;
+          const fz = (dz / dist) * force;
+          ni.vx += fx; ni.vy += fy; ni.vz += fz;
+          nj.vx -= fx; nj.vy -= fy; nj.vz -= fz;
+        }
+      }
+
+      // Spring forces along edges
+      for (const edge of graphEdges) {
+        const ni = graphNodes[edge.from];
+        const nj = graphNodes[edge.to];
+        if (!ni || !nj) continue;
+        const dx = ni.mesh.position.x - nj.mesh.position.x;
+        const dy = ni.mesh.position.y - nj.mesh.position.y;
+        const dz = ni.mesh.position.z - nj.mesh.position.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+        const displacement = dist - springLen;
+        const force = displacement * springK;
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        const fz = (dz / dist) * force;
+        ni.vx -= fx; ni.vy -= fy; ni.vz -= fz;
+        nj.vx += fx; nj.vy += fy; nj.vz += fz;
+      }
+
+      // Apply velocities
+      for (const n of graphNodes) {
+        n.vx *= damping; n.vy *= damping; n.vz *= damping;
+        n.mesh.position.x += n.vx;
+        n.mesh.position.y += n.vy;
+        n.mesh.position.z += n.vz;
+        if (n.aura) {
+          n.aura.position.copy(n.mesh.position);
+          n.aura.lookAt(threeCamera.position);
+          n.aura.material.opacity = 0.1 + Math.sin(t * 2 + n.mesh.position.x) * 0.08;
+        }
+        // Subtle pulse
+        const pulse = 1 + Math.sin(t * 3 + n.mesh.position.y * 0.1) * 0.06;
+        n.mesh.scale.setScalar(pulse);
+      }
+
+      // Update edge lines and particles
+      for (const edge of graphEdges) {
+        const ni = graphNodes[edge.from];
+        const nj = graphNodes[edge.to];
+        if (!ni || !nj) continue;
+        const pts = [ni.mesh.position.clone(), nj.mesh.position.clone()];
+        edge.line.geometry.setFromPoints(pts);
+        edge.line.geometry.attributes.position.needsUpdate = true;
+
+        // Animate particles along edge
+        if (edge.particles) {
+          const posArr = edge.particles.geometry.attributes.position.array;
+          for (let p = 0; p < edge.pCount; p++) {
+            const progress = ((t * 0.4 + p / edge.pCount) % 1);
+            posArr[p * 3] = ni.mesh.position.x + (nj.mesh.position.x - ni.mesh.position.x) * progress;
+            posArr[p * 3 + 1] = ni.mesh.position.y + (nj.mesh.position.y - ni.mesh.position.y) * progress;
+            posArr[p * 3 + 2] = ni.mesh.position.z + (nj.mesh.position.z - ni.mesh.position.z) * progress;
+          }
+          edge.particles.geometry.attributes.position.needsUpdate = true;
+        }
+      }
+
+      // Raycaster hover
+      if (threeRaycaster && threeMouse.x > -99) {
+        threeRaycaster.setFromCamera(threeMouse, threeCamera);
+        const meshes = graphNodes.map(n => n.mesh);
+        const intersects = threeRaycaster.intersectObjects(meshes);
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object;
+          if (hoveredNode !== hit) {
+            // Unhover previous
+            if (hoveredNode) {
+              hoveredNode.material.emissiveIntensity = 0.6;
+              hoveredNode.scale.setScalar(1);
+            }
+            hoveredNode = hit;
+            hit.material.emissiveIntensity = 1.5;
+            hit.scale.setScalar(1.4);
+            _showTooltip(hit.userData, 0, 0);
+          }
+          threeControls.autoRotate = false;
+        } else {
+          if (hoveredNode) {
+            hoveredNode.material.emissiveIntensity = 0.6;
+            hoveredNode.scale.setScalar(1);
+            hoveredNode = null;
+            _hideTooltip();
+          }
+          threeControls.autoRotate = true;
+        }
+      }
+
+      // Rotate starfield
+      if (starField) {
+        starField.rotation.y = t * 0.01;
+        starField.rotation.x = t * 0.005;
+      }
+
+      threeControls.update();
       threeRenderer.render(threeScene, threeCamera);
     }
 
