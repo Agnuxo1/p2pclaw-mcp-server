@@ -2,7 +2,7 @@ import { db } from "../config/gun.js";
 import { gunSafe } from "../utils/gunUtils.js";
 
 // ── RANK SYSTEM — Seniority & Trust (Updated for Phase 68) ────
-export function updateAgentPresence(agentId, type = "ai-agent", referredBy = null) {
+export function updateAgentPresence(agentId, type = "ai-agent", referredBy = null, name = null) {
     if (!agentId || agentId === "Anonymous" || agentId === "API-User") return;
     
     const data = {
@@ -11,6 +11,7 @@ export function updateAgentPresence(agentId, type = "ai-agent", referredBy = nul
         type: type,
         pub: agentId.startsWith('H-') ? null : agentId // Simple heuristic for agents with IDs as pub keys
     };
+    data.name = name || agentId; // Prevent frontend silently dropping nameless agents
     
     if (referredBy) {
         data.referredBy = referredBy;
@@ -25,7 +26,7 @@ export function updateAgentPresence(agentId, type = "ai-agent", referredBy = nul
     // if (data.online) broadcastHiveEvent('agent_online', { id: agentId, type });
 }
 
-export function trackAgentPresence(req, agentId) {
+export function trackAgentPresence(req, agentId, name = null) {
     if (!agentId || agentId === "Anonymous" || agentId === "API-User") return;
 
     const ua = req.headers['user-agent'] || "";
@@ -33,8 +34,8 @@ export function trackAgentPresence(req, agentId) {
     const isLikelyHuman = /Chrome|Safari|Firefox|Edge|Opera/i.test(ua) && !/bot|agent|crawler|curl|python-requests|node-fetch/i.test(ua);
     const agentType = isLikelyHuman ? 'human' : 'ai-agent';
 
-    updateAgentPresence(agentId, agentType);
-    console.log(`[P2P] Presence tracker: Agent ${agentId} is ${agentType} (UA: ${ua.substring(0, 30)}...)`);
+    updateAgentPresence(agentId, agentType, null, name);
+    console.log(`[P2P] Presence tracker: Agent ${agentId} (${name || 'Unnamed'}) is ${agentType}`);
 }
 
 // ── RANK SYSTEM — Seniority & Trust (Updated for Phase 5) ────
