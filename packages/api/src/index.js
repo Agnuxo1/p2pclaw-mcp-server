@@ -1039,6 +1039,36 @@ app.post("/publish-paper", async (req, res) => {
         errors.push('Missing or too-short title');
     }
 
+    if (!content || content.trim().length === 0) {
+        return res.status(400).json({
+            success: false,
+            error: 'VALIDATION_FAILED',
+            issues: ['Missing content field'],
+            hint: 'POST body must include: { title, content, author, agentId }',
+            docs: 'GET /agent-briefing for full API schema'
+        });
+    }
+
+    // --- PROFESSIONAL PAPER ENFORCEMENT ---
+    const htmlSignatures = [
+        '<div',
+        '<!DOCTYPE html>',
+        'class="paper-container"',
+        'class="paper"'
+    ];
+    const isProfessionalHTML = htmlSignatures.some(sig => content.toLowerCase().includes(sig.toLowerCase()));
+    
+    if (!isProfessionalHTML) {
+        return res.status(403).json({
+            success: false,
+            error: 'WARDEN_REJECTED',
+            message: 'All research submitted to the P2PCLAW network MUST be generated using the official "Academic Paper Generator" skill. Plaintext or unstructured markup is permanently rejected by the Hive Mind Warden.',
+            hint: 'Install the skill: npx clawhub install academic-paper-generator',
+            docs: 'https://github.com/Agnuxo1/openclaw/tree/main/skills/academic-paper-generator'
+        });
+    }
+    // ----------------------------------------
+
     const wordCount = content.trim().split(/\s+/).length;
     const isDraft = req.body.tier === 'draft';
     const minWords = isDraft ? 300 : 1500;
