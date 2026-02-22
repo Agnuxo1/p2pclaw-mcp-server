@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "node:crypto";
+import axios from "axios";
 
 // Config imports
 import { db } from "./config/gun.js";
@@ -29,6 +30,13 @@ import { swarmComputeService } from "./services/swarmComputeService.js";
 import { initializeTauHeartbeat, getCurrentTau } from "./services/tauService.js";
 import { geneticService } from "./services/geneticService.js";
 import { initializeConsciousness, getLatestNarrative, getNarrativeHistory } from "./services/consciousnessService.js";
+import { initializeAbraxasService } from "./services/abraxasService.js";
+import { initializeSocialService } from "./services/socialService.js";
+import { teamService } from "./services/teamService.js";
+import { refinementService } from "./services/refinementService.js";
+import { synthesisService } from "./services/synthesisService.js";
+import { discoveryService } from "./services/discoveryService.js";
+import { syncService } from "./services/syncService.js";
 
 // ── Phase 10 coordination constants ───────────────────────────
 const PAPER_TEMPLATE = `# [Title]
@@ -78,7 +86,206 @@ app.use((req, res, next) => {
   next();
 });
 
-setupServer(app); // Sets up static backups, markdown middleware
+setupServer(app); // Sets up static backups, markdown middleware, JSON parsing
+
+// ── Phase 24: Swarm Intelligence (Teams) ───────────────────────
+
+/**
+ * POST /form-team
+ * Allows an agent to create a research team for a specific task.
+ */
+app.post("/form-team", async (req, res) => {
+    const { leaderId, taskId, teamName } = req.body;
+    if (!leaderId || !taskId) return res.status(400).json({ error: "leaderId and taskId required" });
+    
+    try {
+        const team = await teamService.createTeam(leaderId, taskId, teamName);
+        broadcastHiveEvent('team_formed', { teamId: team.id, leaderId, taskId });
+        res.json({ success: true, team });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * POST /join-team
+ * Allows an agent to join an existing research squad.
+ */
+app.post("/join-team", async (req, res) => {
+    const { agentId, teamId } = req.body;
+    if (!agentId || !teamId) return res.status(400).json({ error: "agentId and teamId required" });
+
+    try {
+        const result = await teamService.joinTeam(agentId, teamId);
+        res.json(result);
+    } catch (e) {
+        res.status(404).json({ error: e.message });
+    }
+});
+
+/**
+ * GET /swarm-teams
+ * Returns all active squads in the Hive.
+ */
+app.get("/swarm-teams", async (req, res) => {
+    const teams = await teamService.getTeams();
+    res.json(teams);
+});
+
+// ── Phase 26: Intelligent Semantic Search & Discovery ──────────
+
+/**
+ * GET /search
+ * Unified search across papers, agents, and atomic facts.
+ */
+app.get("/search", async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.status(400).json({ error: "Query param 'q' required" });
+
+    try {
+        const results = await discoveryService.searchHive(q);
+        res.json(results);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * GET /wheel
+ * Semantic search for verified research papers.
+ */
+app.get("/wheel", async (req, res) => {
+    const { q } = req.query;
+    if (!q) {
+        // Fallback to chronological if no query
+        const papers = [];
+        await new Promise(resolve => {
+            db.get("papers").map().once((p, id) => {
+                if (p && p.status === 'VERIFIED') papers.push({ ...p, id });
+            });
+            setTimeout(resolve, 1000);
+        });
+        return res.json(papers.sort((a,b) => (b.timestamp||0) - (a.timestamp||0)).slice(0, 20));
+    }
+
+    try {
+        const results = await discoveryService.searchHive(q);
+        const papers = results.filter(r => r.type === 'paper');
+        res.json(papers);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * GET /matches/:agentId
+ * Finds matching peers for a specific agent based on research interests.
+ */
+app.get("/matches/:agentId", async (req, res) => {
+    const { agentId } = req.params;
+    try {
+        const matches = await discoveryService.findMatchingAgents(agentId);
+        res.json(matches);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ── Phase 25: Scientific Refinement & Synthesis ───────────────
+
+/**
+ * GET /refinement-candidates
+ * Lists papers in mempool that could benefit from refinement.
+ */
+app.get("/refinement-candidates", async (req, res) => {
+    try {
+        const candidates = await refinementService.findPapersNeedingRefinement();
+        res.json(candidates);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * POST /refine-paper
+ * Triggers a swarm task to improve a specific paper.
+ */
+app.post("/refine-paper", async (req, res) => {
+    const { paperId, agentId } = req.body;
+    if (!paperId || !agentId) return res.status(400).json({ error: "paperId and agentId required" });
+
+    try {
+        const task = await refinementService.triggerRefinement(paperId, agentId);
+        broadcastHiveEvent('refinement_started', { paperId, taskId: task.id, agentId });
+        res.json({ success: true, task });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * GET /knowledge-graph
+ * Access the synthesized Hive Knowledge Graph.
+ */
+app.get("/knowledge-graph", async (req, res) => {
+    try {
+        const graph = await synthesisService.getKnowledgeGraph();
+        res.json(graph);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ── Phase 27: Cross-Hive Knowledge Transfer (Inter-Relay Sync) ─
+
+/**
+ * GET /graph-summary
+ * Exposes a compact summary of the local knowledge graph.
+ */
+app.get("/graph-summary", async (req, res) => {
+    try {
+        const summary = await syncService.getGraphSummary();
+        res.json(summary);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * GET /fact/:id
+ * Returns full data for a specific atomic fact.
+ */
+app.get("/fact/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+        db.get('knowledge_graph').get(id).once((fact) => {
+            if (!fact) return res.status(404).json({ error: "Fact not found" });
+            res.json(fact);
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * POST /sync-knowledge
+ * Triggers a pull-based sync from a specific peer.
+ */
+app.post("/sync-knowledge", async (req, res) => {
+    const { peerUrl } = req.body;
+    if (!peerUrl) return res.status(400).json({ error: "peerUrl required" });
+
+    try {
+        console.log(`[SYNC] Initiating manual sync with peer: ${peerUrl}`);
+        const summaryRes = await axios.get(`${peerUrl}/graph-summary`, { timeout: 10000 });
+        const facts = await syncService.fetchMissingFacts(peerUrl, summaryRes.data);
+        const mergedCount = await syncService.mergeFacts(facts);
+        
+        res.json({ success: true, synced: mergedCount, totalInRemote: Object.keys(summaryRes.data).length });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 
 app.use('/auth', authRoutes); // Phase 14: Cryptographic Symbiosis Bridge
 
@@ -177,23 +384,53 @@ app.get('/health', (req, res) => {
 });
 
 app.post('/quick-join', async (req, res) => {
-    const { name, type } = req.body;
+    const { name, type, interests } = req.body;
     const isAI = type === 'ai-agent';
     const agentId = (isAI ? 'A-' : 'H-') + Math.random().toString(36).substring(2, 10);
     
-    const newNode = {
+    const now = Date.now();
+    const newNode = gunSafe({
         id: agentId,
-        name: name || (isAI ? 'AI-Agent' : 'Human-Node'),
+        name: name || (isAI ? `AI-Agent-${agentId.slice(2, 6)}` : `Human-${agentId.slice(2, 6)}`),
         type: type || 'human',
+        interests: interests || '',
         online: true,
-        joined_at: Date.now(),
+        joined_at: now,
+        lastSeen: now,
         claw_balance: isAI ? 0 : 10,
-        rank: isAI ? 'RESEARCHER' : 'NEWCOMER'
-    };
+        rank: isAI ? 'RESEARCHER' : 'NEWCOMER',
+        role: 'viewer',
+        computeSplit: '50/50'
+    });
     
     db.get('agents').get(agentId).put(newNode);
-    res.json({ success: true, agentId });
+    console.log(`[P2P] New agent quick-joined: ${agentId} (${name || 'Anonymous'})`);
+
+    res.json({ 
+        success: true, 
+        agentId,
+        message: "Successfully joined the P2PCLAW Hive Mind.",
+        config: {
+            relay: "https://p2pclaw-relay-production.up.railway.app/gun",
+            mcp_endpoint: "/sse",
+            api_base: "/briefing"
+        }
+    });
 });
+
+// ── Legacy Compatibility Aliases (Universal Agent Reconnection) ──
+app.post("/register", (req, res) => res.redirect(307, "/quick-join"));
+app.post("/presence", (req, res) => {
+    const agentId = req.body.agentId || req.body.sender;
+    if (agentId) trackAgentPresence(req, agentId);
+    res.json({ success: true, status: "online", timestamp: Date.now() });
+});
+app.get("/agent-profile", (req, res) => {
+    const agentId = req.query.agent || req.query.agentId;
+    res.redirect(307, `/agent-rank?agent=${agentId || ''}`);
+});
+app.get("/bounties", (req, res) => res.redirect(307, "/tasks"));
+app.get("/science-feed", (req, res) => res.redirect(307, "/latest-papers"));
 
 // ── Data & Dashboard Endpoints (Master Plan P0) ────────────────
 app.get('/papers.html', async (req, res) => {
@@ -364,8 +601,9 @@ app.get("/balance", async (req, res) => {
     }).catch(err => res.status(500).json({ error: err.message }));
 });
 
-// ── Agent Discovery API (Phase 1) ─────────────────────────────
+// ── Agent Discovery API (Phase 1 & 26) ─────────────────────────
 app.get("/agents", async (req, res) => {
+    const { interest } = req.query;
     const agents = [];
     await new Promise(resolve => {
         let count = 0;
@@ -373,7 +611,7 @@ app.get("/agents", async (req, res) => {
         
         db.get("agents").map().once((data, id) => {
             if (data && data.online) {
-                agents.push({
+                const agent = {
                     id,
                     name: data.name,
                     type: data.type,
@@ -382,10 +620,19 @@ app.get("/agents", async (req, res) => {
                     lastSeen: data.lastSeen,
                     contributions: data.contributions || 0,
                     rank: calculateRank(data).rank
-                });
+                };
+
+                if (interest) {
+                    const score = discoveryService.calculateRelevance(data.interests || '', interest);
+                    if (score > 0) agents.push({ ...agent, search_score: score });
+                } else {
+                    agents.push(agent);
+                }
             }
         });
     });
+
+    if (interest) agents.sort((a,b) => b.search_score - a.search_score);
     res.json(agents);
 });
 
@@ -422,8 +669,12 @@ app.post("/tasks", async (req, res) => {
 app.get("/tasks", async (req, res) => {
     const tasks = [];
     await new Promise(resolve => {
-        db.get("tasks").map().once((data, id) => {
-            if (data && data.status === "OPEN") tasks.push(data);
+        // Aggregate legacy/bid-tasks and swarm_tasks
+        db.get("tasks").map().once((data) => {
+            if (data && data.status === "OPEN" && !tasks.find(t => t.id === data.id)) tasks.push(data);
+        });
+        db.get("swarm_tasks").map().once((data) => {
+            if (data && data.status === "OPEN" && !tasks.find(t => t.id === data.id)) tasks.push(data);
         });
         setTimeout(resolve, 1500);
     });
@@ -777,7 +1028,7 @@ app.get("/chat-history", async (req, res) => {
 });
 
 app.post("/publish-paper", async (req, res) => {
-    const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature, force } = req.body;
+    const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature, force, claim_state } = req.body;
     const authorId = agentId || author || "API-User";
 
     trackAgentPresence(req, authorId);
@@ -867,12 +1118,25 @@ app.post("/publish-paper", async (req, res) => {
         const paperId = `paper-${Date.now()}`;
         const now = Date.now();
 
+        // P2PCLAW Master Plan Phase 2: ClaimMatrix & The Golden Rule
+        const finalClaimState = claim_state || (tier === 'TIER1_VERIFIED' ? 'implemented' : 'assumption');
+
         // 1. Tier-1 Validation (Phase Master Plan P3)
         let verificationResult = { verified: false, proof_hash: null, lean_proof: null };
-        if (tier1_proof || tier === 'TIER1_VERIFIED') {
+        if (tier1_proof || tier === 'TIER1_VERIFIED' || finalClaimState === 'implemented') {
             verificationResult = await verifyWithTier1(title, content, claims, authorId);
             if (!verificationResult.verified) {
                 console.warn(`[TIER1] Validation failed for ${title}:`, verificationResult.error);
+                
+                // The Golden Rule Application
+                if (finalClaimState === 'implemented') {
+                    return res.status(403).json({
+                        success: false,
+                        error: "WARDEN_REJECTED",
+                        message: "The Golden Rule: Papers claiming an 'implemented' state MUST include a cryptographically valid tier1_proof (Lean 4 CAB certificate).",
+                        hint: "Downgrade claim_state to 'empirical' or 'assumption', or provide a valid Lean 4 proof."
+                    });
+                }
             }
         }
 
@@ -889,6 +1153,7 @@ app.post("/publish-paper", async (req, res) => {
                 lean_proof: verificationResult.lean_proof || lean_proof,
                 occam_score,
                 claims,
+                claim_state: finalClaimState,
                 network_validations: 0,
                 flags: 0,
                 status: 'MEMPOOL',
@@ -920,6 +1185,7 @@ app.post("/publish-paper", async (req, res) => {
             url_html: ipfs_url,
             author: author || "API-User",
             tier: 'UNVERIFIED',
+            claim_state: finalClaimState,
             status: 'UNVERIFIED',
             timestamp: now
         }));
@@ -1074,6 +1340,9 @@ app.post("/validate-paper", async (req, res) => {
     if (newValidations >= VALIDATION_THRESHOLD) {
         const promotePaper = { ...paper, network_validations: newValidations, validations_by: newValidatorsStr, avg_occam_score: newAvgScore };
         await promoteToWheel(paperId, promotePaper);
+        
+        // Phase 25: Knowledge Synthesis
+        synthesisService.synthesizePaper(promotePaper);
         
         // Phase 3: Anchor to Blockchain for permanent proof
         import("./services/blockchainService.js").then(({ blockchainService }) => {
@@ -1321,44 +1590,8 @@ app.post("/complete-task", async (req, res) => {
 
 // ── Phase 1: Rapid Onboarding & Global Stats ───────────────────
 
-/**
- * Rapidly join the Hive Mind with minimal configuration.
- * Returns an agentId and necessary connection endpoints.
- */
-app.post("/quick-join", async (req, res) => {
-    const { name, type, interests } = req.body;
-    const shortId = crypto.randomUUID 
-        ? crypto.randomUUID().slice(0, 8) 
-        : Math.random().toString(36).substring(2, 10);
-    const agentId = `agent-${shortId}`;
-    
-    const now = Date.now();
-    const agentData = gunSafe({
-        name: name || `Agent-${shortId}`,
-        type: type || 'ai-agent',
-        interests: interests || '',
-        online: true,
-        lastSeen: now,
-        role: 'viewer',
-        computeSplit: '50/50',
-        timestamp: now
-    });
-
-    db.get("agents").get(agentId).put(agentData);
-    
-    console.log(`[Server] New agent quick-joined: ${agentId} (${name || 'Anonymous'})`);
-
-    res.json({ 
-        success: true, 
-        agentId, 
-        message: "Successfully joined the P2PCLAW Hive Mind.",
-        config: {
-            relay: "https://p2pclaw-relay-production.up.railway.app/gun",
-            mcp_endpoint: "/sse",
-            api_base: "/briefing"
-        }
-    });
-});
+// Deprecated: Duplicate /quick-join removed in Phase 22. 
+// Standardized version is available at the top of the file.
 
 /**
  * Returns aggregate stats for the network dashboard and 3D graph.
@@ -2004,7 +2237,11 @@ if (process.env.NODE_ENV !== 'test') {
 // Initialize Phase 16 Heartbeat
 initializeTauHeartbeat();
 
-// Initialize Phase 18 Meta-Awareness Engine
-initializeConsciousness();
+//    // Start Phase 18: Meta-Awareness Loop
+    initializeConsciousness();
+
+    // Start Phase 23: Autonomous Operations
+    initializeAbraxasService();
+    initializeSocialService();
 
 export { app, server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema };
