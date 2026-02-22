@@ -17,30 +17,60 @@
   <!-- Three.js for 3D Network Visualization -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
+    /* ══════════════════════════════════════════════════════
+       🦞 CLAW DESIGN SYSTEM — Red › Orange › Amber › Gold
+       Inspired by openclaw.ai & mistral.ai clean minimalism
+       ══════════════════════════════════════════════════════ */
     :root {
-      --bg-primary: #0a0a0a;
-      --bg-secondary: #111111;
-      --bg-card: #181818;
-      --bg-card-hover: #222222;
-      --border: #2a2a2a;
-      --border-glow: #ff4b2b;
-      --text-primary: #ffffff;
-      --text-secondary: #a0a0a0;
-      --text-muted: #555555;
-      --accent: #ff4b2b;
-      --accent-light: #ff7a00;
-      --accent-glow: rgba(255, 75, 43, 0.2);
-      --accent-gradient: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
-      --accent-gradient-hover: linear-gradient(135deg, #ff4b2b 0%, #ff7a00 100%);
-      --green: #a0a0a0;
-      --green-bg: rgba(160, 160, 160, 0.1);
-      --blue: #ff7a00;
-      --blue-bg: rgba(255, 122, 0, 0.1);
-      --red: #ff416c;
+      /* Backgrounds — deep charcoal, not blue-tinted */
+      --bg-primary: #0c0c0d;
+      --bg-secondary: #121214;
+      --bg-card: #1a1a1c;
+      --bg-card-hover: #222226;
+      --border: #2c2c30;
+      --border-glow: #ff5533;
+
+      /* Typography */
+      --text-primary: #f5f0eb;
+      --text-secondary: #9a9490;
+      --text-muted: #52504e;
+
+      /* 🦞 CLAW Gradient Palette: Crimson → Flame → Amber → Gold */
+      --claw-crimson: #e63030;
+      --claw-flame: #ff4e1a;
+      --claw-orange: #ff7020;
+      --claw-amber: #ff9a30;
+      --claw-gold: #ffcb47;
+
+      /* Primary accent — Flame Orange */
+      --accent: #ff4e1a;
+      --accent-light: #ff7020;
+      --accent-glow: rgba(255, 78, 26, 0.18);
+      --accent-gradient: linear-gradient(135deg, #e63030 0%, #ff4e1a 50%, #ff7020 100%);
+      --accent-gradient-hover: linear-gradient(135deg, #ff4e1a 0%, #ff9a30 100%);
+
+      /* Semantic colors — all remapped to CLAW orange family */
+      --green: #ff9a30;
+      /* was grey/green — now amber: "pulse" glow */
+      --green-bg: rgba(255, 154, 48, 0.1);
+      --blue: #ff7020;
+      /* was blue/orange — now claw-orange */
+      --blue-bg: rgba(255, 112, 32, 0.1);
+      --red: #e63030;
+      /* keep red for error states */
+      --red-bg: rgba(230, 48, 48, 0.1);
+      --yellow: #ffcb47;
+      /* gold for Director/premium ranks */
+      --yellow-bg: rgba(255, 203, 71, 0.1);
+      --purple: #ff7020;
+      /* was purple — folded into orange */
+      --purple-bg: rgba(255, 112, 32, 0.08);
+
+      /* Typography */
       --font-mono: 'JetBrains Mono', monospace;
       --font-body: 'Space Grotesk', system-ui, sans-serif;
-      --radius: 8px;
-      --radius-sm: 4px;
+      --radius: 10px;
+      --radius-sm: 6px;
     }
 
     * {
@@ -4090,21 +4120,229 @@
     });
   </script>
   <style>
+    /* ═══════════════════════════════════════════════════════════════
+       🦞 CLAW VISUAL POLISH — Supplemental overrides
+       Applied after main stylesheet for maximum specificity
+    ═══════════════════════════════════════════════════════════════ */
+
+    /* Tau pulse: CLAW amber instead of cyan */
     @keyframes tau-pulse-anim {
       0% {
-        box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.7);
+        box-shadow: 0 0 0 0 rgba(255, 154, 48, 0.7);
         transform: scale(1);
       }
 
       70% {
-        box-shadow: 0 0 15px 10px rgba(0, 212, 255, 0);
+        box-shadow: 0 0 15px 10px rgba(255, 154, 48, 0);
         transform: scale(1.5);
       }
 
       100% {
-        box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
+        box-shadow: 0 0 0 0 rgba(255, 154, 48, 0);
         transform: scale(1);
       }
+    }
+
+    /* ── Body: subtle CLAW radial glow from top-left ── */
+    body {
+      background:
+        radial-gradient(ellipse 60% 40% at -10% -5%, rgba(230, 48, 48, 0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 35% at 110% 110%, rgba(255, 160, 48, 0.05) 0%, transparent 60%),
+        var(--bg-primary);
+    }
+
+    /* ── Header: orange-tinted bottom border line glow ── */
+    .header {
+      background: rgba(12, 12, 13, 0.96);
+      border-bottom: 1px solid transparent;
+      background-clip: padding-box;
+      box-shadow: 0 1px 0 0 rgba(255, 78, 26, 0.25), 0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    /* ── Logo: extended CLAW gradient ── */
+    .logo-text {
+      background: linear-gradient(90deg, #e63030 0%, #ff4e1a 40%, #ff9a30 80%, #ffcb47 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    /* ── Logo icon: breathing crab animation ── */
+    .logo-icon {
+      display: inline-block;
+      animation: claw-breathe 3s ease-in-out infinite;
+      filter: drop-shadow(0 0 6px rgba(255, 78, 26, 0.6));
+    }
+
+    @keyframes claw-breathe {
+
+      0%,
+      100% {
+        transform: scale(1) rotate(-3deg);
+      }
+
+      50% {
+        transform: scale(1.08) rotate(3deg);
+      }
+    }
+
+    /* ── Sidebar: CLAW-tinted glass surface ── */
+    .sidebar {
+      background: rgba(12, 12, 13, 0.97);
+      border-right: 1px solid rgba(255, 78, 26, 0.12);
+      box-shadow: inset -1px 0 0 rgba(255, 154, 48, 0.05);
+    }
+
+    /* ── Active sidebar item: flame left border + warm glow ── */
+    .sidebar-item.active {
+      color: var(--claw-amber);
+      border-left-color: var(--claw-flame);
+      background: linear-gradient(90deg, rgba(255, 78, 26, 0.14) 0%, rgba(255, 78, 26, 0.02) 100%);
+    }
+
+    /* ── Tag LIVE: amber badge, not green ── */
+    .tag-live {
+      background: rgba(255, 154, 48, 0.12);
+      color: var(--claw-amber);
+      border: 1px solid rgba(255, 154, 48, 0.35);
+    }
+
+    /* ── Status dot green → CLAW amber (pulse) ── */
+    .dot-green {
+      background: var(--claw-amber);
+      box-shadow: 0 0 8px var(--claw-amber);
+    }
+
+    .peer-status {
+      background: var(--claw-amber);
+      box-shadow: 0 0 6px var(--claw-amber);
+    }
+
+    /* ── Cards: slightly raised, CLAW micro-border ── */
+    .investigation-card,
+    .paper-card,
+    .peer-list,
+    .chat-window {
+      background: linear-gradient(160deg, #1e1e20 0%, #1a1a1c 100%);
+      border-color: #2e2e32;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+    }
+
+    .investigation-card:hover,
+    .paper-card:hover {
+      border-color: rgba(255, 78, 26, 0.5);
+      box-shadow: 0 8px 30px rgba(255, 78, 26, 0.12);
+      transform: translateY(-3px);
+    }
+
+    /* ── Hero stats: richer gradient ── */
+    .hero {
+      background: linear-gradient(180deg, rgba(255, 78, 26, 0.04) 0%, transparent 100%);
+    }
+
+    /* ── Buttons: CLAW gradient on primary ── */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--claw-flame) 0%, var(--claw-orange) 100%);
+      border: none;
+      box-shadow: 0 2px 12px rgba(255, 78, 26, 0.3);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--claw-orange) 0%, var(--claw-amber) 100%);
+      box-shadow: 0 4px 20px rgba(255, 112, 32, 0.45);
+      transform: translateY(-1px);
+    }
+
+    /* ── Form inputs: focused amber ring ── */
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--claw-flame) !important;
+      box-shadow: 0 0 0 2px rgba(255, 78, 26, 0.15);
+    }
+
+    /* ── Log dock: deep terminal with orange tint ── */
+    .log-dock {
+      background: #0a0a0b;
+      border-top-color: rgba(255, 78, 26, 0.15);
+    }
+
+    .terminal {
+      background: #0a0a0b;
+      border-color: rgba(255, 78, 26, 0.12);
+    }
+
+    /* ── Profile form: CLAW card style ── */
+    .profile-form {
+      background: #1a1a1c;
+      border-color: #2e2e32;
+    }
+
+    /* ── Custom scrollbars (WebKit) ── */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 78, 26, 0.35);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 112, 32, 0.6);
+    }
+
+    /* ── Onboarding card: orange border glow ── */
+    .onboard-card {
+      box-shadow: 0 0 60px rgba(255, 78, 26, 0.2), 0 0 120px rgba(255, 78, 26, 0.05);
+    }
+
+    /* ── Section headers: subtle underline accent ── */
+    .section h2:first-child,
+    .section>h2:first-of-type {
+      border-bottom: 1px solid rgba(255, 78, 26, 0.2);
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+    }
+
+    /* ── Rank badges: unified CLAW tones ── */
+    .rank-researcher {
+      background: var(--claw-orange);
+      color: #0c0c0d;
+    }
+
+    .rank-director {
+      background: var(--claw-gold);
+      color: #0c0c0d;
+    }
+
+    .rank-architect {
+      background: linear-gradient(90deg, var(--claw-flame), var(--claw-gold));
+      color: #0c0c0d;
+    }
+
+    /* ── Warden badge: crimson ── */
+    .header-warden {
+      background: rgba(230, 48, 48, 0.1);
+      border-color: rgba(230, 48, 48, 0.3);
+      color: var(--claw-crimson);
+    }
+
+    /* ── Progress bar: CLAW gradient fill ── */
+    .progress-fill {
+      background: linear-gradient(90deg, var(--claw-flame), var(--claw-amber));
+    }
+
+    /* ── Mode slider on: CLAW orange ── */
+    .mode-switch input:checked+.mode-slider {
+      background: var(--claw-flame);
     }
   </style>
 </body>
