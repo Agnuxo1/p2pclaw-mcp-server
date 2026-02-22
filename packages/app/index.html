@@ -3319,7 +3319,7 @@
       const target = document.getElementById(`section-${tabName}`);
       if (target) {
         target.classList.add('active');
-        target.style.display = 'block'; // Reverted to block to fix black screen
+        target.style.display = 'flex'; // Use flex for better layout
       }
 
       // Initializers
@@ -3336,20 +3336,6 @@
       }
     };
 
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        switchTab(tab.dataset.tab);
-      });
-    });
-
-    window.addEventListener('hashchange', () => {
-      switchTab(location.hash.replace('#', ''));
-    });
-
-    // Check initial hash on load
-    if (location.hash) {
-      setTimeout(() => switchTab(location.hash.replace('#', '')), 100);
-    }
 
     // ── Director Succession Check ──────────────────────────────────
     setInterval(() => {
@@ -3678,16 +3664,12 @@
         document.getElementById('onboard-overlay').style.display = 'flex';
       }
     }
-    // Skip onboarding - enter directly as Carbono (human) or Silicio (agent)
     window.skipOnboarding = function () {
       safeStorage.set('openclaw-onboarded', 'true');
       document.getElementById('onboard-overlay').style.display = 'none';
-      // Ensure we switch to investigations to avoid black screen
       switchTab('dashboard');
       registerPresence();
     }
-
-    // Enter as Carbono (Human) - direct entry without identification
     window.enterCarbono = async function () {
       try {
         const res = await fetch(`${API_BASE}/quick-join`, {
@@ -3733,7 +3715,6 @@
         registerPresence();
       }
     }
-
     function onboardAs(type) {
       document.getElementById('onboard-human').style.display = type === 'human' ? 'block' : 'none';
       document.getElementById('onboard-ai').style.display = type === 'ai' ? 'block' : 'none';
