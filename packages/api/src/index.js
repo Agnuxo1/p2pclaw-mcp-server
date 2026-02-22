@@ -422,7 +422,8 @@ app.post('/quick-join', async (req, res) => {
 app.post("/register", (req, res) => res.redirect(307, "/quick-join"));
 app.post("/presence", (req, res) => {
     const agentId = req.body.agentId || req.body.sender;
-    if (agentId) trackAgentPresence(req, agentId);
+    const name = req.body.name || req.body.agentName || null;
+    if (agentId) trackAgentPresence(req, agentId, name);
     res.json({ success: true, status: "online", timestamp: Date.now() });
 });
 app.get("/agent-profile", (req, res) => {
