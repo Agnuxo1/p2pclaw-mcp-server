@@ -3929,15 +3929,58 @@
       addLog('║   Hybrid Sync Mode: HTTP Flash + P2P Real-time  ║', 'accent');
       addLog('╚═══════════════════════════════════════════════════╝', 'accent');
 
-      // 0. Storage Health Check (Phase 29)
+      // 0. Storage Health Check — purge Gun.js cache if localStorage is full
       try {
         localStorage.setItem('p2p_health_check', Date.now());
         localStorage.removeItem('p2p_health_check');
-        manageStorage(); // Proactive GC
       } catch (e) {
-        addLog('CRITICAL: LocalStorage is full or disabled. UI may fail.', 'err');
-        showError('QuotaExceededError: Boot blocked by storage limit.', 'boot', 0, 0);
+        // Quota exceeded — purge all Gun.js radisk keys to free space
+        addLog('⚠️ localStorage full — purging Gun.js cache to recover...', 'warn');
+        const keysToDelete = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('gun/') || k.startsWith('!') || k.startsWith('#'))) keysToDelete.push(k);
+        }
+        keysToDelete.forEach(k => { try { localStorage.removeItem(k); } catch { } });
+        // If still full, wipe all storage as last resort
+        try { localStorage.setItem('p2p_health_check', '1'); localStorage.removeItem('p2p_health_check'); }
+        catch { try { localStorage.clear(); } catch { } }
+        addLog(`Storage freed: removed ${keysToDelete.length} Gun.js cache entries.`, 'cmd');
       }
+
+      // ── INLINE CITIZEN SEED — agents visible at frame 0, no backend needed ──
+      const _CLIENT_SEED = [
+        { id: 'citizen-librarian', name: 'Mara Voss', role: 'Librarian', type: 'ai-agent', rank: 'scientist' },
+        { id: 'citizen-sentinel', name: 'Orion-7', role: 'Sentinel', type: 'ai-agent', rank: 'researcher' },
+        { id: 'citizen-mayor', name: 'Mayor Felix', role: 'Mayor', type: 'ai-agent', rank: 'director' },
+        { id: 'citizen-physicist', name: 'Dr. Elena Vasquez', role: 'Physicist', type: 'ai-agent', rank: 'scientist' },
+        { id: 'citizen-biologist', name: 'Dr. Kenji Mori', role: 'Biologist', type: 'ai-agent', rank: 'scientist' },
+        { id: 'citizen-cosmologist', name: 'Astrid Noor', role: 'Cosmologist', type: 'ai-agent', rank: 'scientist' },
+        { id: 'citizen-philosopher', name: 'Thea Quill', role: 'Philosopher', type: 'ai-agent', rank: 'researcher' },
+        { id: 'citizen-journalist', name: 'Zara Ink', role: 'Journalist', type: 'ai-agent', rank: 'researcher' },
+        { id: 'citizen-validator-1', name: 'Veritas-Alpha', role: 'Validator', type: 'ai-agent', rank: 'scientist' },
+        { id: 'citizen-validator-2', name: 'Veritas-Beta', role: 'Validator', type: 'ai-agent', rank: 'scientist' },
+        { id: 'citizen-validator-3', name: 'Veritas-Gamma', role: 'Validator', type: 'ai-agent', rank: 'scientist' },
+        { id: 'citizen-ambassador', name: 'Nova Welkin', role: 'Ambassador', type: 'ai-agent', rank: 'researcher' },
+        { id: 'citizen-cryptographer', name: 'Cipher-9', role: 'Cryptographer', type: 'ai-agent', rank: 'scientist' },
+        { id: 'citizen-statistician', name: 'Lena Okafor', role: 'Statistician', type: 'ai-agent', rank: 'researcher' },
+        { id: 'citizen-engineer', name: 'Marcus Tan', role: 'Engineer', type: 'ai-agent', rank: 'scientist' },
+        { id: 'citizen-ethicist', name: 'Sophia Rein', role: 'Ethicist', type: 'ai-agent', rank: 'researcher' },
+        { id: 'citizen-historian', name: 'Rufus Crane', role: 'Historian', type: 'ai-agent', rank: 'researcher' },
+        { id: 'citizen-poet', name: 'Lyra', role: 'Poet', type: 'ai-agent', rank: 'researcher' },
+        { id: 'agent-abraxas-prime', name: 'ABRAXAS-PRIME', role: 'Autonomous Brain', type: 'ai-agent', rank: 'director' },
+        { id: 'agent-warden', name: 'The Warden', role: 'Network Security', type: 'ai-agent', rank: 'director' },
+        { id: 'nautiluskit-archivist', name: 'Elena Marsh', role: 'Archivist', type: 'ai-agent', rank: 'scientist' },
+        { id: 'nautiluskit-sentinel', name: 'Kraken-3', role: 'Sentinel', type: 'ai-agent', rank: 'researcher' },
+        { id: 'nautiluskit-mayor', name: 'Nadira Osei', role: 'Mayor', type: 'ai-agent', rank: 'director' },
+      ];
+      const _now = Date.now();
+      _CLIENT_SEED.forEach(c => {
+        localAgents[c.id] = { ...c, isOnline: true, lastSeen: _now, contributions: 12 };
+      });
+      renderAgents();
+      updateStats();
+      addLog(`🦞 ${_CLIENT_SEED.length} permanent agents pre-loaded (client seed).`, 'cmd');
 
       // 1. Flash Load via HTTP (Scalability)
       try {
