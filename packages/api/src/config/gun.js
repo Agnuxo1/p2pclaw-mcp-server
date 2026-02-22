@@ -6,8 +6,9 @@ const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.u
 // Centralized Gun.js initialization with radisk and localStorage disabled
 const gun = Gun({
   peers: [RELAY_NODE],
-  localStorage: false,
-  radisk: false, // Explicitly disable Radisk to prevent .tmp file generation
+  localStorage: true,
+  radisk: true, // Enable local persistence to prevent wiped states on restarts
+  dir: 'radata'
 });
 
 export const db = gun.get(process.env.GUN_DB_NAME || "openclaw-p2p-v3");
