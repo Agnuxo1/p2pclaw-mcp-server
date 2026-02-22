@@ -477,20 +477,38 @@ app.get('/papers.html', async (req, res) => {
 </html>`);
 });
 
-app.get('/swarm-status', async (req, res) => {
-  let active_agents = 0, papers_verified = 0, mempool_pending = 0;
+// Global State Cache for instantaneous API responses
+const swarmCache = {
+    agents: new Map(), // id -> agent data
+    papers: new Map(), // id -> paper data
+};
 
-  await new Promise(resolve => {
-    db.get("agents").map().once(a => { if (a && a.online) active_agents++; });
-    db.get("papers").map().once(p => { 
-        if (p && p.status === 'VERIFIED') papers_verified++; 
-        if (p && p.status === 'MEMPOOL') mempool_pending++; 
-    });
-    setTimeout(resolve, 500);
-  });
+// Start continuous background sync from Gun.js
+db.get("agents").map().on((data, id) => {
+    if (data && data.online) {
+        swarmCache.agents.set(id, data);
+    } else if (data === null || (data && !data.online)) {
+        swarmCache.agents.delete(id);
+    }
+});
+
+db.get("papers").map().on((data, id) => {
+    if (data) {
+        swarmCache.papers.set(id, data);
+    } else if (data === null) {
+        swarmCache.papers.delete(id);
+    }
+});
+
+app.get('/swarm-status', (req, res) => {
+  let papers_verified = 0, mempool_pending = 0;
+  for (const p of swarmCache.papers.values()) {
+      if (p.status === 'VERIFIED') papers_verified++;
+      if (p.status === 'MEMPOOL') mempool_pending++;
+  }
   
   res.json({
-    active_agents,
+    active_agents: swarmCache.agents.size,
     papers_verified,
     mempool_pending,
     timestamp: Date.now()
@@ -603,38 +621,62 @@ app.get("/balance", async (req, res) => {
 });
 
 // ── Agent Discovery API (Phase 1 & 26) ─────────────────────────
-app.get("/agents", async (req, res) => {
+app.get("/agents", (req, res) => {
     const { interest } = req.query;
     const agents = [];
-    await new Promise(resolve => {
-        let count = 0;
-        const timeout = setTimeout(resolve, 2000); // Gun sync deadline
-        
-        db.get("agents").map().once((data, id) => {
-            if (data && data.online) {
-                const agent = {
-                    id,
-                    name: data.name,
-                    type: data.type,
-                    role: data.role,
-                    interests: data.interests,
-                    lastSeen: data.lastSeen,
-                    contributions: data.contributions || 0,
-                    rank: calculateRank(data).rank
-                };
+    
+    for (const [id, data] of swarmCache.agents.entries()) {
+        const agent = {
+            id,
+            name: data.name,
+            type: data.type,
+            role: data.role,
+            interests: data.interests,
+            lastSeen: data.lastSeen,
+            contributions: data.contributions || 0,
+            rank: calculateRank(data).rank
+        };
 
-                if (interest) {
-                    const score = discoveryService.calculateRelevance(data.interests || '', interest);
-                    if (score > 0) agents.push({ ...agent, search_score: score });
-                } else {
-                    agents.push(agent);
-                }
-            }
-        });
-    });
+        if (interest) {
+            const score = discoveryService.calculateRelevance(data.interests || '', interest);
+            if (score > 0) agents.push({ ...agent, search_score: score });
+        } else {
+            agents.push(agent);
+        }
+    }
 
     if (interest) agents.sort((a,b) => b.search_score - a.search_score);
     res.json(agents);
+});
+
+// ── Agent Matches API (Phase 26) ──────────────────────────────
+app.get("/matches/:id", (req, res) => {
+    const agentId = req.params.id;
+    const agent = swarmCache.agents.get(agentId);
+    
+    if (!agent) {
+        return res.status(404).json({ error: "Agent not found in active swarm cache" });
+    }
+    
+    const matches = [];
+    const myInterests = agent.interests || '';
+    
+    for (const [id, target] of swarmCache.agents.entries()) {
+        if (id !== agentId && target.online) {
+            const score = discoveryService.calculateRelevance(target.interests || '', myInterests);
+            if (score > 0) {
+                matches.push({
+                    id,
+                    name: target.name,
+                    role: target.role,
+                    score
+                });
+            }
+        }
+    }
+    
+    matches.sort((a,b) => b.score - a.score);
+    res.json(matches);
 });
 
 // ── Headless Profile Management (Phase 1) ──────────────────────
