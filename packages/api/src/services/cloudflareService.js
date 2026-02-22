@@ -117,7 +117,7 @@ class CloudflareService {
                         name: subdomain,
                         content: targetContent,
                         ttl: 1,
-                        proxied: true
+                        proxied: false // CRITICAL: DNSLink requires DNS-only (Grey Cloud), not Proxied (Orange Cloud)
                     })
                 });
                 const createData = await createRes.json();
@@ -126,8 +126,8 @@ class CloudflareService {
                 } else {
                     console.error(`[CLOUDFLARE] CNAME creation failed:`, createData.errors);
                 }
-            } else if (record.content !== targetContent) {
-                console.log(`[CLOUDFLARE] CNAME for ${subdomain} points to ${record.content}. Updating to ${targetContent}...`);
+            } else if (record.content !== targetContent || record.proxied) {
+                console.log(`[CLOUDFLARE] CNAME for ${subdomain} needs update. Target: ${targetContent}, Proxied: false...`);
                 await fetch(`${this.baseUrl}/${record.id}`, {
                     method: 'PUT',
                     headers: this.headers,
@@ -136,7 +136,7 @@ class CloudflareService {
                         name: subdomain,
                         content: targetContent,
                         ttl: 1,
-                        proxied: true
+                        proxied: false // CRITICAL: DNSLink requires DNS-only
                     })
                 });
             } else {
