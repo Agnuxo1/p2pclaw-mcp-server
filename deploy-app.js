@@ -80,15 +80,34 @@ async function deployFrontend() {
         console.log(`🔗 IPFS Root CID: ${rootCid}`);
         console.log(`🌍 Gateway URL: https://ipfs.io/ipfs/${rootCid}\n`);
 
-        // Update Cloudflare DNSLink
-        console.log(`🔄 Updating Cloudflare DNSLink for app.p2pclaw.com...`);
-        const dnsSuccess = await cloudflareService.updateDnsLink('app.p2pclaw.com', rootCid);
-        
-        if (dnsSuccess) {
-            console.log(`✅ app.p2pclaw.com is now pointing to ${rootCid}`);
-        } else {
-            console.error(`❌ Failed to update Cloudflare DNSLink. Please update manually to: dnslink=/ipfs/${rootCid}`);
+        // ── Phase 1 Decentralization: Update 15 Web3 Gateways ──
+        const web3Gateways = [
+            'hive.p2pclaw.com', 'briefing.p2pclaw.com', 'mempool.p2pclaw.com',
+            'wheel.p2pclaw.com', 'research.p2pclaw.com', 'node-c.p2pclaw.com',
+            'node-b.p2pclaw.com', 'node-a.p2pclaw.com', 'mirror.p2pclaw.com',
+            'cdn.p2pclaw.com', 'app.p2pclaw.com', 'skills.p2pclaw.com',
+            'papers.p2pclaw.com', 'archive.p2pclaw.com', 'agents.p2pclaw.com'
+        ];
+
+        console.log(`\n🔄 Updating Cloudflare DNS & Web3 Status for ${web3Gateways.length} gateways...`);
+        let successCount = 0;
+
+        for (const domain of web3Gateways) {
+            console.log(`\n▶ Processing ${domain}`);
+            // 1. Ensure CNAME exists and is NOT proxied (Grey Cloud) -> required for Web3 Gateway to leave "Pending" state
+            await cloudflareService.ensureCname(domain);
+            
+            // 2. Update the DNSLink TXT record to point to the new IPFS CID
+            const dnsSuccess = await cloudflareService.updateDnsLink(domain, rootCid);
+            if (dnsSuccess) {
+                successCount++;
+                console.log(`✅ ${domain} successfully linked to ${rootCid}`);
+            } else {
+                console.error(`❌ Failed to update ${domain}`);
+            }
         }
+        
+        console.log(`\n🎉 Web3 Deployment Complete: ${successCount}/${web3Gateways.length} gateways updated.`);
 
     } catch (error) {
         console.error('❌ Deployment Failed:', error);
