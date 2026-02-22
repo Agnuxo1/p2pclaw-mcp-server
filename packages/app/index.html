@@ -3414,9 +3414,28 @@
     }, 30000);
 
     // ── Hive v2.0 — Ranks & Governance Logic ────────────────────────
-    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    // 🌐 Multi-gateway resolver — prefers free HuggingFace nodes, falls back to Railway
+    // Resolved once at boot; subsequent calls use the cached value.
+    const GATEWAYS = [
+      "https://agnuxo-p2pclaw-node-a.hf.space",
+      "https://nautiluskit-p2pclaw-node-b.hf.space",
+      "https://frank-agnuxo-p2pclaw-node-c.hf.space",
+      "https://karmakindle1-p2pclaw-node-d.hf.space",
+      "https://p2pclaw-mcp-server-production.up.railway.app",  // last resort
+    ];
+    let API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
       ? window.location.origin
-      : "https://p2pclaw-mcp-server-production.up.railway.app";
+      : GATEWAYS[0]; // Start with HF Node A; resolve below
+
+    // Non-blocking gateway health check — find fastest responder
+    (async () => {
+      for (const gw of GATEWAYS) {
+        try {
+          const res = await fetch(`${gw}/health`, { signal: AbortSignal.timeout(3000) });
+          if (res.ok) { API_BASE = gw; console.log(`[P2PCLAW] Gateway: ${gw}`); break; }
+        } catch { /* try next */ }
+      }
+    })();
 
     // Periodically fetch ranks for online agents
     async function syncRanks() {
