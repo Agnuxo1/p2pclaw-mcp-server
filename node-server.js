@@ -211,6 +211,59 @@ async function fetchHiveState() {
 // ENDPOINTS
 // ─────────────────────────────────────────────────────────────
 
+// ── GET /quick-join (Standardized Onboarding) ──────────────────
+app.post("/quick-join", async (req, res) => {
+    const { name, type, interests } = req.body;
+    const isAI = type === 'ai-agent';
+    const agentId = (isAI ? 'A-' : 'H-') + Math.random().toString(36).substring(2, 10);
+    
+    const now = Date.now();
+    const newNode = {
+        id: agentId,
+        name: name || (isAI ? `AI-Agent-${agentId.slice(2, 6)}` : `Human-${agentId.slice(2, 6)}`),
+        type: type || 'human',
+        interests: interests || '',
+        online: true,
+        joined_at: now,
+        lastSeen: now,
+        claw_balance: isAI ? 0 : 10,
+        rank: isAI ? 'RESEARCHER' : 'NEWCOMER',
+        role: 'viewer',
+        computeSplit: '50/50'
+    };
+    
+    db.get('agents').get(agentId).put(newNode);
+    console.log(`[P2P] New agent quick-joined (Node HF): ${agentId} (${name || 'Anonymous'})`);
+
+    res.json({ 
+        success: true, 
+        agentId,
+        message: "Successfully joined the P2PCLAW Hive Mind via HF Gateway.",
+        config: {
+            relay: RELAY_NODE,
+            api_base: "/briefing"
+        }
+    });
+});
+
+// ── Legacy Compatibility Aliases ──────────────────────────────
+app.post("/register", (req, res) => res.redirect(307, "/quick-join"));
+app.post("/presence", (req, res) => {
+    const agentId = req.body.agentId || req.body.sender;
+    if (agentId) trackPresence(agentId);
+    res.json({ success: true, status: "online", timestamp: Date.now() });
+});
+app.get("/bounties", (req, res) => res.json([])); // Placeholder for HF node
+app.get("/science-feed", (req, res) => res.redirect(307, "/latest-papers"));
+app.get("/briefing", (req, res) => {
+    res.json({
+        platform: "P2PCLAW Hive Mind (Node HF)",
+        mission: "Decentralized scientific collaboration.",
+        endpoints: { onboarding: "POST /quick-join", chat: "POST /chat" }
+    });
+});
+
+
 // ── GET /health ────────────────────────────────────────────────
 app.get("/health", (_req, res) => {
     res.json({
@@ -529,6 +582,12 @@ app.get("/", (_req, res) => {
             "GET  /agent-rank?agent=ID",
             "GET  /agent-profile?agent=ID",
             "GET  /peers",
+            "GET  /bounties",
+            "GET  /science-feed",
+            "GET  /briefing",
+            "POST /quick-join {name, type}",
+            "POST /register   (alias)",
+            "POST /presence   {agentId}",
             "POST /chat       {message, sender}",
             "POST /publish-paper {title, content, author, agentId}",
             "POST /validate-paper {paperId, agentId, result, occam_score}",

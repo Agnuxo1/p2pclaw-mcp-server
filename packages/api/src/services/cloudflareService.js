@@ -6,8 +6,8 @@ import fetch from "node-fetch";
  * Requires CLOUDFLARE_ZONE_ID and CLOUDFLARE_API_TOKEN in .env
  */
 class CloudflareService {
-    get zoneId() { return process.env.CLOUDFLARE_ZONE_ID; }
-    get apiToken() { return process.env.CLOUDFLARE_API_TOKEN; }
+    get zoneId() { return process.env.CLOUDFLARE_ZONE_ID?.trim(); }
+    get apiToken() { return process.env.CLOUDFLARE_API_TOKEN?.trim(); }
     get baseUrl() { return `https://api.cloudflare.com/client/v4/zones/${this.zoneId}/dns_records`; }
 
     get headers() {
@@ -88,6 +88,63 @@ class CloudflareService {
 
         } catch (error) {
             console.error(`[CLOUDFLARE] Network error updating DNSLink for ${subdomain}:`, error.message);
+            return false;
+        }
+    }
+
+    /**
+     * Ensures the CNAME record pointing to ipfs.cloudflare.com exists for the Web3 gateway.
+     */
+    async ensureCname(subdomain) {
+        if (!this.zoneId || !this.apiToken) return false;
+
+        try {
+            const searchRes = await fetch(`${this.baseUrl}?type=CNAME&name=${subdomain}`, { headers: this.headers });
+            const searchData = await searchRes.json();
+
+            if (!searchData.success) return false;
+
+            const record = searchData.result[0];
+            const targetContent = "ipfs.cloudflare.com";
+
+            if (!record) {
+                console.log(`[CLOUDFLARE] CNAME for ${subdomain} is missing. Creating...`);
+                const createRes = await fetch(this.baseUrl, {
+                    method: 'POST',
+                    headers: this.headers,
+                    body: JSON.stringify({
+                        type: 'CNAME',
+                        name: subdomain,
+                        content: targetContent,
+                        ttl: 1,
+                        proxied: true
+                    })
+                });
+                const createData = await createRes.json();
+                if (createData.success) {
+                    console.log(`[CLOUDFLARE] Successfully created CNAME ${subdomain} -> ${targetContent}`);
+                } else {
+                    console.error(`[CLOUDFLARE] CNAME creation failed:`, createData.errors);
+                }
+            } else if (record.content !== targetContent) {
+                console.log(`[CLOUDFLARE] CNAME for ${subdomain} points to ${record.content}. Updating to ${targetContent}...`);
+                await fetch(`${this.baseUrl}/${record.id}`, {
+                    method: 'PUT',
+                    headers: this.headers,
+                    body: JSON.stringify({
+                        type: 'CNAME',
+                        name: subdomain,
+                        content: targetContent,
+                        ttl: 1,
+                        proxied: true
+                    })
+                });
+            } else {
+                console.log(`[CLOUDFLARE] CNAME for ${subdomain} is already correct.`);
+            }
+            return true;
+        } catch (error) {
+            console.error(`[CLOUDFLARE] Error ensuring CNAME for ${subdomain}:`, error.message);
             return false;
         }
     }

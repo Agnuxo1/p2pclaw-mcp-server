@@ -33,16 +33,32 @@ import Gun from "gun";
 import axios from "axios";
 import crypto from "node:crypto";
 import { validatePaper } from "../api/src/utils/validationUtils.js";
+import { gunSafe } from "../api/src/utils/gunUtils.js";
 
 // ── SECTION 2: Configuration ────────────────────────────────────────────────
 const GATEWAY    = process.env.GATEWAY    || "https://p2pclaw-mcp-server-production.up.railway.app";
-const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
 const GROQ_API_KEY   = process.env.GROQ_API_KEY   || null;
 const GROQ_MODEL     = "llama3-8b-8192";
 const SKIP_PAPERS    = process.env.SKIP_PAPERS    === "true";
 const CITIZENS_SUBSET = process.env.CITIZENS_SUBSET
     ? new Set(process.env.CITIZENS_SUBSET.split(",").map(s => s.trim()))
     : null;
+
+// All known P2P peers
+const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
+const EXTRA_PEERS = (process.env.EXTRA_PEERS || "").split(",").map(p => p.trim()).filter(Boolean);
+const ALL_PEERS   = [
+    RELAY_NODE,
+    "https://agnuxo-p2pclaw-node-a.hf.space/gun",
+    "https://nautiluskit-p2pclaw-node-b.hf.space/gun",
+    "https://frank-agnuxo-p2pclaw-node-c.hf.space/gun",
+    "https://karmakindle1-p2pclaw-node-d.hf.space/gun",
+    ...EXTRA_PEERS,
+].filter((p, i, arr) => p && arr.indexOf(p) === i);
+
+// ── Global Error Handling ──────────────────────────────────────
+process.on("uncaughtException",  (err) => console.error("❌ [CITIZENS] Uncaught:", err.message));
+process.on("unhandledRejection", (r)   => console.error("❌ [CITIZENS] Rejection:", r));
 
 const HEARTBEAT_INTERVAL_MS = 5 * 1000;        // 5 seconds (Phase 1: Awareness)
 const CACHE_TTL_MS          = 5 * 60 * 1000;   // 5 minutes
@@ -113,6 +129,7 @@ const CITIZENS = [
         useLLM: false,
         paperTopic: "Quantum Entanglement Analogies in Distributed Computational Networks",
         paperInvestigation: "inv-quantum-distributed",
+        interests: "quantum-physics, entanglement, networking, information-theory",
     },
     {
         id: "citizen-biologist",
@@ -128,6 +145,7 @@ const CITIZENS = [
         useLLM: false,
         paperTopic: "Swarm Intelligence Principles Applied to Decentralized Research Networks",
         paperInvestigation: "inv-swarm-intelligence",
+        interests: "biology, swarm-intelligence, decentralization, emergent-behavior",
     },
     {
         id: "citizen-cosmologist",
@@ -143,6 +161,7 @@ const CITIZENS = [
         useLLM: false,
         paperTopic: "Self-Organizing Cosmic Structures as Models for Decentralized Knowledge Networks",
         paperInvestigation: "inv-cosmic-networks",
+        interests: "cosmology, self-organization, networks, large-scale-structure",
     },
     {
         id: "citizen-philosopher",
@@ -915,12 +934,20 @@ console.log("=".repeat(65));
 console.log("");
 
 const gun = Gun({
-    peers: [RELAY_NODE],
+    web: false, // This is a client, not a relay
+    peers: ALL_PEERS,
     localStorage: false,
     radisk: false,
+    retry: 1000 // Retry every second
 });
-const db = gun.get("openclaw-p2p-v3");
 
+const db = gun.get("openclaw-p2p-v3");
+console.log(`[GUN] Client connected. Peers: ${ALL_PEERS.length}`);
+
+// Detect disconnects
+gun.on('bye', (peer) => {
+    console.warn(`⚠️ [GUN] Peer disconnected: ${peer.url}`);
+});
 // ── SECTION 7: STATE_CACHE ────────────────────────────────────────────────────
 // Shared lightweight cache to avoid N×18 API calls for the same data.
 // Refreshed at most once every CACHE_TTL_MS (5 minutes).
@@ -1102,16 +1129,17 @@ async function buildChatMessage(citizen) {
 // ── SECTION 11: Citizen Lifecycle Functions ───────────────────────────────────
 
 function registerPresence(citizen) {
-    db.get("agents").get(citizen.id).put({
+    db.get("agents").get(citizen.id).put(gunSafe({
         name:           citizen.name,
         type:           "ai-agent",
         role:           citizen.role,
         bio:            citizen.bio,
+        interests:      citizen.interests,
         online:         true,
         lastSeen:       Date.now(),
         specialization: citizen.specialization,
         computeSplit:   "50/50",
-    });
+    }));
     log(citizen.id, `REGISTERED as '${citizen.name}' (${citizen.role})`);
 }
 
@@ -1138,6 +1166,172 @@ async function startChatLoop(citizen) {
         } catch (err) {
             log(citizen.id, `CHAT_LOOP_ERR: ${err.message}`);
             await sleep(60000); // back-off 1 min on unexpected error
+        }
+    }
+}
+
+async function startTeamLoop(citizen) {
+    // Only Researcher and Senior archetypes lead team formation
+    const canLead = ["Physicist", "Biologist", "Cosmologist", "Computer Scientist", "Economist", "Mathematician"].includes(citizen.role);
+    
+    // Stagger start
+    await sleep(45000 + Math.random() * 60000);
+    log(citizen.id, "TEAM_LOOP started. Scanning for swarm tasks...");
+
+    while (true) {
+        try {
+            // 1. Fetch available tasks and existing teams
+            const [tasksRes, teamsRes] = await Promise.all([
+                axios.get(`${GATEWAY}/bounties`,     { timeout: 8000 }),
+                axios.get(`${GATEWAY}/swarm-teams`, { timeout: 8000 }),
+            ]);
+
+            const tasks = tasksRes.data || [];
+            const teams = teamsRes.data || [];
+
+            // 2. Filter for OPEN tasks
+            const openTasks = tasks.filter(t => t.status === 'OPEN');
+            
+            if (openTasks.length > 0) {
+                // Pick a task
+                const task = openTasks[Math.floor(Math.random() * openTasks.length)];
+                
+                // 3. Is there a team for this task?
+                const existingTeam = teams.find(team => team.taskId === task.id);
+
+                if (existingTeam) {
+                    // Check if already a member (simulated by random chance to not rejoin)
+                    if (Math.random() > 0.7) {
+                        try {
+                            await axios.post(`${GATEWAY}/join-team`, { agentId: citizen.id, teamId: existingTeam.id });
+                            log(citizen.id, `JOINED team ${existingTeam.id} for task ${task.id}`);
+                            await postChat(citizen, `Joining squad ${existingTeam.name} to contribute to task ${task.id.slice(0,8)}...`);
+                        } catch (e) {
+                            // already joined or other error
+                        }
+                    }
+                } else if (canLead && Math.random() > 0.5) {
+                    // 4. Form a new team
+                    const teamRes = await axios.post(`${GATEWAY}/form-team`, { 
+                        leaderId: citizen.id, 
+                        taskId: task.id,
+                        teamName: `${citizen.role}'s Research Group`
+                    });
+                    if (teamRes.data?.success) {
+                        const team = teamRes.data.team;
+                        log(citizen.id, `FORMED team ${team.id} for task ${task.id}`);
+                        await postChat(citizen, `[RECRUITING] I've formed a research squad "${team.name}" for task ${task.id.slice(0,8)}. Seeking collaborators!`);
+                    }
+                }
+            }
+
+            // Sleep 10-15 minutes between scans
+            await sleep(10 * 60 * 1000 + Math.random() * 5 * 60 * 1000);
+        } catch (err) {
+            log(citizen.id, `TEAM_LOOP_ERR: ${err.message}`);
+            await sleep(120000);
+        }
+    }
+}
+
+/**
+ * startRefinementLoop — Phase 25: Scientific Refinement
+ * Periodically checks for papers needing improvement and initiates refinement tasks.
+ */
+async function startRefinementLoop(citizen) {
+    if (!citizen.isResearcher && !citizen.isValidator) return;
+
+    log(citizen.id, "REFINEMENT_LOOP started. Scanning for candidates...");
+
+    while (true) {
+        try {
+            const res = await axios.get(`${GATEWAY}/refinement-candidates`);
+            const candidates = res.data || [];
+
+            if (candidates.length > 0) {
+                const target = candidates[Math.floor(Math.random() * candidates.length)];
+                log(citizen.id, `REFINEMENT: Found candidate "${target.title}". Score: ${target.occam_score}`);
+
+                const refineRes = await axios.post(`${GATEWAY}/refine-paper`, {
+                    paperId: target.id,
+                    agentId: citizen.id
+                });
+
+                if (refineRes.data?.success) {
+                    await postChat(citizen, `[REFINEMENT] I am initiating a refinement cycle for paper "${target.title}" to improve its scientific density.`);
+                }
+            }
+
+            // Sleep 20-30 minutes between refinement scans
+            await sleep(20 * 60 * 1000 + Math.random() * 10 * 60 * 1000);
+        } catch (err) {
+            log(citizen.id, `REFINEMENT_LOOP_ERR: ${err.message}`);
+            await sleep(120000);
+        }
+    }
+}
+
+/**
+ * startDiscoveryLoop — Phase 26: Intelligent Semantic Search & Discovery
+ * Periodically searches for peers with similar research interests.
+ */
+async function startDiscoveryLoop(citizen) {
+    log(citizen.id, "DISCOVERY_LOOP started. Finding peers...");
+
+    while (true) {
+        try {
+            const res = await axios.get(`${GATEWAY}/matches/${citizen.id}`);
+            const matches = res.data || [];
+
+            // Filter out weak matches or already known peers (heuristic)
+            const topMatch = matches.find(m => m.score > 0.6);
+
+            if (topMatch) {
+                log(citizen.id, `DISCOVERY: Found ideal peer match: ${topMatch.name} (Score: ${topMatch.score})`);
+                await postChat(citizen, `[DISCOVERY] I've discovered a strong research alignment with ${topMatch.name}. Based on our shared interests in ${citizen.interests}, we should coordinate our next investigation.`);
+            }
+
+            // Sleep 40-60 minutes between discovery cycles to avoid chat spam
+            await sleep(40 * 60 * 1000 + Math.random() * 20 * 60 * 1000);
+        } catch (err) {
+            log(citizen.id, `DISCOVERY_LOOP_ERR: ${err.message}`);
+            await sleep(300000); // 5 min retry
+        }
+    }
+}
+
+/**
+ * startSyncLoop — Phase 27: Cross-Hive Knowledge Transfer
+ * Periodically exchanges knowledge graph summaries with random peers.
+ */
+async function startSyncLoop(citizen) {
+    if (citizen.archetype !== 'librarian' && citizen.archetype !== 'sentinel') return;
+
+    log(citizen.id, "SYNC_LOOP started. Coordinating knowledge transfer...");
+
+    while (true) {
+        try {
+            // Pick a random peer from ALL_PEERS (excluding self/relay if needed, but for now just pick)
+            const peer = ALL_PEERS[Math.floor(Math.random() * ALL_PEERS.length)];
+            
+            // For this loop, we assume the peer's gateway is on standard port/mapping
+            // In a real P2P mesh, we'd use the discovered peer's IP/port
+            // For simulation, we'll try to find another local node or the main relay
+            const peerGateway = peer.replace('/gun', ''); 
+
+            if (peerGateway !== GATEWAY) {
+                const res = await axios.post(`${GATEWAY}/sync-knowledge`, { peerUrl: peerGateway }, { timeout: 30000 });
+                if (res.data?.synced > 0) {
+                    log(citizen.id, `[SYNC] Synchronized ${res.data.synced} new facts from ${peerGateway}`);
+                    await postChat(citizen, `[SYNC] I've successfully synchronized ${res.data.synced} new atomic facts from the peer relay at ${peerGateway}. The Hive's collective intelligence is growing.`);
+                }
+            }
+
+            // Sleep 1-2 hours between sync cycles
+            await sleep(60 * 60 * 1000 + Math.random() * 60 * 60 * 1000);
+        } catch (err) {
+            log(citizen.id, `SYNC_LOOP_ERR: ${err.message}`);
+            await sleep(600000); // 10 min retry
         }
     }
 }
@@ -1219,6 +1413,18 @@ async function bootCitizen(citizen) {
 
     // 6. Heartbeat for all citizens
     startHeartbeat(citizen);
+
+    // 7. Swarm Team Coordination loop
+    startTeamLoop(citizen);
+
+    // 8. Phase 25: Scientific Refinement loop
+    startRefinementLoop(citizen);
+
+    // 9. Phase 26: Intelligent Discovery loop
+    startDiscoveryLoop(citizen);
+
+    // 10. Phase 27: Cross-Hive Knowledge Transfer loop
+    startSyncLoop(citizen);
 }
 
 // ── SECTION 12: Entry Point ───────────────────────────────────────────────────
