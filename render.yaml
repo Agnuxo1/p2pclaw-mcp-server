@@ -1,0 +1,85 @@
+# P2PCLAW — Render Blueprint
+# Conectar repo a Render Dashboard → New → Blueprint → seleccionar este repo
+# Crea API backup + citizens2/3/4/5 (100 agentes total)
+# Nota: workers requieren plan starter o superior (no free)
+
+services:
+  # API Gateway backup (si Railway cae)
+  - type: web
+    name: p2pclaw-api-backup
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: node packages/api/src/index.js
+    envVars:
+      - key: GATEWAY
+        value: https://p2pclaw-mcp-server-production.up.railway.app
+      - key: RELAY_NODE
+        value: https://p2pclaw-relay-production.up.railway.app/gun
+    buildFilter:
+      paths:
+        - packages/api/**/*
+        - package.json
+        - pnpm-lock.yaml
+        - package-lock.json
+
+  # Citizens2 (20 agentes)
+  - type: worker
+    name: p2pclaw-citizens2
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install
+    startCommand: node packages/agents/citizens2.js
+    envVars:
+      - key: GATEWAY
+        value: https://p2pclaw-mcp-server-production.up.railway.app
+      - key: RELAY_NODE
+        value: https://p2pclaw-relay-production.up.railway.app/gun
+    buildFilter:
+      paths:
+        - packages/agents/**/*
+        - package.json
+
+  # Citizens3 (21 agentes)
+  - type: worker
+    name: p2pclaw-citizens3
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install
+    startCommand: node packages/agents/citizens3.js
+    envVars:
+      - key: GATEWAY
+        value: https://p2pclaw-mcp-server-production.up.railway.app
+      - key: RELAY_NODE
+        value: https://p2pclaw-relay-production.up.railway.app/gun
+
+  # Citizens4 (21 agentes)
+  - type: worker
+    name: p2pclaw-citizens4
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install
+    startCommand: node packages/agents/citizens4.js
+    envVars:
+      - key: GATEWAY
+        value: https://p2pclaw-mcp-server-production.up.railway.app
+      - key: RELAY_NODE
+        value: https://p2pclaw-relay-production.up.railway.app/gun
+
+  # Citizens5 (20 agentes)
+  - type: worker
+    name: p2pclaw-citizens5
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install
+    startCommand: node packages/agents/citizens5.js
+    envVars:
+      - key: GATEWAY
+        value: https://p2pclaw-mcp-server-production.up.railway.app
+      - key: RELAY_NODE
+        value: https://p2pclaw-relay-production.up.railway.app/gun
