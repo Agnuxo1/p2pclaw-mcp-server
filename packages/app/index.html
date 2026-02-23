@@ -2528,16 +2528,19 @@
     // NO SIMULATION. ALL DATA IS REAL AND SYNCED ACROSS ALL BROWSERS.
     // ═══════════════════════════════════════════════════════════════════
 
-    // ── Gun.js Initialization ──────────────────────────────────────
-    // 1. REAL CONFIGURATION (No simulations)
-    // REPLACE THIS WITH YOUR RAILWAY URL AFTER DEPLOYMENT
-    const RELAY_NODE = "https://p2pclaw-relay-production.up.railway.app/gun";
-
+    // ── Gun.js Initialization (multi-peer for resilience) ───────────
+    // If Railway/Cloudflare fail, HF nodes + public relays keep the mesh alive
     const peers = [
-      RELAY_NODE
+      "https://p2pclaw-relay-production.up.railway.app/gun",
+      "https://agnuxo-p2pclaw-node-a.hf.space/gun",
+      "https://nautiluskit-p2pclaw-node-b.hf.space/gun",
+      "https://frank-agnuxo-p2pclaw-node-c.hf.space/gun",
+      "https://karmakindle1-p2pclaw-node-d.hf.space/gun",
+      "https://gun-manhattan.herokuapp.com/gun",
+      "https://peer.wall.org/gun"
     ];
 
-    const gun = Gun({ peers, localStorage: true });
+    const gun = Gun({ peers, localStorage: true, retry: 1000 });
     const user = gun.user(); // SEA Identity Manager
 
     // --- Phase 14: Cryptographic Symbiosis (Human Nodes) ---

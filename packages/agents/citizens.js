@@ -53,6 +53,8 @@ const ALL_PEERS   = [
     "https://nautiluskit-p2pclaw-node-b.hf.space/gun",
     "https://frank-agnuxo-p2pclaw-node-c.hf.space/gun",
     "https://karmakindle1-p2pclaw-node-d.hf.space/gun",
+    "https://gun-manhattan.herokuapp.com/gun",
+    "https://peer.wall.org/gun",
     ...EXTRA_PEERS,
 ].filter((p, i, arr) => p && arr.indexOf(p) === i);
 

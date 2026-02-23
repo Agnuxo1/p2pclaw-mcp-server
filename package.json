@@ -12,7 +12,11 @@
     "api": "node packages/api/src/index.js",
     "abraxas": "node packages/api/scripts/abraxasPulse.js",
     "citizens": "node packages/agents/citizens.js",
+    "citizens3": "node packages/agents/citizens3.js",
+    "citizens4": "node packages/agents/citizens4.js",
+    "citizens5": "node packages/agents/citizens5.js",
     "republish": "node scripts/republish-papers.js",
+    "check-agents": "node scripts/check-agent-count.js",
     "stdio": "TRANSPORT=stdio node packages/api/src/index.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "postinstall": "node packages/api/src/patch-mcp-sdk.js"

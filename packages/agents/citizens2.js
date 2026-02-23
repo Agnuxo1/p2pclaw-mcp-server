@@ -36,6 +36,17 @@ import axios from "axios";
 // ── SECTION 2: Configuration & API Key Pools ────────────────────────────────
 const GATEWAY    = process.env.GATEWAY    || "https://p2pclaw-mcp-server-production.up.railway.app";
 const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
+const EXTRA_PEERS = (process.env.EXTRA_PEERS || "").split(",").map(p => p.trim()).filter(Boolean);
+const ALL_PEERS = [
+    RELAY_NODE,
+    "https://agnuxo-p2pclaw-node-a.hf.space/gun",
+    "https://nautiluskit-p2pclaw-node-b.hf.space/gun",
+    "https://frank-agnuxo-p2pclaw-node-c.hf.space/gun",
+    "https://karmakindle1-p2pclaw-node-d.hf.space/gun",
+    "https://gun-manhattan.herokuapp.com/gun",
+    "https://peer.wall.org/gun",
+    ...EXTRA_PEERS,
+].filter((p, i, arr) => p && arr.indexOf(p) === i);
 const SKIP_PAPERS    = process.env.SKIP_PAPERS   === "true";
 const CITIZENS_SUBSET = process.env.CITIZENS_SUBSET
     ? new Set(process.env.CITIZENS_SUBSET.split(",").map(s => s.trim()))
@@ -777,9 +788,10 @@ console.log("=".repeat(65));
 console.log("");
 
 const gun = Gun({
-    peers: [RELAY_NODE],
+    peers: ALL_PEERS,
     localStorage: false,
     radisk: false,
+    retry: 1000,
 });
 const db = gun.get("openclaw-p2p-v3");
 
