@@ -446,8 +446,8 @@
       margin-bottom: 16px;
     }
 
-    /* ─── Responsive: Mobile off-canvas sidebar ────────── */
-    @media (max-width: 768px) {
+    /* ─── Responsive: Mobile off-canvas sidebar (up to Tablet 1024px) ────────── */
+    @media (max-width: 1024px) {
 
       /* Sidebar is a fixed off-canvas drawer by default —
          it takes ZERO space in the flex row so content fills 100% width */
@@ -3629,6 +3629,17 @@
       if (!tabName) return;
       window.currentSection = tabName;
 
+      // Always auto-close mobile sidebar when navigating
+      if (typeof isMobile === 'function' && isMobile()) {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (sidebar && sidebar.classList.contains('mobile-open')) {
+          sidebar.classList.remove('mobile-open');
+          if (backdrop) backdrop.classList.remove('visible');
+          document.body.style.overflow = '';
+        }
+      }
+
       // Update sidebar
       document.querySelectorAll('.sidebar-item').forEach(item => {
         item.classList.toggle('active', item.dataset.tab === tabName);
@@ -3977,7 +3988,7 @@
 
     // ── toggleSidebar / toggleMobileSidebar ───────────────────────────
     function isMobile() {
-      return window.innerWidth <= 768;
+      return window.innerWidth <= 1024;
     }
 
     function toggleMobileSidebar() {
