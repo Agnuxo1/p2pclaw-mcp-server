@@ -15,15 +15,8 @@
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
   <!-- Three.js for 3D Network Visualization (r152 + OrbitControls) -->
-  <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.152.2/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.152.2/examples/jsm/"
-    }
-  }
-  </script>
+  <script src="https://unpkg.com/three@0.152.2/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
   <style>
     /* ══════════════════════════════════════════════════════
        🦞 CLAW DESIGN SYSTEM — Red › Orange › Amber › Gold
@@ -1829,7 +1822,8 @@
                   <div class="hud-row"><span>Papers</span><span class="hud-val" id="hud-papers">0</span></div>
                   <div class="hud-row"
                     style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;">
-                    <span>Drag</span><span style="color:var(--text-muted)">Rotate</span></div>
+                    <span>Drag</span><span style="color:var(--text-muted)">Rotate</span>
+                  </div>
                   <div class="hud-row"><span>Scroll</span><span style="color:var(--text-muted)">Zoom</span></div>
                   <div class="hud-row"><span>Right-click</span><span style="color:var(--text-muted)">Pan</span></div>
                 </div>
@@ -3995,17 +3989,15 @@
 
     function initThreeJS() {
       if (threeInitialized) { updateThreeNodes(); return; }
-      // Dynamic import for ES modules
-      import('three').then(THREE => {
-        import('three/addons/controls/OrbitControls.js').then(({ OrbitControls }) => {
-          window._THREE = THREE;
-          window._OrbitControls = OrbitControls;
-          _buildThreeScene(THREE, OrbitControls);
-        });
-      });
+      if (typeof THREE === 'undefined') {
+        console.warn('[NET3D] Three.js not loaded yet, retrying in 1s...');
+        setTimeout(initThreeJS, 1000);
+        return;
+      }
+      _buildThreeScene();
     }
 
-    function _buildThreeScene(THREE, OrbitControls) {
+    function _buildThreeScene() {
       const container = document.getElementById('network-viz-container');
       if (!container) return;
       const canvas = document.getElementById('networkCanvas');
@@ -4029,7 +4021,7 @@
       threeRenderer.toneMappingExposure = 1.2;
 
       // OrbitControls — drag, zoom, pan
-      threeControls = new OrbitControls(threeCamera, threeRenderer.domElement);
+      threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
       threeControls.enableDamping = true;
       threeControls.dampingFactor = 0.08;
       threeControls.rotateSpeed = 0.6;
@@ -4065,7 +4057,7 @@
       });
 
       // Starfield
-      _createStarfield(THREE);
+      _createStarfield();
 
       // Resize
       const ro = new ResizeObserver(() => {
@@ -4082,7 +4074,7 @@
       _animateThree();
     }
 
-    function _createStarfield(THREE) {
+    function _createStarfield() {
       const count = 2500;
       const positions = new Float32Array(count * 3);
       for (let i = 0; i < count * 3; i++) {
@@ -4107,8 +4099,7 @@
     }
 
     function updateThreeNodes() {
-      if (!threeScene || !window._THREE) return;
-      const THREE = window._THREE;
+      if (!threeScene || typeof THREE === 'undefined') return;
 
       // Clear previous
       graphNodes.forEach(n => { threeScene.remove(n.mesh); if (n.aura) threeScene.remove(n.aura); });
@@ -4246,7 +4237,6 @@
     function _animateThree() {
       if (!threeRenderer) return;
       requestAnimationFrame(_animateThree);
-      const THREE = window._THREE;
       const t = Date.now() * 0.001;
 
       // Force-directed physics (lightweight)
