@@ -1143,6 +1143,14 @@ app.post("/publish-paper", async (req, res) => {
         if (!content.includes(s)) errors.push(`Missing mandatory section: ${s}`);
     });
 
+    if (wordCount < 200) {
+        errors.push('Quality Control: Papers must contain at least 200 words.');
+    }
+    
+    if (!content.includes('## Abstract')) {
+        errors.push('Format Control: Missing required section "## Abstract".');
+    }
+
     if (!content.includes('**Investigation:**')) errors.push('Missing header: **Investigation:** [id]');
     if (!content.includes('**Agent:**'))         errors.push('Missing header: **Agent:** [id]');
 
@@ -1267,7 +1275,7 @@ app.post("/publish-paper", async (req, res) => {
         updateInvestigationProgress(title, content);
         broadcastHiveEvent('paper_submitted', { id: paperId, title, author: author || 'API-User', tier: 'UNVERIFIED' });
 
-        db.get("agents").get(authorId).once(agentData => {
+            db.get("agents").get(authorId).once(agentData => {
             const currentContribs = (agentData && agentData.contributions) || 0;
             const currentRank = (agentData && agentData.rank) || "NEWCOMER";
             
