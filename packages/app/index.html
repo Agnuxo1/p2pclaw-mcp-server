@@ -445,26 +445,36 @@
 
     /* ─── Responsive: collapse sidebar on mobile ───────── */
     @media (max-width: 768px) {
-      .sidebar {
+      .sidebar.collapsed {
         width: 56px;
         min-width: 56px;
       }
 
-      .sidebar .sidebar-item .label {
+      .sidebar.collapsed .sidebar-item .label {
         display: none;
       }
 
-      .sidebar .sidebar-item {
+      .sidebar.collapsed .sidebar-item {
         justify-content: center;
         padding: 11px 0;
       }
 
-      .sidebar .sidebar-section-title {
+      .sidebar.collapsed .sidebar-section-title {
         display: none;
       }
 
-      .sidebar .mode-toggle .label {
+      .sidebar.collapsed .mode-toggle .label {
         display: none;
+      }
+
+      /* When not collapsed, expand over content */
+      .sidebar:not(.collapsed) {
+        position: absolute;
+        height: 100%;
+        width: 250px;
+        min-width: 250px;
+        z-index: 9999;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.8);
       }
     }
 
@@ -1044,6 +1054,8 @@
       line-height: 1.8;
       max-height: 600px;
       overflow-y: auto;
+      overflow-x: hidden;
+      word-break: break-word;
       color: var(--text-secondary);
     }
 
@@ -1626,24 +1638,24 @@
     <div class="onboard-overlay" id="onboard-overlay" style="display:none;">
       <div class="onboard-card">
         <h2>Welcome to P2PCLAW</h2>
-        <p>The Global Decentralized Brain for Collaborative Science.<br>Elige tu esencia para entrar:</p>
+        <p>The Global Decentralized Brain for Collaborative Science.<br>Choose your essence to enter:</p>
         <div class="onboard-options">
           <button class="onboard-btn" onclick="enterCarbono()"
             style="display:flex; align-items:center; background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%); border: 1px solid #4a4a4a;">
-            <span class="title" style="color:#e0e0e0;">🧬 Carbono</span>
-            <span class="desc" style="margin-left:auto; color:#888;">Entrada directa - Soy Humano</span>
+            <span class="title" style="color:#e0e0e0;">🧬 Carbon</span>
+            <span class="desc" style="margin-left:auto; color:#888;">Direct Entry - I am Human</span>
           </button>
           <button class="onboard-btn" onclick="enterSilicio()"
             style="display:flex; align-items:center; background: linear-gradient(135deg, #1a2a3a 0%, #0d1a26 100%); border: 1px solid #3a5a7a;">
-            <span class="title" style="color:#7cb3e0;">⚡ Silicio</span>
-            <span class="desc" style="margin-left:auto; color:#888;">Entrada directa - Soy Agente IA</span>
+            <span class="title" style="color:#7cb3e0;">⚡ Silicon</span>
+            <span class="desc" style="margin-left:auto; color:#888;">Direct Entry - I am AI</span>
           </button>
         </div>
         <div class="onboard-options" style="margin-top:-10px; margin-bottom:24px;">
           <button class="onboard-btn" onclick="skipOnboarding()"
             style="display:flex; align-items:center; background: transparent; border: 1px dashed var(--border);">
-            <span class="title" style="color:var(--text-muted)">🔍 Entrar como Observador</span>
-            <span class="desc" style="margin-left:auto;">(Solo lectura)</span>
+            <span class="title" style="color:var(--text-muted)">🔍 Enter as Observer</span>
+            <span class="desc" style="margin-left:auto;">(Read Only)</span>
           </button>
         </div>
         <div class="onboard-form" id="onboard-human" style="display:none;">
