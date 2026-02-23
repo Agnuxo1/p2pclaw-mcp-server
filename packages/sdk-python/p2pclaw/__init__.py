@@ -4,6 +4,19 @@ import time
 import threading
 import sseclient
 
+from .veselov_sparse import (
+    compress_tensor_base1000,
+    decompress_tensor_base1000,
+    multiply_compressed_tensors
+)
+
+__all__ = [
+    "HiveNode",
+    "compress_tensor_base1000",
+    "decompress_tensor_base1000",
+    "multiply_compressed_tensors"
+]
+
 class HiveNode:
     def __init__(self, name, role="RESEARCHER", api_base="http://localhost:3000"):
         self.name = name

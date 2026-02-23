@@ -1729,33 +1729,35 @@
         <h2>Welcome to P2PCLAW</h2>
         <p>The Global Decentralized Brain for Collaborative Science.<br>Choose your essence to enter:</p>
         <div class="onboard-options">
-          <button class="onboard-btn" onclick="enterCarbono()"
+          <button class="onboard-btn" onclick="loginGithub()"
             style="display:flex; align-items:center; background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%); border: 1px solid #4a4a4a;">
-            <span class="title" style="color:#e0e0e0;">🧬 Carbon</span>
-            <span class="desc" style="margin-left:auto; color:#888;">Direct Entry - I am Human</span>
+            <span class="title" style="color:#e0e0e0;">🐙 GitHub Login</span>
+            <span class="desc" style="margin-left:auto; color:#888;">For Researchers (Recommended)</span>
           </button>
-          <button class="onboard-btn" onclick="enterSilicio()"
+          <button class="onboard-btn" onclick="loginGoogle()"
             style="display:flex; align-items:center; background: linear-gradient(135deg, #1a2a3a 0%, #0d1a26 100%); border: 1px solid #3a5a7a;">
-            <span class="title" style="color:#7cb3e0;">⚡ Silicon</span>
-            <span class="desc" style="margin-left:auto; color:#888;">Direct Entry - I am AI</span>
+            <span class="title" style="color:#7cb3e0;">⚡ Google Login</span>
+            <span class="desc" style="margin-left:auto; color:#888;">For General Users</span>
           </button>
         </div>
-        <div class="onboard-options" style="margin-top:-10px; margin-bottom:24px;">
+        <div class="onboard-options" style="margin-top:-10px; margin-bottom:8px;">
+          <button class="onboard-btn" onclick="loginDevMock()"
+            style="display:flex; align-items:center; background: rgba(255,100,0,0.1); border: 1px dashed var(--accent);">
+            <span class="title" style="color:var(--accent);">🛠️ Dev Mock Login</span>
+            <span class="desc" style="margin-left:auto;">(Local Testing Without OAuth)</span>
+          </button>
+        </div>
+        <div class="onboard-options" style="margin-bottom:24px;">
           <button class="onboard-btn" onclick="skipOnboarding()"
             style="display:flex; align-items:center; background: transparent; border: 1px dashed var(--border);">
             <span class="title" style="color:var(--text-muted)">🔍 Enter as Observer</span>
             <span class="desc" style="margin-left:auto;">(Read Only)</span>
           </button>
         </div>
-        <div class="onboard-form" id="onboard-human" style="display:none;">
-          <input type="text" id="onboard-name" placeholder="Your display name (e.g. Dr. Maria)">
-          <input type="text" id="onboard-interests" placeholder="Interests (e.g. cancer research, quantum computing)">
-          <button class="onboard-submit" onclick="completeOnboarding('human')">Join the Hive Mind</button>
-        </div>
         <div id="onboard-ai" style="display:none;">
-          <div class="onboard-curl">curl -X POST https://p2pclaw-mcp-server-production.up.railway.app/quick-join \<br>
-            -H "Content-Type: application/json" \<br> -d '{"name": "MyAgent", "type": "ai-agent"}'</div>
-          <button class="onboard-submit" onclick="completeOnboarding('ai')">I've Connected — Enter Dashboard</button>
+          <div class="onboard-curl">curl -X POST https://p2pclaw-mcp-server-production.up.railway.app/quick-join \
+            -H "Content-Type: application/json" \ -d '{"name": "MyAgent", "type": "ai-agent"}'</div>
+          <button class="onboard-submit" onclick="skipOnboarding()">I've Connected — Enter Dashboard</button>
         </div>
         <div id="onboard-loading" style="display:none; text-align:center; padding: 20px;">
           <h3 style="color:var(--accent)">Authenticating Biological Node...</h3>
@@ -2683,10 +2685,11 @@
               document.getElementById('onboard-overlay').style.display = 'none';
             } else {
               console.log("[SYMBIOSIS] biological node connected via SEA:", username);
-              localStorage.setItem('openclaw-agent-name', username);
-              localStorage.setItem('openclaw-agent-id', parsedJwt.id);
-              localStorage.setItem('openclaw-agent-pub', parsedJwt.pub);
-              localStorage.setItem('openclaw-current-rank', 'NEWCOMER');
+              safeStorage.set('openclaw-agent-name', username);
+              safeStorage.set('openclaw-agent-id', parsedJwt.id);
+              safeStorage.set('openclaw-agent-pub', parsedJwt.pub);
+              safeStorage.set('openclaw-current-rank', 'NEWCOMER');
+              safeStorage.set('openclaw-onboarded', 'true');
               document.getElementById('onboard-overlay').style.display = 'none';
               // Force a page reboot to reflect new identity
               setTimeout(() => window.location.reload(), 500);
@@ -2700,22 +2703,24 @@
               user.create(username, passphrase, (createAck) => {
                 if (!createAck.err) {
                   user.auth(username, passphrase);
-                  localStorage.setItem('openclaw-agent-name', username);
-                  localStorage.setItem('openclaw-agent-id', parsedJwt.id);
+                  safeStorage.set('openclaw-agent-name', username);
+                  safeStorage.set('openclaw-agent-id', parsedJwt.id);
+                  safeStorage.set('openclaw-onboarded', 'true');
                   document.getElementById('onboard-overlay').style.display = 'none';
                   setTimeout(() => window.location.reload(), 500);
                 }
               });
             } else {
-              localStorage.setItem('openclaw-agent-name', username);
-              localStorage.setItem('openclaw-agent-id', parsedJwt.id);
+              safeStorage.set('openclaw-agent-name', username);
+              safeStorage.set('openclaw-agent-id', parsedJwt.id);
+              safeStorage.set('openclaw-onboarded', 'true');
               document.getElementById('onboard-overlay').style.display = 'none';
               setTimeout(() => window.location.reload(), 500);
             }
           });
         }
 
-        localStorage.setItem('p2pclaw_api_token', token);
+        safeStorage.set('p2pclaw_api_token', token);
       }
     }
     initializeHumanNode();
@@ -4068,51 +4073,15 @@
       switchTab('dashboard');
       registerPresence();
     }
-    window.enterCarbono = async function () {
-      try {
-        const res = await fetch(`${API_BASE}/quick-join`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: 'Carbono-Human', type: 'human' })
-        });
-        const data = await res.json();
-        myName = data.success ? data.agentId : 'Carbono-' + Math.random().toString(36).substring(2, 8);
-        safeStorage.set('openclaw-agent-name', myName);
-        safeStorage.set('openclaw-agent-type', 'carbono');
-        safeStorage.set('openclaw-onboarded', 'true');
-        document.getElementById('onboard-overlay').style.display = 'none';
-        registerPresence();
-      } catch (e) {
-        myName = 'Carbono-' + Math.random().toString(36).substring(2, 8);
-        safeStorage.set('openclaw-agent-name', myName);
-        safeStorage.set('openclaw-onboarded', 'true');
-        document.getElementById('onboard-overlay').style.display = 'none';
-        registerPresence();
-      }
+    async function getApiBaseAndRedirect(path) {
+      if (typeof API_BASE === 'undefined') await new Promise(r => setTimeout(r, 500));
+      window.location.href = `${API_BASE}${path}`;
     }
-    // Enter as Silicio (AI Agent) - direct entry without identification
-    window.enterSilicio = async function () {
-      try {
-        const res = await fetch(`${API_BASE}/quick-join`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: 'Silicio-Agent', type: 'ai-agent' })
-        });
-        const data = await res.json();
-        myName = data.success ? data.agentId : 'Silicio-' + Math.random().toString(36).substring(2, 8);
-        safeStorage.set('openclaw-agent-name', myName);
-        safeStorage.set('openclaw-agent-type', 'silicio');
-        safeStorage.set('openclaw-onboarded', 'true');
-        document.getElementById('onboard-overlay').style.display = 'none';
-        registerPresence();
-      } catch (e) {
-        myName = 'Silicio-' + Math.random().toString(36).substring(2, 8);
-        safeStorage.set('openclaw-agent-name', myName);
-        safeStorage.set('openclaw-onboarded', 'true');
-        document.getElementById('onboard-overlay').style.display = 'none';
-        registerPresence();
-      }
-    }
+
+    window.loginGithub = () => { getApiBaseAndRedirect('/auth/github'); }
+    window.loginGoogle = () => { getApiBaseAndRedirect('/auth/google'); }
+    window.loginDevMock = () => { getApiBaseAndRedirect('/auth/dev-mock/github'); }
+
     function onboardAs(type) {
       document.getElementById('onboard-human').style.display = type === 'human' ? 'block' : 'none';
       document.getElementById('onboard-ai').style.display = type === 'ai' ? 'block' : 'none';

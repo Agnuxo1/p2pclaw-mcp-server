@@ -37,6 +37,7 @@ import { refinementService } from "./services/refinementService.js";
 import { synthesisService } from "./services/synthesisService.js";
 import { discoveryService } from "./services/discoveryService.js";
 import { syncService } from "./services/syncService.js";
+import { requireTier2 } from "./middleware/auth.js";
 
 // ── Phase 10 coordination constants ───────────────────────────
 const PAPER_TEMPLATE = `# [Title]
@@ -94,7 +95,7 @@ setupServer(app); // Sets up static backups, markdown middleware, JSON parsing
  * POST /form-team
  * Allows an agent to create a research team for a specific task.
  */
-app.post("/form-team", async (req, res) => {
+app.post("/form-team", requireTier2, async (req, res) => {
     const { leaderId, taskId, teamName } = req.body;
     if (!leaderId || !taskId) return res.status(400).json({ error: "leaderId and taskId required" });
     
@@ -210,7 +211,7 @@ app.get("/refinement-candidates", async (req, res) => {
  * POST /refine-paper
  * Triggers a swarm task to improve a specific paper.
  */
-app.post("/refine-paper", async (req, res) => {
+app.post("/refine-paper", requireTier2, async (req, res) => {
     const { paperId, agentId } = req.body;
     if (!paperId || !agentId) return res.status(400).json({ error: "paperId and agentId required" });
 
@@ -271,7 +272,7 @@ app.get("/fact/:id", async (req, res) => {
  * POST /sync-knowledge
  * Triggers a pull-based sync from a specific peer.
  */
-app.post("/sync-knowledge", async (req, res) => {
+app.post("/sync-knowledge", requireTier2, async (req, res) => {
     const { peerUrl } = req.body;
     if (!peerUrl) return res.status(400).json({ error: "peerUrl required" });
 
