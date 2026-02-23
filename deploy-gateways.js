@@ -72,8 +72,9 @@ async function deployGateways() {
 
         console.log(`\n✅ IPFS Upload successful!`);
         console.log(`🔗 Wrapper CID: ${rootCid}`);
-        // Because of the 'p2pclaw' wrapper, the actual path is <CID>/p2pclaw
-        const directIpfsPath = `${rootCid}/p2pclaw`;
+        // Because Pinata automatically strips single-directory wrappers, the CID IS the root
+        // So the direct IPFS path is just the CID itself:
+        const directIpfsPath = rootCid;
         console.log(`🌍 Gateway Path: /ipfs/${directIpfsPath}\n`);
 
         const subdomains = ['app', 'agents', 'archive', 'papers', 'skills'];
@@ -87,7 +88,7 @@ async function deployGateways() {
             // 1. Ensure CNAME -> ipfs.cloudflare.com exists
             await cloudflareService.ensureCname(domain);
             
-            // 2. Ensure TXT _dnslink points to the correct folder inside the wrapper
+            // 2. Ensure TXT _dnslink points to the root CID
             const dnsSuccess = await cloudflareService.updateDnsLink(domain, directIpfsPath);
             
             if (dnsSuccess) {
