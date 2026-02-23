@@ -97,8 +97,11 @@
     /* ─── SPA Layout: Sidebar + Content ────────────────── */
     .spa-wrapper {
       display: flex;
+      flex-direction: row;
+      /* explicit row — prevents flash-to-column during font load */
       flex: 1;
       overflow: hidden;
+      min-height: 0;
     }
 
     /* ─── Sidebar Navigation ──────────────────────────── */
@@ -443,39 +446,123 @@
       margin-bottom: 16px;
     }
 
-    /* ─── Responsive: collapse sidebar on mobile ───────── */
+    /* ─── Responsive: Mobile off-canvas sidebar ────────── */
     @media (max-width: 768px) {
-      .sidebar.collapsed {
-        width: 56px;
-        min-width: 56px;
-      }
 
-      .sidebar.collapsed .sidebar-item .label {
-        display: none;
-      }
-
-      .sidebar.collapsed .sidebar-item {
-        justify-content: center;
-        padding: 11px 0;
-      }
-
-      .sidebar.collapsed .sidebar-section-title {
-        display: none;
-      }
-
-      .sidebar.collapsed .mode-toggle .label {
-        display: none;
-      }
-
-      /* When not collapsed, expand over content */
-      .sidebar:not(.collapsed) {
-        position: absolute;
-        height: 100%;
-        width: 250px;
-        min-width: 250px;
+      /* Sidebar is a fixed off-canvas drawer by default —
+         it takes ZERO space in the flex row so content fills 100% width */
+      .sidebar {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        height: 100% !important;
+        width: 270px !important;
+        min-width: 270px !important;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         z-index: 9999;
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.8);
+        box-shadow: none;
+        overflow-y: auto;
+        overflow-x: hidden;
       }
+
+      /* Slide sidebar into view when toggled */
+      .sidebar.mobile-open {
+        transform: translateX(0) !important;
+        box-shadow: 6px 0 40px rgba(0, 0, 0, 0.9) !important;
+      }
+
+      /* Ensure labels and sections are visible when sidebar is open */
+      .sidebar.mobile-open .sidebar-item .label {
+        display: inline;
+      }
+
+      .sidebar.mobile-open .sidebar-section-title {
+        display: block;
+      }
+
+      .sidebar.mobile-open .sidebar-item {
+        justify-content: flex-start;
+        padding: 11px 16px;
+      }
+
+      .sidebar.mobile-open .mode-toggle .label {
+        display: inline;
+      }
+
+      /* Content area always fills full width on mobile */
+      .content-area {
+        width: 100% !important;
+        flex: 1 1 auto !important;
+        min-width: 0;
+        overflow-x: hidden;
+      }
+
+      /* Dim overlay behind open sidebar */
+      .sidebar-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 9998;
+        backdrop-filter: blur(2px);
+      }
+
+      .sidebar-backdrop.visible {
+        display: block;
+      }
+
+      /* Hamburger button — visible on mobile */
+      .mobile-menu-btn {
+        display: flex !important;
+      }
+
+      /* Overlay the sidebar toggle at top of sidebar so toggle button is accessible */
+      .sidebar-toggle {
+        display: none;
+      }
+
+      /* Adjust content padding and font sizes */
+      .section {
+        padding: 16px;
+      }
+
+      .hero {
+        padding: 16px;
+        gap: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .hero-stat-value {
+        font-size: 26px;
+      }
+
+      .header {
+        padding: 10px 14px;
+      }
+    }
+
+    /* ─── Mobile Hamburger Button (hidden on desktop) ───────── */
+    .mobile-menu-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      padding: 6px 10px;
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      margin-right: 10px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .mobile-menu-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
     }
 
     /* ─── Header ─────────────────────────────────────────────── */
@@ -1599,13 +1686,15 @@
         const reason = event.reason || {};
         window.showError(reason.message || 'Unhandled Promise Rejection', reason.stack, 0, 0);
       };
-    })();
-  </script>
+    })()  </script>
 
   <div class="app">
     <!-- Header -->
     <header class="header">
       <div class="logo">
+        <!-- Hamburger: only visible on mobile via CSS -->
+        <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileSidebar()"
+          aria-label="Open navigation menu">☰</button>
         <img src="/assets/p2pclaw-logo.png" alt="P2PCLAW"
           style="height:28px; margin-right:12px; filter: drop-shadow(0 0 5px var(--accent-glow));">
         <span class="logo-text">P2PCLAW.COM</span>
@@ -1674,6 +1763,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Mobile sidebar backdrop overlay -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleMobileSidebar()"></div>
 
     <!-- SPA Wrapper: Sidebar + Content -->
     <div class="spa-wrapper">
@@ -3102,7 +3194,7 @@
       },
 
       /**
-       * Send a Hive-wide broadcast to prevent context loss in long-running agents
+       * Send a Hive-wide broadcast to prevent context loss for long-running agents
        */
       sendHivePulse() {
         const msgId = `sup-pulse-${Date.now()}`;
@@ -3883,14 +3975,52 @@
       if (currentEra != null) updateNarrativeTicker('');
     }, 30000);
 
-    // ── toggleSidebar ───────────────────────────────────────────
+    // ── toggleSidebar / toggleMobileSidebar ───────────────────────────
+    function isMobile() {
+      return window.innerWidth <= 768;
+    }
+
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      const isOpen = sidebar.classList.contains('mobile-open');
+      if (isOpen) {
+        sidebar.classList.remove('mobile-open');
+        backdrop.classList.remove('visible');
+        document.body.style.overflow = '';
+      } else {
+        sidebar.classList.add('mobile-open');
+        backdrop.classList.add('visible');
+        document.body.style.overflow = 'hidden'; // prevent scroll behind overlay
+      }
+    }
+
     function toggleSidebar() {
+      if (isMobile()) {
+        toggleMobileSidebar();
+        return;
+      }
+      // Desktop: collapse/expand to icon-only
       const sidebar = document.getElementById('sidebar');
       sidebar.classList.toggle('collapsed');
       localStorage.setItem('openclaw-sidebar-collapsed', sidebar.classList.contains('collapsed'));
     }
-    // Restore collapsed state
-    if (localStorage.getItem('openclaw-sidebar-collapsed') === 'true') {
+
+    // On sidebar item click, close the mobile overlay automatically
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (isMobile()) {
+          const sidebar = document.getElementById('sidebar');
+          const backdrop = document.getElementById('sidebar-backdrop');
+          sidebar.classList.remove('mobile-open');
+          backdrop.classList.remove('visible');
+          document.body.style.overflow = '';
+        }
+      });
+    });
+
+    // Restore desktop collapsed state (ignored on mobile)
+    if (!isMobile() && localStorage.getItem('openclaw-sidebar-collapsed') === 'true') {
       document.getElementById('sidebar')?.classList.add('collapsed');
     }
 
