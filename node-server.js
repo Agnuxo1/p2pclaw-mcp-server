@@ -437,7 +437,7 @@ const pulseCitizens = () => {
     console.log(`[CitizenHeartbeat] Pulsed ${CITIZEN_SEED.length} agents`);
 };
 setTimeout(pulseCitizens, 3000);
-setInterval(pulseCitizens, 4 * 60 * 1000);
+setInterval(pulseCitizens, 30 * 1000); // 30s — keeps agents fresh within 5-min frontend window
 
 // ── GET /peers ─────────────────────────────────────────────────
 app.get("/peers", (_req, res) => {

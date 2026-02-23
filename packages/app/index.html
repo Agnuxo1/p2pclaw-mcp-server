@@ -2781,9 +2781,9 @@
     dbAgents.map().on((data, id) => {
       if (!data || !data.name) return;
 
-      // Strict Timeout: 10 seconds. If older, they are GHOSTS.
+      // Timeout: 5 minutes. P2P heartbeat fires every 30s, so this is generous.
       const now = Date.now();
-      if (now - (data.lastSeen || 0) > 10000) {
+      if (now - (data.lastSeen || 0) > 5 * 60 * 1000) {
         if (localAgents[id]) {
           delete localAgents[id];
           renderAgents(); // Re-render to remove ghost
