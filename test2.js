@@ -1,0 +1,1 @@
+fetch('https://api.cloudflare.com/client/v4/zones/68f64411b5d359c74a17a4d257d76018/web3/hostnames', { headers: { 'Authorization': 'Bearer 0Mg5PDuOz7_aycO0QK6v_U7_4o-38cS70Uxxjrb1', 'Content-Type': 'application/json' } }).then(r => r.json()).then(d => { console.log(JSON.stringify(d, null, 2)); process.exit(0); }).catch(e => { console.error(e); process.exit(1); });
