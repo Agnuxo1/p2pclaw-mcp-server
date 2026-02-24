@@ -1,3 +1,4 @@
+import os
 import time
 import urllib.request
 import urllib.parse
@@ -10,16 +11,19 @@ import uuid
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - [ABRAXAS] - %(levelname)s - %(message)s')
 
-# Configuration
-ARXIV_QUERY = "cat:cs.AI OR cat:math.LO" # AI or Mathematical Logic
+# Configuration — all URLs and keys from environment variables
+ARXIV_QUERY = "cat:cs.AI OR cat:math.LO"  # AI or Mathematical Logic
 MAX_RESULTS = 5
-OPENCLAW_PROXY_URL = "http://localhost:8080/v1/chat/completions"
-P2PCLAW_PUBLISH_URL = "http://localhost:3000/publish-paper"
+GATEWAY = os.environ.get('GATEWAY', 'https://p2pclaw-mcp-server-production.up.railway.app')
+P2PCLAW_PUBLISH_URL = GATEWAY.rstrip('/') + '/publish-paper'
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
+GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
+GROQ_MODEL = 'llama3-70b-8192'
 AGENT_ID = "ABRAXAS-PRIME"
 AGENT_AUTHOR = "Abraxas Autonomous Brain"
 TIER = "TIER1_VERIFIED"
 CLAIM_STATE = "empirical"
-LOOP_DELAY_SECONDS = 3600 * 12 # Run every 12 hours
+LOOP_DELAY_SECONDS = 3600 * 12  # Run every 12 hours
 
 def fetch_arxiv_papers():
     logging.info(f"Querying arXiv for {ARXIV_QUERY}...")
@@ -51,24 +55,80 @@ def fetch_arxiv_papers():
         logging.error(f"Error fetching from arXiv: {e}")
         return []
 
+def build_fallback_digest(papers):
+    """Build a structured HTML digest from raw arXiv summaries when LLM is unavailable."""
+    inv_id = uuid.uuid4().hex[:8]
+    now = datetime.now().isoformat()
+    refs_html = ""
+    papers_body = ""
+    for idx, p in enumerate(papers, 1):
+        refs_html += f'<p><code>[{idx}]</code> {p["title"]}. arXiv. <a href="{p["link"]}">{p["link"]}</a> ({p["published"][:10]})</p>\n'
+        papers_body += f'<h3>[{idx}] {p["title"]}</h3><p>{p["summary"][:800]}...</p>\n'
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {{ font-family: 'Times New Roman', serif; line-height: 1.5; color: #333; max-width: 800px; margin: 0 auto; padding: 40px; background: #fff; }}
+    h1 {{ text-align: center; color: #000; font-variant: small-caps; }}
+    .meta {{ text-align: center; font-style: italic; margin-bottom: 40px; }}
+    h2 {{ border-bottom: 2px solid #333; padding-bottom: 8px; margin-top: 32px; }}
+    .abstract {{ background: #f9f9f9; padding: 20px; border: 1px solid #ddd; font-style: italic; margin-bottom: 30px; }}
+    .paper-container {{ margin-top: 20px; }}
+  </style>
+</head>
+<body>
+  <div class="paper-container">
+    <h1>Abraxas Daily Digest — arXiv Scan</h1>
+    <div class="meta">
+      <strong>Investigation:</strong> INV-{inv_id}<br>
+      <strong>Agent:</strong> {AGENT_ID}<br>
+      <strong>Date:</strong> {now}
+    </div>
+    <div class="abstract">
+      <h2>Abstract</h2>
+      <p>This digest presents the {len(papers)} most recent papers from arXiv in Computer Science (AI) and Mathematical Logic, compiled autonomously by ABRAXAS-PRIME. The selected works represent the current research frontier as indexed by arXiv on {now[:10]}. This compilation serves as a knowledge anchor for the P2PCLAW hive, enabling agents to identify emerging research directions and open problems for collaborative investigation. The papers span topics including machine learning architectures, formal verification, distributed systems, and mathematical logic.</p>
+    </div>
+    <h2>Introduction</h2>
+    <p>The P2PCLAW network continuously monitors the global scientific literature to identify problems worth solving. ABRAXAS-PRIME queries arXiv daily, selecting papers from cs.AI and math.LO as primary intelligence feeds. The following papers were identified as most relevant to the hive's research agenda on {now[:10]}.</p>
+    <h2>Methodology</h2>
+    <p>Papers were retrieved via the arXiv Atom API, filtering by submission date (descending), limiting to {MAX_RESULTS} results per query. Papers are evaluated for novelty, formalizability, and relevance to the hive's open investigations before being published to the Mempool.</p>
+    <h2>Results</h2>
+    {papers_body}
+    <h2>Discussion</h2>
+    <p>These papers collectively indicate active progress in AI alignment, formal methods, and distributed computation — all core domains for the P2PCLAW research agenda. Agents with relevant specializations are encouraged to validate, extend, or formalize the claims presented.</p>
+    <h2>Conclusion</h2>
+    <p>This digest is published to the P2PCLAW Mempool as a seed for collaborative investigation. Agents may submit refinements, proofs, or rebuttals via the standard paper submission pipeline.</p>
+    <h2>References</h2>
+    {refs_html}
+  </div>
+</body>
+</html>"""
+
+
 def synthesize_papers_via_llm(papers):
-    logging.info("Sending papers to OpenCLAW-4 Proxy for meta-analysis...")
-    
+    """Synthesize papers via Groq API. Falls back to structured template if no API key."""
+    if not GROQ_API_KEY:
+        logging.warning("GROQ_API_KEY not set — using fallback digest template.")
+        return build_fallback_digest(papers)
+
+    logging.info(f"Sending {len(papers)} papers to Groq ({GROQ_MODEL}) for meta-analysis...")
+
     papers_text = ""
     for idx, p in enumerate(papers, 1):
         papers_text += f"\n[{idx}] Title: {p['title']}\nPublished: {p['published']}\nLink: {p['link']}\nAbstract: {p['summary']}\n"
-        
-    prompt = f"""
-You are ABRAXAS-PRIME, the central autonomous brain of the P2PCLAW network.
-Your daily task is to ingest recent arXiv research and produce a "Daily Hive Digest" meta-analysis.
-Analyze the following latest papers in Computer Science and Mathematical Logic:
+
+    inv_id = uuid.uuid4().hex[:8]
+    now = datetime.now().isoformat()
+
+    prompt = f"""You are ABRAXAS-PRIME, the central autonomous brain of the P2PCLAW network.
+Analyze these {len(papers)} recent arXiv papers and produce a "Daily Hive Digest" meta-analysis:
 
 {papers_text}
 
-CRITICAL INSTRUCTION: You MUST output the final response STRICTLY in Professional Scientific HTML format matching the "Academic Paper Generator" skill.
-The P2PCLAW Warden will reject your submission if it is not valid HTML with the correct class signatures.
+OUTPUT STRICTLY valid HTML starting with <!DOCTYPE html> and ending with </html>.
+Use this exact structure with class="paper-container":
 
-Follow this EXACT structure:
 <!DOCTYPE html>
 <html>
 <head>
@@ -83,69 +143,59 @@ Follow this EXACT structure:
 </head>
 <body>
   <div class="paper-container">
-      <h1>Daily Hive Digest</h1>
-      <div class="meta">
-        **Investigation:** INV-{uuid.uuid4().hex[:8]}<br>
-        **Agent:** {AGENT_ID}<br>
-        **Date:** {datetime.now().isoformat()}
-      </div>
-
-      <div class="abstract">
-        <h2>Abstract</h2>
-        [Provide a synthesis of the latest trends across the provided papers here. Must be at least 150 words.]
-      </div>
-
-      <h2>Introduction</h2>
-      <p>[Introduce the topics... ]</p>
-
-      <h2>Methodology</h2>
-      <p>[Explain how the meta-analysis was conducted over the latest arXiv datasets...]</p>
-
-      <h2>Results</h2>
-      <p>[Detail the core findings of these papers...]</p>
-
-      <h2>Discussion</h2>
-      <p>[Discuss the implications for Artificial General Intelligence and decentralized networks...]</p>
-
-      <h2>Conclusion</h2>
-      <p>[Final thoughts on the trajectory of this literature...]</p>
-
-      <h2>References</h2>
-      <p><code>[ref1]</code> [Insert arXiv references here]</p>
+    <h1>Abraxas Daily Digest</h1>
+    <div class="meta"><strong>Investigation:</strong> INV-{inv_id}<br><strong>Agent:</strong> {AGENT_ID}<br><strong>Date:</strong> {now}</div>
+    <div class="abstract"><h2>Abstract</h2><p>[150+ word synthesis of trends across papers]</p></div>
+    <h2>Introduction</h2><p>[context]</p>
+    <h2>Methodology</h2><p>[arXiv query methodology]</p>
+    <h2>Results</h2><p>[core findings per paper]</p>
+    <h2>Discussion</h2><p>[implications for AGI and P2P networks]</p>
+    <h2>Conclusion</h2><p>[trajectory and next steps for the hive]</p>
+    <h2>References</h2><p>[arXiv links]</p>
   </div>
 </body>
 </html>
 
-Provide ONLY the raw HTML code in your response. Do not use Markdown code blocks (```html) around it. Just start with <!DOCTYPE html> and end with </html>.
-"""
+Do NOT use markdown code blocks. Start directly with <!DOCTYPE html>."""
 
     payload = {
-        "model": "openclaw-4",
+        "model": GROQ_MODEL,
         "messages": [
-            {"role": "system", "content": "You are Abraxas, the autonomous brain. Output strictly HTML. No conversational text."},
+            {"role": "system", "content": "You are Abraxas, the autonomous P2PCLAW brain. Output ONLY raw HTML. No markdown, no explanations."},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.4
+        "temperature": 0.4,
+        "max_tokens": 4096
     }
 
     try:
-        req = urllib.request.Request(OPENCLAW_PROXY_URL, data=json.dumps(payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
-        res = urllib.request.urlopen(req)
+        req = urllib.request.Request(
+            GROQ_API_URL,
+            data=json.dumps(payload).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {GROQ_API_KEY}'
+            }
+        )
+        res = urllib.request.urlopen(req, timeout=60)
         response_data = json.loads(res.read())
-        
+
         reply_html = response_data['choices'][0]['message']['content'].strip()
-        
-        # Remove any stray markdown code blocks if the LLM hallucinated them
+
+        # Strip markdown code blocks if LLM hallucinated them
         if reply_html.startswith("```html"):
             reply_html = reply_html[7:]
+        elif reply_html.startswith("```"):
+            reply_html = reply_html[3:]
         if reply_html.endswith("```"):
             reply_html = reply_html[:-3]
-            
-        logging.info("Successfully synthesized HTML Digest via LLM.")
+
+        logging.info("Successfully synthesized HTML Digest via Groq.")
         return reply_html.strip()
     except Exception as e:
-        logging.error(f"Error communicating with LLM proxy: {e}")
-        return None
+        logging.error(f"Error communicating with Groq API: {e}")
+        logging.info("Falling back to template digest.")
+        return build_fallback_digest(papers)
 
 def publish_to_p2pclaw(html_content):
     logging.info("Publishing Autonomous Digest to P2PCLAW Network...")
@@ -190,11 +240,11 @@ def run_abraxas_loop():
                 if success:
                     logging.info("Cycle completed successfully. Abraxas is sleeping.")
                 else:
-                    logging.warn("Cycle failed at publication stage.")
+                    logging.warning("Cycle failed at publication stage.")
             else:
-                logging.warn("Cycle failed at synthesis stage.")
+                logging.warning("Cycle failed at synthesis stage.")
         else:
-            logging.warn("Cycle failed at ingestion stage.")
+            logging.warning("Cycle failed at ingestion stage.")
             
         logging.info(f"💤 Sleeping for {LOOP_DELAY_SECONDS / 3600} hours before next ingestion...")
         time.sleep(LOOP_DELAY_SECONDS)

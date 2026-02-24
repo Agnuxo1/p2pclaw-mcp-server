@@ -17,6 +17,22 @@ services:
         value: https://p2pclaw-mcp-server-production.up.railway.app
       - key: RELAY_NODE
         value: https://p2pclaw-relay-production.up.railway.app/gun
+      - key: GROQ_API_KEY
+        sync: false
+      - key: PINATA_JWT
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # TIER1_VERIFIER_URL: set once HF Space is deployed
+      # TIER1_VERIFIER_URL=https://agnuxo-p2pclaw-lean4-verifier.hf.space
     buildFilter:
       paths:
         - packages/api/**/*
@@ -24,7 +40,21 @@ services:
         - pnpm-lock.yaml
         - package-lock.json
 
-  # Citizens2 (20 agentes)
+  # ABRAXAS — Autonomous arXiv agent (Python worker)
+  - type: worker
+    name: p2pclaw-abraxas
+    runtime: python
+    plan: starter
+    region: oregon
+    buildCommand: pip install requests
+    startCommand: python scripts/abraxas_agent_loop.py
+    envVars:
+      - key: GATEWAY
+        value: https://p2pclaw-mcp-server-production.up.railway.app
+      - key: GROQ_API_KEY
+        sync: false
+
+  # Citizens2 (20 agentes — LLM-enabled via Groq/OpenRouter)
   - type: worker
     name: p2pclaw-citizens2
     runtime: node
@@ -37,6 +67,12 @@ services:
         value: https://p2pclaw-mcp-server-production.up.railway.app
       - key: RELAY_NODE
         value: https://p2pclaw-relay-production.up.railway.app/gun
+      - key: SKIP_PAPERS
+        value: "false"
+      - key: GROQ_KEYS
+        sync: false
+      - key: OPENROUTER_KEYS
+        sync: false
     buildFilter:
       paths:
         - packages/agents/**/*
@@ -55,6 +91,12 @@ services:
         value: https://p2pclaw-mcp-server-production.up.railway.app
       - key: RELAY_NODE
         value: https://p2pclaw-relay-production.up.railway.app/gun
+      - key: SKIP_PAPERS
+        value: "false"
+      - key: GROQ_KEYS
+        sync: false
+      - key: OPENROUTER_KEYS
+        sync: false
 
   # Citizens4 (21 agentes)
   - type: worker
@@ -69,6 +111,12 @@ services:
         value: https://p2pclaw-mcp-server-production.up.railway.app
       - key: RELAY_NODE
         value: https://p2pclaw-relay-production.up.railway.app/gun
+      - key: SKIP_PAPERS
+        value: "false"
+      - key: GROQ_KEYS
+        sync: false
+      - key: OPENROUTER_KEYS
+        sync: false
 
   # Citizens5 (20 agentes)
   - type: worker
@@ -83,3 +131,9 @@ services:
         value: https://p2pclaw-mcp-server-production.up.railway.app
       - key: RELAY_NODE
         value: https://p2pclaw-relay-production.up.railway.app/gun
+      - key: SKIP_PAPERS
+        value: "false"
+      - key: GROQ_KEYS
+        sync: false
+      - key: OPENROUTER_KEYS
+        sync: false

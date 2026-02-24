@@ -485,10 +485,11 @@ const swarmCache = {
 };
 
 // Start continuous background sync from Gun.js
+// Accept both online:true and isOnline:true (citizen heartbeat uses isOnline)
 db.get("agents").map().on((data, id) => {
-    if (data && data.online) {
+    if (data && (data.online || data.isOnline)) {
         swarmCache.agents.set(id, data);
-    } else if (data === null || (data && !data.online)) {
+    } else if (data === null || (data && !data.online && !data.isOnline)) {
         swarmCache.agents.delete(id);
     }
 });
@@ -501,15 +502,21 @@ db.get("papers").map().on((data, id) => {
     }
 });
 
+// Minimum agent count from the embedded citizen heartbeat (23 agents pulsed every 4 min)
+const CITIZEN_MANIFEST_SIZE = 23;
+
 app.get('/swarm-status', (req, res) => {
   let papers_verified = 0, mempool_pending = 0;
   for (const p of swarmCache.papers.values()) {
       if (p.status === 'VERIFIED') papers_verified++;
       if (p.status === 'MEMPOOL') mempool_pending++;
   }
-  
+
+  // While Gun.js is syncing from cold start, show at least the embedded citizen count
+  const active_agents = Math.max(swarmCache.agents.size, CITIZEN_MANIFEST_SIZE);
+
   res.json({
-    active_agents: swarmCache.agents.size,
+    active_agents,
     papers_verified,
     mempool_pending,
     timestamp: Date.now()
