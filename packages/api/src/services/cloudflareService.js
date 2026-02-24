@@ -93,60 +93,15 @@ class CloudflareService {
     }
 
     /**
-     * Ensures the CNAME record pointing to ipfs.cloudflare.com exists for the Web3 gateway.
+     * Ensures the CNAME record pointing to the IPFS gateway exists for the Web3 gateway.
+     * WARNING: With Cloudflare's new Web3 Gateway system (which prevents Error 1014/1000), 
+     * the user MUST configure the Domain from the Cloudflare Web3 Dashboard. 
+     * If we forcefully write a CNAME to ipfs.cloudflare.com, it will trigger Error 1014 (Cross-User Banned).
+     * Therefore, this function is now a NO-OP. We only manage the _dnslink TXT record via updateDnsLink.
      */
     async ensureCname(subdomain) {
-        if (!this.zoneId || !this.apiToken) return false;
-
-        try {
-            const searchRes = await fetch(`${this.baseUrl}?type=CNAME&name=${subdomain}`, { headers: this.headers });
-            const searchData = await searchRes.json();
-
-            if (!searchData.success) return false;
-
-            const record = searchData.result[0];
-            const targetContent = "ipfs.cloudflare.com";
-
-            if (!record) {
-                console.log(`[CLOUDFLARE] CNAME for ${subdomain} is missing. Creating...`);
-                const createRes = await fetch(this.baseUrl, {
-                    method: 'POST',
-                    headers: this.headers,
-                    body: JSON.stringify({
-                        type: 'CNAME',
-                        name: subdomain,
-                        content: targetContent,
-                        ttl: 1,
-                        proxied: false // CRITICAL: DNSLink requires DNS-only (Grey Cloud), not Proxied (Orange Cloud)
-                    })
-                });
-                const createData = await createRes.json();
-                if (createData.success) {
-                    console.log(`[CLOUDFLARE] Successfully created CNAME ${subdomain} -> ${targetContent}`);
-                } else {
-                    console.error(`[CLOUDFLARE] CNAME creation failed:`, createData.errors);
-                }
-            } else if (record.content !== targetContent || record.proxied) {
-                console.log(`[CLOUDFLARE] CNAME for ${subdomain} needs update. Target: ${targetContent}, Proxied: false...`);
-                await fetch(`${this.baseUrl}/${record.id}`, {
-                    method: 'PUT',
-                    headers: this.headers,
-                    body: JSON.stringify({
-                        type: 'CNAME',
-                        name: subdomain,
-                        content: targetContent,
-                        ttl: 1,
-                        proxied: false // CRITICAL: DNSLink requires DNS-only
-                    })
-                });
-            } else {
-                console.log(`[CLOUDFLARE] CNAME for ${subdomain} is already correct.`);
-            }
-            return true;
-        } catch (error) {
-            console.error(`[CLOUDFLARE] Error ensuring CNAME for ${subdomain}:`, error.message);
-            return false;
-        }
+        console.log(`[CLOUDFLARE] SKIPPING CNAME override for ${subdomain} to prevent Error 1014/1000. Assuming Cloudflare Web3 Dashboard configuration is intact.`);
+        return true;
     }
 }
 
