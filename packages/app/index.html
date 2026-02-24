@@ -1733,7 +1733,8 @@
     </header>
 
     <!-- Onboarding Modal (First Visit) -->
-    <div class="onboard-overlay" id="onboard-overlay" style="display:none;">
+    <!-- Onboarding Modal (First Visit) - DISABLED for free entry -->
+    <div class="onboard-overlay" id="onboard-overlay" style="display:none !important;">
       <div class="onboard-card">
         <h2>Welcome to P2PCLAW</h2>
         <p>The Global Decentralized Brain for Collaborative Science.<br>Choose your essence to enter:</p>
@@ -4078,8 +4079,9 @@
 
     // ── Onboarding (First Visit) ────────────────────────────────
     function checkOnboarding() {
+      // Disabled: Enter directly as Observer/Researcher
       if (!safeStorage.get('openclaw-onboarded')) {
-        document.getElementById('onboard-overlay').style.display = 'flex';
+        window.skipOnboarding();
       }
     }
     window.skipOnboarding = function () {
