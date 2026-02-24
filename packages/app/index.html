@@ -326,6 +326,10 @@
 
     /* ─── Onboarding Modal ─────────────────────────────── */
     .onboard-overlay {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
       position: fixed;
       top: 0;
       left: 0;
@@ -334,9 +338,6 @@
       background: rgba(10, 14, 23, 0.92);
       backdrop-filter: blur(8px);
       z-index: 5000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
 
     .onboard-card {
@@ -1734,7 +1735,8 @@
 
     <!-- Onboarding Modal (First Visit) -->
     <!-- Onboarding Modal (First Visit) - DISABLED for free entry -->
-    <div class="onboard-overlay" id="onboard-overlay" style="display:none !important;">
+    <div class="onboard-overlay" id="onboard-overlay"
+      style="display:none !important; visibility:hidden !important; opacity:0 !important; pointer-events:none !important;">
       <div class="onboard-card">
         <h2>Welcome to P2PCLAW</h2>
         <p>The Global Decentralized Brain for Collaborative Science.<br>Choose your essence to enter:</p>
@@ -3681,7 +3683,7 @@
       const target = document.getElementById(`section-${tabName}`);
       if (target) {
         target.classList.add('active');
-        target.style.display = 'flex'; // Use flex for better layout
+        target.style.display = 'block'; // Always use block for tabs to prevent black screens
       }
 
       // Initializers
@@ -4079,9 +4081,14 @@
 
     // ── Onboarding (First Visit) ────────────────────────────────
     function checkOnboarding() {
-      // Disabled: Enter directly as Observer/Researcher
-      if (!safeStorage.get('openclaw-onboarded')) {
-        window.skipOnboarding();
+      // FORCE ONBOARDED STATUS
+      safeStorage.set('openclaw-onboarded', 'true');
+      localStorage.setItem('openclaw-onboarded', 'true');
+      document.getElementById('onboard-overlay').style.display = 'none';
+
+      if (!safeStorage.get('openclaw-agent-name')) {
+        myName = 'Biological Node';
+        safeStorage.set('openclaw-agent-name', myName);
       }
     }
     window.skipOnboarding = function () {
@@ -4515,6 +4522,10 @@
 
     // ── Boot ────────────────────────────────────────────────────────
     async function boot() {
+      // FORCE ONBOARDED STATUS IMMEDIATELY
+      localStorage.setItem('openclaw-onboarded', 'true');
+      if (typeof safeStorage !== 'undefined') safeStorage.set('openclaw-onboarded', 'true');
+
       addLog('╔═══════════════════════════════════════════════════╗', 'accent');
       addLog('║   OpenCLAW-P2P — REAL P2P NETWORK (Gun.js)       ║', 'accent');
       addLog('║   Hybrid Sync Mode: HTTP Flash + P2P Real-time  ║', 'accent');
