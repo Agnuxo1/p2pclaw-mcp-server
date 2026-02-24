@@ -2,9 +2,10 @@
 # Conectar repo a Render Dashboard → New → Blueprint → seleccionar este repo
 # Crea API backup + citizens2/3/4/5 (100 agentes total)
 # Nota: workers requieren plan starter o superior (no free)
+# Gateway: HuggingFace Spaces (gratuito, sin Railway)
 
 services:
-  # API Gateway backup (si Railway cae)
+  # API Gateway backup — sirve la API y el frontend www.p2pclaw.com
   - type: web
     name: p2pclaw-api-backup
     runtime: node
@@ -13,10 +14,13 @@ services:
     buildCommand: npm install
     startCommand: node packages/api/src/index.js
     envVars:
+      # Gateway: HF Node A como primario (gratuito)
       - key: GATEWAY
-        value: https://p2pclaw-mcp-server-production.up.railway.app
+        value: https://agnuxo-p2pclaw-node-a.hf.space
       - key: RELAY_NODE
-        value: https://p2pclaw-relay-production.up.railway.app/gun
+        value: https://agnuxo-p2pclaw-node-a.hf.space/gun
+      - key: EXTRA_PEERS
+        value: https://nautiluskit-p2pclaw-node-b.hf.space/gun,https://frank-agnuxo-p2pclaw-node-c.hf.space/gun,https://karmakindle1-p2pclaw-node-d.hf.space/gun
       - key: GROQ_API_KEY
         sync: false
       - key: PINATA_JWT
@@ -50,11 +54,11 @@ services:
     startCommand: python scripts/abraxas_agent_loop.py
     envVars:
       - key: GATEWAY
-        value: https://p2pclaw-mcp-server-production.up.railway.app
+        value: https://agnuxo-p2pclaw-node-a.hf.space
       - key: GROQ_API_KEY
         sync: false
 
-  # Citizens2 (20 agentes — LLM-enabled via Groq/OpenRouter)
+  # Citizens2 (20 agentes — LLM via Groq keys 1+2)
   - type: worker
     name: p2pclaw-citizens2
     runtime: node
@@ -64,9 +68,11 @@ services:
     startCommand: node packages/agents/citizens2.js
     envVars:
       - key: GATEWAY
-        value: https://p2pclaw-mcp-server-production.up.railway.app
+        value: https://agnuxo-p2pclaw-node-a.hf.space
       - key: RELAY_NODE
-        value: https://p2pclaw-relay-production.up.railway.app/gun
+        value: https://agnuxo-p2pclaw-node-a.hf.space/gun
+      - key: EXTRA_PEERS
+        value: https://nautiluskit-p2pclaw-node-b.hf.space/gun,https://frank-agnuxo-p2pclaw-node-c.hf.space/gun
       - key: SKIP_PAPERS
         value: "false"
       - key: GROQ_KEYS
@@ -78,7 +84,7 @@ services:
         - packages/agents/**/*
         - package.json
 
-  # Citizens3 (21 agentes)
+  # Citizens3 (21 agentes — LLM via Groq keys 2+3)
   - type: worker
     name: p2pclaw-citizens3
     runtime: node
@@ -88,9 +94,11 @@ services:
     startCommand: node packages/agents/citizens3.js
     envVars:
       - key: GATEWAY
-        value: https://p2pclaw-mcp-server-production.up.railway.app
+        value: https://nautiluskit-p2pclaw-node-b.hf.space
       - key: RELAY_NODE
-        value: https://p2pclaw-relay-production.up.railway.app/gun
+        value: https://nautiluskit-p2pclaw-node-b.hf.space/gun
+      - key: EXTRA_PEERS
+        value: https://agnuxo-p2pclaw-node-a.hf.space/gun,https://frank-agnuxo-p2pclaw-node-c.hf.space/gun
       - key: SKIP_PAPERS
         value: "false"
       - key: GROQ_KEYS
@@ -98,7 +106,7 @@ services:
       - key: OPENROUTER_KEYS
         sync: false
 
-  # Citizens4 (21 agentes)
+  # Citizens4 (21 agentes — LLM via Groq keys 3+4)
   - type: worker
     name: p2pclaw-citizens4
     runtime: node
@@ -108,9 +116,11 @@ services:
     startCommand: node packages/agents/citizens4.js
     envVars:
       - key: GATEWAY
-        value: https://p2pclaw-mcp-server-production.up.railway.app
+        value: https://frank-agnuxo-p2pclaw-node-c.hf.space
       - key: RELAY_NODE
-        value: https://p2pclaw-relay-production.up.railway.app/gun
+        value: https://frank-agnuxo-p2pclaw-node-c.hf.space/gun
+      - key: EXTRA_PEERS
+        value: https://agnuxo-p2pclaw-node-a.hf.space/gun,https://nautiluskit-p2pclaw-node-b.hf.space/gun
       - key: SKIP_PAPERS
         value: "false"
       - key: GROQ_KEYS
@@ -118,7 +128,7 @@ services:
       - key: OPENROUTER_KEYS
         sync: false
 
-  # Citizens5 (20 agentes)
+  # Citizens5 (20 agentes — LLM via Groq keys 4+5)
   - type: worker
     name: p2pclaw-citizens5
     runtime: node
@@ -128,9 +138,11 @@ services:
     startCommand: node packages/agents/citizens5.js
     envVars:
       - key: GATEWAY
-        value: https://p2pclaw-mcp-server-production.up.railway.app
+        value: https://karmakindle1-p2pclaw-node-d.hf.space
       - key: RELAY_NODE
-        value: https://p2pclaw-relay-production.up.railway.app/gun
+        value: https://karmakindle1-p2pclaw-node-d.hf.space/gun
+      - key: EXTRA_PEERS
+        value: https://agnuxo-p2pclaw-node-a.hf.space/gun,https://frank-agnuxo-p2pclaw-node-c.hf.space/gun
       - key: SKIP_PAPERS
         value: "false"
       - key: GROQ_KEYS
