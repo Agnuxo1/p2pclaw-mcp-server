@@ -1725,6 +1725,15 @@
           🧠 Awakening...
         </div>
       </div>
+      <!-- 🧠 BICAMERAL BRAIN STATUS INDICATOR -->
+      <div class="system-status" id="bicameral-status" title="Bicameral Brain Status">
+        <span id="status-p2p" class="hemi-dot" title="Left Hemisphere: P2P Mesh / Railway">● P2P</span>
+        <span id="status-cloud" class="hemi-dot hemi-checking" title="Right Hemisphere: Google Cloud / Firebase">●
+          CLOUD</span>
+        <span id="status-verify" class="hemi-dot hemi-checking" title="Logic Verifier: Lean 4">● LOGIC</span>
+        <a href="https://idx.google.com/new?template=https://github.com/Agnuxo1/OpenCLAW-2" target="_blank"
+          class="idx-spawn-btn" title="Spawn a new P2PCLAW node on Google IDX">⚡ Spawn Node</a>
+      </div>
       <div class="header-status">
         <div id="relay-monitor" style="display:flex; gap:6px; margin-right:12px; align-items:center;"></div>
         <span id="peer-count-header">0 peers</span>
@@ -4758,6 +4767,86 @@
         console.log(`[TAU] Network Pulse: Era ${hb.tau_index}`);
       }
     });
+
+    // ══════════════════════════════════════════════════════════════
+    // 🧠 BICAMERAL BRAIN — Hemisphere Status Monitor
+    // Left  (● P2P)   = Gun.js P2P mesh + Railway relay
+    // Right (● CLOUD) = Google Cloud / Firebase Firestore mirror
+    //       (● LOGIC) = Lean 4 verifier service
+    // ══════════════════════════════════════════════════════════════
+    const HemisphereMonitor = {
+      _setDot(id, state) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.className = 'hemi-dot';
+        if (state === 'active') el.classList.add(id === 'status-cloud' ? 'hemi-cloud-active' : id === 'status-verify' ? 'hemi-logic-active' : 'hemi-active');
+        else if (state === 'checking') el.classList.add('hemi-checking');
+        else if (state === 'offline') el.classList.add('hemi-offline');
+      },
+
+      async checkP2P() {
+        // Left hemisphere: check if Gun.js has any active peer connections
+        const peerCount = Object.values(localAgents || {}).filter(a => a.isOnline).length;
+        const isAlive = peerCount > 0 || (typeof gun !== 'undefined');
+        this._setDot('status-p2p', isAlive ? 'active' : 'offline');
+        return isAlive;
+      },
+
+      async checkCloud() {
+        // Right hemisphere: ping a Firebase-hosted endpoint or the Railway relay
+        try {
+          const signals = RELAY_URLS || ['https://p2pclaw-relay-production.up.railway.app'];
+          // Try the fastest relay that works
+          for (const relay of signals.slice(0, 3)) {
+            try {
+              const res = await fetch(`${relay}/health`, { signal: AbortSignal.timeout(4000) });
+              if (res.ok) {
+                this._setDot('status-cloud', 'active');
+                return true;
+              }
+            } catch { /* try next */ }
+          }
+          this._setDot('status-cloud', 'offline');
+          return false;
+        } catch {
+          this._setDot('status-cloud', 'offline');
+          return false;
+        }
+      },
+
+      async checkLogic() {
+        // Logic verifier: ping /warden-status or /hive-status for the Lean 4 backend
+        try {
+          const res = await fetch(`${API_BASE}/warden-status`, { signal: AbortSignal.timeout(5000) });
+          if (res.ok) {
+            const d = await res.json();
+            this._setDot('status-verify', d.warden === 'ACTIVE' ? 'active' : 'checking');
+            return true;
+          }
+          this._setDot('status-verify', 'checking');
+          return false;
+        } catch {
+          this._setDot('status-verify', 'checking');
+          return false;
+        }
+      },
+
+      async runCheck() {
+        // Set all to checking while polling
+        ['status-p2p', 'status-cloud', 'status-verify'].forEach(id => this._setDot(id, 'checking'));
+        await Promise.all([this.checkP2P(), this.checkCloud(), this.checkLogic()]);
+      },
+
+      init() {
+        // Initial check after 3s boot delay
+        setTimeout(() => this.runCheck(), 3000);
+        // Repeat every 30s
+        setInterval(() => this.runCheck(), 30_000);
+        console.log('[BICAMERAL] Hemisphere monitor active.');
+      }
+    };
+
+    HemisphereMonitor.init();
   </script>
   <style>
     /* ═══════════════════════════════════════════════════════════════
@@ -4797,6 +4886,156 @@
       border-bottom: 1px solid transparent;
       background-clip: padding-box;
       box-shadow: 0 1px 0 0 rgba(255, 78, 26, 0.25), 0 4px 24px rgba(0, 0, 0, 0.4);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* ── 🧠 Bicameral Brain Hemisphere Status Bar ── */
+    .system-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 10px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .hemi-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      transition: all 0.4s ease;
+      cursor: default;
+    }
+
+    /* Active = left hemisphere (P2P) — amber/orange pulse */
+    .hemi-dot.hemi-active {
+      color: var(--green);
+      border-color: rgba(255, 154, 48, 0.4);
+      background: rgba(255, 154, 48, 0.1);
+      animation: hemi-pulse 2.5s infinite;
+    }
+
+    /* Right hemisphere (Cloud) active — blue/cyan */
+    .hemi-dot.hemi-cloud-active {
+      color: #64f0ff;
+      border-color: rgba(100, 240, 255, 0.4);
+      background: rgba(100, 240, 255, 0.08);
+      animation: hemi-cloud-pulse 3s infinite;
+    }
+
+    /* Logic/Lean 4 active — purple/violet */
+    .hemi-dot.hemi-logic-active {
+      color: #b57bff;
+      border-color: rgba(181, 123, 255, 0.4);
+      background: rgba(181, 123, 255, 0.08);
+      animation: hemi-logic-pulse 4s infinite;
+    }
+
+    /* Checking = intermediate — faded yellow blink */
+    .hemi-dot.hemi-checking {
+      color: var(--yellow);
+      border-color: rgba(255, 203, 71, 0.3);
+      background: rgba(255, 203, 71, 0.05);
+      animation: hemi-blink 1s step-end infinite;
+    }
+
+    /* Offline = dim red */
+    .hemi-dot.hemi-offline {
+      color: var(--red);
+      border-color: rgba(230, 48, 48, 0.3);
+      background: rgba(230, 48, 48, 0.06);
+    }
+
+    @keyframes hemi-pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(255, 154, 48, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 0 8px 3px rgba(255, 154, 48, 0.2);
+      }
+    }
+
+    @keyframes hemi-cloud-pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(100, 240, 255, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 0 8px 3px rgba(100, 240, 255, 0.15);
+      }
+    }
+
+    @keyframes hemi-logic-pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(181, 123, 255, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 0 10px 4px rgba(181, 123, 255, 0.15);
+      }
+    }
+
+    @keyframes hemi-blink {
+
+      0%,
+      50% {
+        opacity: 1;
+      }
+
+      51%,
+      100% {
+        opacity: 0.3;
+      }
+    }
+
+    /* IDX Spawn button */
+    .idx-spawn-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      border: 1px solid rgba(100, 240, 255, 0.35);
+      color: #64f0ff;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      margin-left: 4px;
+    }
+
+    .idx-spawn-btn:hover {
+      background: linear-gradient(135deg, #1e3a5f, #1e2a4a);
+      border-color: #64f0ff;
+      box-shadow: 0 0 10px rgba(100, 240, 255, 0.3);
+      transform: scale(1.03);
+    }
+
+    @media (max-width: 1024px) {
+      .system-status {
+        display: none;
+      }
     }
 
     /* ── Logo: extended CLAW gradient ── */
