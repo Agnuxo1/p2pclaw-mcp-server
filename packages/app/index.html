@@ -84,24 +84,27 @@
       font-family: var(--font-body);
       background: var(--bg-primary);
       color: var(--text-primary);
-      min-height: 100vh;
+      height: 100vh;
+      width: 100vw;
       overflow-x: hidden;
+      overflow-y: hidden;
+      /* Stop whole-page scrolling, let inner content scroll */
     }
 
     .app {
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
+      height: 100vh;
+      width: 100%;
     }
 
     /* ─── SPA Layout: Sidebar + Content ────────────────── */
     .spa-wrapper {
       display: flex;
       flex-direction: row;
-      /* explicit row — prevents flash-to-column during font load */
       flex: 1;
+      height: 100%;
       overflow: hidden;
-      min-height: 0;
     }
 
     /* ─── Sidebar Navigation ──────────────────────────── */
@@ -208,12 +211,18 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
+      height: 100%;
+      position: relative;
     }
 
     .content-main {
       flex: 1;
-      overflow-y: auto;
+      overflow-y: visible;
+      /* Let parent content-area handle it */
+      display: flex;
+      flex-direction: column;
     }
 
     /* ─── System Log Dock (Always Visible) ─────────────── */
@@ -455,7 +464,7 @@
         position: fixed !important;
         top: 0;
         left: 0;
-        height: 100% !important;
+        height: 100vh !important;
         width: 270px !important;
         min-width: 270px !important;
         transform: translateX(-100%);
