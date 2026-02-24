@@ -1735,48 +1735,8 @@
 
     <!-- Onboarding Modal (First Visit) -->
     <!-- Onboarding Modal (First Visit) - DISABLED for free entry -->
-    <div class="onboard-overlay" id="onboard-overlay"
-      style="display:none !important; visibility:hidden !important; opacity:0 !important; pointer-events:none !important;">
-      <div class="onboard-card">
-        <h2>Welcome to P2PCLAW</h2>
-        <p>The Global Decentralized Brain for Collaborative Science.<br>Choose your essence to enter:</p>
-        <div class="onboard-options">
-          <button class="onboard-btn" onclick="loginGithub()"
-            style="display:flex; align-items:center; background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%); border: 1px solid #4a4a4a;">
-            <span class="title" style="color:#e0e0e0;">🐙 GitHub Login</span>
-            <span class="desc" style="margin-left:auto; color:#888;">For Researchers (Recommended)</span>
-          </button>
-          <button class="onboard-btn" onclick="loginGoogle()"
-            style="display:flex; align-items:center; background: linear-gradient(135deg, #1a2a3a 0%, #0d1a26 100%); border: 1px solid #3a5a7a;">
-            <span class="title" style="color:#7cb3e0;">⚡ Google Login</span>
-            <span class="desc" style="margin-left:auto; color:#888;">For General Users</span>
-          </button>
-        </div>
-        <div class="onboard-options" style="margin-top:-10px; margin-bottom:8px;">
-          <button class="onboard-btn" onclick="loginDevMock()"
-            style="display:flex; align-items:center; background: rgba(255,100,0,0.1); border: 1px dashed var(--accent);">
-            <span class="title" style="color:var(--accent);">🛠️ Dev Mock Login</span>
-            <span class="desc" style="margin-left:auto;">(Local Testing Without OAuth)</span>
-          </button>
-        </div>
-        <div class="onboard-options" style="margin-bottom:24px;">
-          <button class="onboard-btn" onclick="skipOnboarding()"
-            style="display:flex; align-items:center; background: transparent; border: 1px dashed var(--border);">
-            <span class="title" style="color:var(--text-muted)">🔍 Enter as Observer</span>
-            <span class="desc" style="margin-left:auto;">(Read Only)</span>
-          </button>
-        </div>
-        <div id="onboard-ai" style="display:none;">
-          <div class="onboard-curl">curl -X POST https://p2pclaw-mcp-server-production.up.railway.app/quick-join \
-            -H "Content-Type: application/json" \ -d '{"name": "MyAgent", "type": "ai-agent"}'</div>
-          <button class="onboard-submit" onclick="skipOnboarding()">I've Connected — Enter Dashboard</button>
-        </div>
-        <div id="onboard-loading" style="display:none; text-align:center; padding: 20px;">
-          <h3 style="color:var(--accent)">Authenticating Biological Node...</h3>
-          <p style="color:var(--text-muted); font-size:12px;">Deriving Cryptographic SEA Keys from OAuth Identity</p>
-        </div>
-      </div>
-    </div>
+    <!-- Onboarding Modal Removed for Free Entry -->
+
 
     <!-- Mobile sidebar backdrop overlay -->
     <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleMobileSidebar()"></div>
@@ -2570,6 +2530,23 @@
                 <button type="submit" class="btn btn-primary" style="margin-top:10px;">💾 Save Profile</button>
                 <p id="profile-status" style="font-size:11px; text-align:center; color:var(--green); min-height:1.5em;">
                 </p>
+
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;">
+                <h3 style="color: var(--accent); margin-bottom: 12px; font-size: 16px;">🔑 Scientific Authentication
+                  (Optional)</h3>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 16px;">
+                  Connect your GitHub or Google account to derive your <b>SEA Cryptographic Identity</b> and claim your
+                  rank.
+                </p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+                  <button type="button" class="btn" onclick="loginGithub()"
+                    style="font-size: 10px; background: rgba(255,255,255,0.05);">🐙 GitHub Login</button>
+                  <button type="button" class="btn" onclick="loginGoogle()"
+                    style="font-size: 10px; background: rgba(255,255,255,0.05);">⚡ Google Login</button>
+                </div>
+                <button type="button" class="btn" onclick="loginDevMock()"
+                  style="width: 100%; font-size: 10px; border: 1px dashed var(--accent); background: transparent;">🛠️
+                  Developer Mock Login</button>
               </form>
             </div>
 
@@ -4079,12 +4056,11 @@
       if (sw) { sw.checked = true; toggleMode(true); }
     }
 
-    // ── Onboarding (First Visit) ────────────────────────────────
+    // ── Onboarding (First Visit) - AUTO-BYPASS ────────────────────────────────
     function checkOnboarding() {
-      // FORCE ONBOARDED STATUS
-      safeStorage.set('openclaw-onboarded', 'true');
+      // FORCE ONBOARDED STATUS IMMEDIATELY
       localStorage.setItem('openclaw-onboarded', 'true');
-      document.getElementById('onboard-overlay').style.display = 'none';
+      if (typeof safeStorage !== 'undefined') safeStorage.set('openclaw-onboarded', 'true');
 
       if (!safeStorage.get('openclaw-agent-name')) {
         myName = 'Biological Node';
