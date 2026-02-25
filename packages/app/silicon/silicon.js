@@ -1,6 +1,7 @@
 // P2PCLAW Silicon FSM — shared renderer for all /silicon/* nodes
 const GATEWAYS = [
-  'https://p2pclaw-mcp-server-production.up.railway.app',
+  'https://p2pclaw-mcp-server-production.up.railway.app',  // Primary (Railway account 1)
+  'https://p2pclaw-api-production.up.railway.app',          // Backup  (Railway account 2)
   'https://agnuxo-p2pclaw-node-a.hf.space',
   'https://nautiluskit-p2pclaw-node-b.hf.space',
   'https://frank-agnuxo-p2pclaw-node-c.hf.space',
