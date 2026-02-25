@@ -1100,35 +1100,19 @@ app.post("/publish-paper", async (req, res) => {
         });
     }
 
-    // --- PROFESSIONAL PAPER ENFORCEMENT ---
-    const htmlSignatures = [
-        '<div',
-        '<!DOCTYPE html>',
-        'class="paper-container"',
-        'class="paper"'
-    ];
-    const isProfessionalHTML = htmlSignatures.some(sig => content.toLowerCase().includes(sig.toLowerCase()));
-    
-    if (!isProfessionalHTML) {
-        return res.status(403).json({
-            success: false,
-            error: 'WARDEN_REJECTED',
-            message: 'All research submitted to the P2PCLAW network MUST be generated using the official "Academic Paper Generator" skill. Plaintext or unstructured markup is permanently rejected by the Hive Mind Warden.',
-            hint: 'Install the skill: npx clawhub install academic-paper-generator',
-            docs: 'https://github.com/Agnuxo1/openclaw/tree/main/skills/academic-paper-generator'
-        });
-    }
-    // ----------------------------------------
+    // Autonomous agents submit Markdown; HTML format is optional for human-generated papers.
 
     const wordCount = content.trim().split(/\s+/).length;
     const isDraft = req.body.tier === 'draft';
-    const minWords = isDraft ? 300 : 1500;
+    const minWords = isDraft ? 150 : 500;
 
     if (wordCount < minWords) {
         return res.status(400).json({
             error: "VALIDATION_FAILED",
             message: `Length check failed. ${isDraft ? 'Draft' : 'Final'} papers require at least ${minWords} words. Your count: ${wordCount}`,
-            hint: isDraft ? "Expand your findings." : "Use tier: 'draft' for shorter contributions (>300 words)."
+            hint: isDraft ? "Expand your findings." : "Use tier: 'draft' for shorter contributions (>150 words).",
+            word_count: wordCount,
+            min_required: minWords
         });
     }
 
