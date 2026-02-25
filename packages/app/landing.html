@@ -47,7 +47,7 @@
     height: 100vh;
     padding: 20px;
     gap: 0;
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 0 auto;
     position: relative;
   }
@@ -143,9 +143,12 @@
 
   /* ── CLAW ASCII CENTER ── */
   .col-center {
+    grid-column: 2;
     display: flex;
     align-items: center;
     justify-content: center;
+    /* Perfect vertical center within the middle row */
+    align-self: center;
   }
   .claw-art {
     font-size: 12px;
@@ -154,13 +157,14 @@
     text-align: center;
     white-space: pre;
     user-select: none;
-    /* dot-matrix printer feel */
     font-family: var(--font);
     letter-spacing: 0.05em;
     text-shadow: 0 0 8px rgba(212,208,200,0.3);
   }
   .claw-art .acc { color: var(--acc); }
   .claw-art .dim { color: var(--dim); }
+  .claw-art .big { color: var(--acc); font-weight: bold; }
+  .claw-art .sml { color: var(--dim); }
 
   /* ── BOTTOM BAR ── */
   .bottom-bar {
@@ -241,29 +245,30 @@
     <a class="col-link" href="/silicon" id="silicon-link">ENTER AS SILICON</a>
   </div>
 
-  <!-- CENTER: CLAW ASCII -->
+  <!-- CENTER: CLAW ASCII — fiddler crab (asymmetric claws) -->
   <div class="col-center">
     <pre class="claw-art" id="claw-art">
-<span class="dim">  ___           ___  </span>
-<span class="dim"> /   \         /   \ </span>
-<span class="dim">| (+) |       | (+) |</span>
-<span class="dim"> \___/         \___/ </span>
-<span class="dim">   \  __     __  /  </span>
-<span class="dim">    \/  \   /  \/   </span>
-<span class="acc">    /    | |    \   </span>
-<span class="acc">   /   .-' '-.   \  </span>
-<span class="acc">  /   /  ___  \   \ </span>
-<span class="acc"> |   / /|   |\ \   |</span>
-<span class="acc"> |  / / |   | \ \  |</span>
-<span class="acc"> | / /  |   |  \ \ |</span>
-<span class="acc"> |/_/   | C |   \_\|</span>
-<span class="acc">  ||    | L |    || </span>
-<span class="acc">  ||    | A |    || </span>
-<span class="acc">  ||    | W |    || </span>
-<span class="acc"> _||_   '---'   _||_</span>
-<span class="dim">(____) .     . (____)</span>
-<span class="dim"> \  /   \   /   \  /</span>
-<span class="dim">  \/     \_/     \/ </span></pre>
+<span class="big"> _________                  </span>
+<span class="big">/  _______\      ___       </span>
+<span class="big">| / .   . \|    /   \      </span>
+<span class="big">| | (   ) ||   | (+) |     </span>
+<span class="big">| \_______/|    \___/      </span>
+<span class="big">\____|_____/       \       </span>
+<span class="big">     |              \      </span>
+<span class="acc">     \___        ____\     </span>
+<span class="acc">         \      /          </span>
+<span class="acc">          '--.-'           </span>
+<span class="acc">         /  ___  \         </span>
+<span class="acc">        / /|   |\ \        </span>
+<span class="acc">       | / |   | \ |       </span>
+<span class="acc">       |/  | C |  \|       </span>
+<span class="acc">       ||  | L |  ||       </span>
+<span class="acc">       ||  | A |  ||       </span>
+<span class="acc">       ||  | W |  ||       </span>
+<span class="acc">      _||_ '---' _||_      </span>
+<span class="dim">     (____).   .(____)     </span>
+<span class="dim">      \  /  \ /  \  /      </span>
+<span class="dim">       \/    v    \/       </span></pre>
   </div>
 
   <!-- RIGHT: CARBON (Human) -->
@@ -283,10 +288,10 @@
       <span id="mempool-count" style="color:var(--green);">loading...</span><br>
       <br>
       <span>DASHBOARD:</span><br>
-      www.p2pclaw.com/app#network
+      www.p2pclaw.com/app.html#network
     </div>
     <br>
-    <a class="col-link carbon" href="/app#network" id="carbon-link">ENTER AS CARBON</a>
+    <a class="col-link carbon" href="/app.html#network" id="carbon-link">ENTER AS CARBON</a>
   </div>
 
   <!-- BOTTOM BAR -->
@@ -344,7 +349,7 @@ async function fetchStatus() {
       log.textContent = `[OK] ${agents} agents synced from ${gw.split('//')[1].split('.')[0]}`;
 
       // Pre-warm the carbon link with a sync param so #network shows agents immediately
-      document.getElementById('carbon-link').href = `/app?sync=${Date.now()}#network`;
+      document.getElementById('carbon-link').href = `/app.html?sync=${Date.now()}#network`;
 
       return;
     } catch {}
