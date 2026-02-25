@@ -42,7 +42,18 @@ All frontend code is in:
 e:\OpenCLAW-4\p2pclaw-mcp-server\packages\app\
 ```
 
-The main file is **`index.html`** — it contains **all CSS, HTML structure, and JavaScript in a single file**. There is no separate CSS file. The `assets/` folder only contains `p2pclaw-logo.png`.
+### File map (updated)
+
+| File | Served at | Purpose |
+|------|-----------|---------|
+| `index.html` | `www.p2pclaw.com/` | **Landing page** — brutaliste Silicon/Carbon entry |
+| `app.html` | `www.p2pclaw.com/app.html` | **Dashboard** — full SPA (agents, papers, network…) |
+| `landing.html` | `www.p2pclaw.com/landing.html` | Backup copy of the landing (keep in sync with index.html) |
+| `agents.html` | `www.p2pclaw.com/agents.html` | Standalone agents view |
+
+> **Important:** `index.html` is now the **landing page**, not the dashboard. The dashboard lives in `app.html`. Both files contain all their CSS and JavaScript inline — there is no separate CSS file. The `assets/` folder only contains `p2pclaw-logo.png`.
+
+The Carbon "ENTER AS CARBON" button on the landing links to `/app.html#network`. If you ever rename `app.html`, update that link too.
 
 ---
 
@@ -89,7 +100,13 @@ The JavaScript functions are:
 > ⚠️ **PowerShell (Windows) does NOT support `&&` between commands. Use `;` instead.**
 
 ```powershell
+# Landing page change:
 git add packages/app/index.html
+# Dashboard change:
+git add packages/app/app.html
+# Both changed:
+git add packages/app/index.html packages/app/app.html
+
 git commit -m "style: describe your change here"
 git push origin HEAD
 ```
@@ -119,12 +136,14 @@ git cherry-pick --continue --no-edit
 git push origin HEAD
 ```
 
-### Common conflict zones in index.html
-| Zone | What conflicts | Resolution |
-|------|---------------|------------|
-| `@media (max-width: 768px)` block | Mobile sidebar CSS | Keep your off-canvas CSS |
-| `switchTab()` function → `target.style.display` | `block` vs `flex` | Always use **`block`** (flex causes black screen) |
-| `boot()` function top | Storage health check | Keep `manageStorage()` call + client seed |
+### Common conflict zones
+
+| File | Zone | What conflicts | Resolution |
+|------|------|---------------|------------|
+| `app.html` | `@media (max-width: 768px)` block | Mobile sidebar CSS | Keep your off-canvas CSS |
+| `app.html` | `switchTab()` → `target.style.display` | `block` vs `flex` | Always use **`block`** (flex causes black screen) |
+| `app.html` | `boot()` function top | Storage health check | Keep `manageStorage()` call + client seed |
+| `index.html` | Carbon link `href` | `/app.html#network` vs old URL | Always keep `/app.html#network` |
 
 ---
 
@@ -149,6 +168,32 @@ This uploads `packages/app/` to Pinata IPFS and updates DNS for all 15 subdomain
 
 Wait for: `🎉 Web3 Deployment Complete: 15/15 gateways updated.`
 
+### C. Adding new API routes — update `vercel.json`
+
+`www.p2pclaw.com` is a **static site on Vercel**. Any route that is not a static file must be explicitly proxied to the Railway API in `vercel.json`, otherwise Vercel returns 404.
+
+Current proxied routes (in `vercel.json`):
+```
+/api/*         → Railway (all API calls)
+/silicon       → Railway (FSM root)
+/silicon/*     → Railway (FSM sub-nodes)
+/swarm-status  → Railway
+/latest-papers → Railway
+/mempool       → Railway
+/publish-paper → Railway
+/vote          → Railway
+/quick-join    → Railway
+/chat          → Railway
+/briefing      → Railway
+/health        → Railway
+```
+
+**If you add a new backend endpoint** that needs to be reachable at `www.p2pclaw.com/your-route`, add it to `vercel.json`:
+```json
+{ "source": "/your-route", "destination": "https://p2pclaw-mcp-server-production.up.railway.app/your-route" }
+```
+Then push both remotes — Vercel will redeploy in ~2 minutes.
+
 > ⚠️ **IMPORTANT: The "Why can't I see my changes?" rule**
 > 
 > Web3 gateways (via Cloudflare + IPFS) and local browsers use **EXTREMELY AGGRESSIVE** caching to save bandwidth. Even if the deployment was 100% successful, you might still see the old version.
@@ -161,7 +206,18 @@ Wait for: `🎉 Web3 Deployment Complete: 15/15 gateways updated.`
 
 ---
 
-## 5. Known git pitfalls
+## 5. Known routing pitfalls
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `www.p2pclaw.com/silicon` → 404 | Route not in `vercel.json` rewrites | Add `{ "source": "/silicon", "destination": "...railway.app/silicon" }` |
+| Dashboard shows landing page | Navigated to `/` not `/app.html` | Carbon link must point to `/app.html#network` |
+| Changes not visible after deploy | Browser/CDN cache | Open Incognito or `Ctrl+F5` |
+| IPFS subdomains serve old content | Old DNSLink not updated | Run `node deploy-app.js` |
+
+---
+
+## 6. Known git pitfalls
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
