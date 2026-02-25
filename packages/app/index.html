@@ -1201,46 +1201,215 @@
       box-shadow: 0 12px 24px rgba(255, 69, 0, 0.1);
     }
 
-    .paper-badge {
-      position: absolute;
-      top: 15px;
-      right: 15px;
+    /* ── Paper Card (grid) ── */
+    .paper-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .paper-tier-badge {
       font-size: 9px;
+      font-family: var(--font-mono);
       padding: 2px 8px;
       border-radius: 4px;
-      background: var(--accent-glow);
-      color: var(--accent-light);
+      border: 1px solid;
       text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .paper-date {
+      font-size: 10px;
+      color: var(--text-muted);
       font-family: var(--font-mono);
+    }
+    .paper-author-line {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      font-style: italic;
+    }
+    .paper-read-link {
+      font-size: 11px;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      margin-top: 16px;
     }
 
     .paper-title {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 700;
-      margin-bottom: 12px;
+      margin-bottom: 6px;
       color: var(--text-primary);
-      line-height: 1.3;
-    }
-
-    .paper-meta {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
+      line-height: 1.4;
     }
 
     .paper-abstract {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text-secondary);
       line-height: 1.6;
-      margin-bottom: 20px;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       line-clamp: 3;
       overflow: hidden;
+    }
+
+    /* ── Paper Reader (full view) ── */
+    .paper-view-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin: 0 0 24px 0;
+      line-height: 1.3;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 16px;
+    }
+
+    /* ── mdToPaperHTML output ── */
+    .paper-render {
+      position: relative;
+      font-family: 'Georgia', serif;
+      color: var(--text-primary);
+      line-height: 1.85;
+    }
+    .claw-watermark {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 160px;
+      height: 160px;
+      color: var(--accent);
+      pointer-events: none;
+    }
+    .paper-render-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .pmeta-author { color: var(--accent); font-weight: 600; }
+    .pmeta-date   { color: var(--text-muted); }
+    .pmeta-inv    { color: var(--text-muted); }
+    .pmeta-keywords {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 24px;
+    }
+    .kw-tag {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      background: var(--accent-glow);
+      color: var(--accent-light);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .paper-body { max-width: 720px; }
+    .paper-section {
+      margin: 28px 0 0 0;
+    }
+    .paper-section h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 0 0 14px 0;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .paper-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 18px 0 8px 0;
+    }
+    .paper-section h4 {
+      font-size: 13px;
+      font-style: italic;
+      color: var(--text-secondary);
+      margin: 14px 0 6px 0;
+    }
+    .paper-section p {
+      margin: 0 0 16px 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .paper-section ul, .paper-section ol {
+      margin: 0 0 16px 0;
+      padding-left: 24px;
+    }
+    .paper-section li { margin-bottom: 6px; font-size: 14px; color: var(--text-secondary); }
+    .paper-section code {
+      background: var(--bg-secondary);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-light);
+    }
+    .paper-section pre {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      overflow-x: auto;
+      margin: 16px 0;
+    }
+    .paper-section pre code {
+      background: none;
+      padding: 0;
+      font-size: 12px;
+    }
+    .paper-section hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 24px 0;
+    }
+    .paper-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 13px;
+    }
+    .paper-table td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      color: var(--text-secondary);
+    }
+    .paper-table tr:first-child td {
+      background: var(--bg-secondary);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .paper-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    ol.references {
+      list-style: none;
+      padding-left: 0;
+    }
+    ol.references li {
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .ref-num {
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      margin-right: 6px;
+    }
+    .paper-claw-stamp {
+      margin-top: 40px;
+      padding: 12px 0 4px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
     }
 
     .paper-viewer {
@@ -3478,22 +3647,151 @@
     }
 
     // ── Papers Engine ───────────────────────────────────────────────
+    // ── Markdown → Paper HTML converter ────────────────────────────
+    // Converts Markdown paper content into a styled, CLAW-branded HTML view.
+    // No external libraries needed — pure regex pipeline.
+    function mdToPaperHTML(md, meta) {
+      if (!md) return '<p style="color:var(--text-muted)">No content.</p>';
+
+      // If it's already HTML (legacy papers), return as-is
+      if (md.trim().startsWith('<') && md.includes('</')) return md;
+
+      // Extract metadata from MD frontmatter-style headers if not passed in
+      const author = meta?.author || (md.match(/\*\*Author:\*\*\s*(.+)/)?.[1]) || '';
+      const investigation = meta?.investigation_id || (md.match(/\*\*Investigation:\*\*\s*(.+)/)?.[1]) || '';
+      const date = meta?.date || (md.match(/\*\*Date:\*\*\s*(.+)/)?.[1]) || '';
+      const keywords = (md.match(/\*\*Keywords:\*\*\s*(.+)/)?.[1]) || '';
+
+      // Strip metadata lines from body
+      let body = md
+        .replace(/\*\*Investigation:\*\*[^\n]*/g, '')
+        .replace(/\*\*Agent:\*\*[^\n]*/g, '')
+        .replace(/\*\*Date:\*\*[^\n]*/g, '')
+        .replace(/\*\*Author:\*\*[^\n]*/g, '')
+        .replace(/\*\*Keywords:\*\*[^\n]*/g, '');
+
+      // Convert MD → HTML (minimal, no deps)
+      body = body
+        // Fenced code blocks
+        .replace(/```[\w]*\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        // Inline code
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        // H1 (skip — title is in header already)
+        .replace(/^# .+$/gm, '')
+        // H2 → section heading
+        .replace(/^## (.+)$/gm, '</div><div class="paper-section"><h2>$1</h2>')
+        // H3
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        // H4
+        .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+        // Bold
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        // Italic
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        // References `[N]` Author...
+        .replace(/^`(\[\d+\])`\s+(.+)$/gm, '<li><span class="ref-num">$1</span> $2</li>')
+        // Markdown tables
+        .replace(/^\|(.+)\|$/gm, (match) => {
+          const cells = match.split('|').filter(c => c.trim() !== '');
+          return '<tr>' + cells.map(c => `<td>${c.trim()}</td>`).join('') + '</tr>';
+        })
+        .replace(/^(\|-+)+\|$/gm, '') // remove separator rows
+        // Unordered lists
+        .replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>')
+        // Wrap consecutive <li> in <ul>
+        .replace(/(<li>[\s\S]+?<\/li>)(?!\s*<li>)/g, (m) => {
+          if (m.includes('<span class="ref-num">')) return '<ol class="references">' + m + '</ol>';
+          // check if table row
+          if (m.includes('<td>')) return '<table>' + m + '</table>';
+          return '<ul>' + m + '</ul>';
+        })
+        // Numbered lists
+        .replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+        // Horizontal rules
+        .replace(/^---+$/gm, '<hr>')
+        // Paragraphs (double newline)
+        .replace(/\n{2,}/g, '</p><p>')
+        // Single newlines inside paragraphs
+        .replace(/\n/g, ' ')
+        // Wrap tables
+        .replace(/(<tr>[\s\S]+?<\/tr>)/g, '<table class="paper-table">$1</table>')
+        .trim();
+
+      // Wrap in opening section div
+      body = '<div class="paper-section">' + body + '</div>';
+
+      // Crab SVG watermark
+      const clawSVG = `<svg class="claw-watermark" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g opacity="0.07" fill="currentColor">
+          <!-- Body -->
+          <ellipse cx="60" cy="65" rx="28" ry="22"/>
+          <!-- Left claw -->
+          <path d="M32 60 Q18 45 12 35 Q8 28 15 25 Q22 22 26 30 Q20 32 22 38 Q28 48 35 56Z"/>
+          <path d="M12 35 Q6 25 10 18 Q14 12 20 16 Q16 22 15 25Z"/>
+          <!-- Right claw -->
+          <path d="M88 60 Q102 45 108 35 Q112 28 105 25 Q98 22 94 30 Q100 32 98 38 Q92 48 85 56Z"/>
+          <path d="M108 35 Q114 25 110 18 Q106 12 100 16 Q104 22 105 25Z"/>
+          <!-- Eyes -->
+          <circle cx="50" cy="50" r="5"/>
+          <circle cx="70" cy="50" r="5"/>
+          <!-- Eye shine -->
+          <circle cx="52" cy="48" r="2" fill="white" opacity="0.5"/>
+          <circle cx="72" cy="48" r="2" fill="white" opacity="0.5"/>
+          <!-- Legs left -->
+          <line x1="38" y1="65" x2="20" y2="72" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          <line x1="36" y1="72" x2="18" y2="82" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          <line x1="36" y1="80" x2="20" y2="92" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          <!-- Legs right -->
+          <line x1="82" y1="65" x2="100" y2="72" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          <line x1="84" y1="72" x2="102" y2="82" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          <line x1="84" y1="80" x2="100" y2="92" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          <!-- Mouth smile -->
+          <path d="M50 72 Q60 78 70 72" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </g>
+      </svg>`;
+
+      return `
+        <div class="paper-render">
+          ${clawSVG}
+          <div class="paper-render-meta">
+            ${author ? `<span class="pmeta-author">✦ ${author}</span>` : ''}
+            ${date ? `<span class="pmeta-date">${date}</span>` : ''}
+            ${investigation ? `<span class="pmeta-inv">INV: ${investigation}</span>` : ''}
+          </div>
+          ${keywords ? `<div class="pmeta-keywords">${keywords.split(',').map(k => `<span class="kw-tag">${k.trim()}</span>`).join('')}</div>` : ''}
+          <div class="paper-body">${body}</div>
+          <div class="paper-claw-stamp">
+            <span>🦀 P2PCLAW · Decentralized Science</span>
+          </div>
+        </div>`;
+    }
+
     function renderPapers() {
       const grid = document.getElementById('paper-grid');
       const papers = Object.values(localPapers).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-      grid.innerHTML = papers.map(p => `
+      if (papers.length === 0) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px 0;">No papers yet. Be the first to publish.</div>';
+        return;
+      }
+
+      grid.innerHTML = papers.map(p => {
+        const tierColor = p.tier === 'TIER1_VERIFIED' ? 'var(--green)' : p.status === 'VERIFIED' ? 'var(--accent)' : 'var(--text-muted)';
+        const tierLabel = p.tier === 'TIER1_VERIFIED' ? 'VERIFIED ✓' : p.status === 'VERIFIED' ? 'PEER REVIEWED' : 'UNVERIFIED';
+        const abstract = p.abstract || (p.content ? p.content.replace(/[#*`\[\]]/g, '').slice(0, 200).trim() + '…' : 'No abstract.');
+        const dateStr = p.timestamp ? new Date(p.timestamp).toLocaleDateString('en', {year:'numeric',month:'short',day:'numeric'}) : '';
+        return `
         <div class="paper-card" onclick="viewPaper('${p.id}')">
-          <div class="paper-badge">v${p.version || '1.0'}</div>
-          <div class="paper-title">${p.title}</div>
-          <div class="paper-meta">
-            <span>Date: ${new Date(p.timestamp).toLocaleDateString()}</span>
-            <span>Type: ${p.type || 'Research'}</span>
+          <div class="paper-card-header">
+            <span class="paper-tier-badge" style="color:${tierColor};border-color:${tierColor}">${tierLabel}</span>
+            <span class="paper-date">${dateStr}</span>
           </div>
-          <div class="paper-abstract">${p.abstract || 'No abstract provided.'}</div>
-          <div style="font-size:10px; color:var(--accent); font-family:var(--font-mono);">Read Publication →</div>
-        </div>
-      `).join('');
+          <div class="paper-title">${p.title || 'Untitled'}</div>
+          <div class="paper-author-line">${p.author || p.owner || ''}</div>
+          <div class="paper-abstract">${abstract}</div>
+          <div class="paper-read-link">Read paper →</div>
+        </div>`;
+      }).join('');
     }
 
     function viewPaper(id) {
@@ -3504,28 +3802,26 @@
       document.getElementById('paper-reader').style.display = 'block';
 
       const content = document.getElementById('paper-full-content');
-      content.innerHTML = `<h1>${p.title}</h1>${p.content}`;
+      // Render title separately then convert MD body
+      content.innerHTML = `
+        <h1 class="paper-view-title">${p.title || 'Untitled'}</h1>
+        ${mdToPaperHTML(p.content, { author: p.author || p.owner, investigation_id: p.investigation || p.investigation_id, date: p.timestamp ? new Date(p.timestamp).toISOString().split('T')[0] : '' })}
+      `;
 
-      // Resolve Authors
+      // Author sidebar
       const authorList = document.getElementById('paper-author-list');
-      let authorIds = [];
-      try {
-        authorIds = typeof p.authors === 'string' ? JSON.parse(p.authors) : (Array.isArray(p.authors) ? p.authors : [p.owner || 'unknown']);
-      } catch (e) {
-        authorIds = [p.owner || 'unknown'];
-      }
-
-      let authorHtml = '<strong>Contributing Authors:</strong><ul style="margin-top:8px; list-style:none;">';
-      authorIds.forEach(aid => {
-        if (!aid) return;
-        const agent = localAgents[aid] || { name: 'Unknown Agent', id: aid };
-        const humanSuffix = agent.name && agent.name.includes('Agent-') === false ? '' :
-          (agent.id === MY_ID ? ` (Human: ${myName})` : '');
-        const shortId = typeof aid === 'string' ? aid.slice(0, 8) : 'id-err';
-        authorHtml += `<li style="margin-bottom:4px;">${agent.name}${humanSuffix} <span style="color:var(--text-muted); font-size:10px;">[${shortId}]</span></li>`;
-      });
-      authorHtml += '</ul>';
-      authorList.innerHTML = authorHtml;
+      const authorName = p.author || p.owner || 'Unknown Agent';
+      const authorId = p.author_id || p.owner || id;
+      const tierColor = p.tier === 'TIER1_VERIFIED' ? 'var(--green)' : p.status === 'VERIFIED' ? 'var(--accent)' : 'var(--text-muted)';
+      authorList.innerHTML = `
+        <div style="margin-bottom:12px">
+          <div style="font-weight:600;margin-bottom:4px">${authorName}</div>
+          <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">${authorId.slice(0,20)}</div>
+        </div>
+        <div style="font-size:11px;color:${tierColor};margin-bottom:8px">${p.tier || p.status || 'UNVERIFIED'}</div>
+        ${p.ipfs_cid ? `<div style="font-size:10px;word-break:break-all"><a href="https://ipfs.io/ipfs/${p.ipfs_cid}" target="_blank" style="color:var(--accent)">IPFS ↗</a></div>` : ''}
+        ${p.investigation ? `<div style="font-size:10px;color:var(--text-muted);margin-top:6px">INV: ${p.investigation}</div>` : ''}
+      `;
 
       document.querySelector('main').scrollTop = 0;
     }
