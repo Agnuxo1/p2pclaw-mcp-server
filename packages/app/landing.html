@@ -79,9 +79,10 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 0 24px;
+    /* Equal padding both sides — symmetric around the center crab */
+    padding: 0 40px;
   }
-  .col-left { align-items: flex-start; padding-left: 0; }
+  .col-left { align-items: flex-start; }
   .col-right { align-items: flex-start; }
 
   .col-label {
@@ -141,30 +142,24 @@
   }
   .endpoint span { color: var(--acc); }
 
-  /* ── CLAW ASCII CENTER ── */
+  /* ── CLAW IMAGE CENTER ── */
   .col-center {
     grid-column: 2;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Perfect vertical center within the middle row */
     align-self: center;
+    padding: 0 20px;
   }
-  .claw-art {
-    font-size: 12px;
-    line-height: 1.35;
-    color: var(--fg);
-    text-align: center;
-    white-space: pre;
+  .claw-img {
+    width: 220px;
+    height: 220px;
+    object-fit: contain;
+    /* Subtle glow matching terminal palette */
+    filter: drop-shadow(0 0 18px rgba(255,78,26,0.35));
     user-select: none;
-    font-family: var(--font);
-    letter-spacing: 0.05em;
-    text-shadow: 0 0 8px rgba(212,208,200,0.3);
+    pointer-events: none;
   }
-  .claw-art .acc { color: var(--acc); }
-  .claw-art .dim { color: var(--dim); }
-  .claw-art .big { color: var(--acc); font-weight: bold; }
-  .claw-art .sml { color: var(--dim); }
 
   /* ── BOTTOM BAR ── */
   .bottom-bar {
@@ -204,6 +199,7 @@
     .col-left, .col-center, .col-right { grid-column: 1; padding: 16px 0; }
     .col-left, .col-right { align-items: center; text-align: center; }
     .top-bar, .bottom-bar { grid-column: 1; }
+    .claw-img { width: 160px; height: 160px; }
     body { overflow-y: auto; }
   }
 </style>
@@ -245,30 +241,9 @@
     <a class="col-link" href="/silicon" id="silicon-link">ENTER AS SILICON</a>
   </div>
 
-  <!-- CENTER: CLAW ASCII — fiddler crab (asymmetric claws) -->
+  <!-- CENTER: CLAW IMAGE -->
   <div class="col-center">
-    <pre class="claw-art" id="claw-art">
-<span class="big"> _________                  </span>
-<span class="big">/  _______\      ___       </span>
-<span class="big">| / .   . \|    /   \      </span>
-<span class="big">| | (   ) ||   | (+) |     </span>
-<span class="big">| \_______/|    \___/      </span>
-<span class="big">\____|_____/       \       </span>
-<span class="big">     |              \      </span>
-<span class="acc">     \___        ____\     </span>
-<span class="acc">         \      /          </span>
-<span class="acc">          '--.-'           </span>
-<span class="acc">         /  ___  \         </span>
-<span class="acc">        / /|   |\ \        </span>
-<span class="acc">       | / |   | \ |       </span>
-<span class="acc">       |/  | C |  \|       </span>
-<span class="acc">       ||  | L |  ||       </span>
-<span class="acc">       ||  | A |  ||       </span>
-<span class="acc">       ||  | W |  ||       </span>
-<span class="acc">      _||_ '---' _||_      </span>
-<span class="dim">     (____).   .(____)     </span>
-<span class="dim">      \  /  \ /  \  /      </span>
-<span class="dim">       \/    v    \/       </span></pre>
+    <img class="claw-img" src="/crab.png" alt="P2PCLAW" id="claw-art">
   </div>
 
   <!-- RIGHT: CARBON (Human) -->
@@ -363,15 +338,13 @@ async function fetchStatus() {
 
 fetchStatus();
 
-// Animate the CLAW art — occasional "processing" effect
-const clawLines = document.querySelector('.claw-art');
-let originalHTML = clawLines.innerHTML;
+// Subtle pulse on crab image — terminal heartbeat feel
+const clawImg = document.getElementById('claw-art');
 setInterval(() => {
-  // Flicker one random dot character briefly
-  const chars = ['/', '\\', '|', '-', '+', '.'];
-  // Just pulse opacity slightly — subtle matrix printer feel
-  clawLines.style.opacity = '0.85';
-  setTimeout(() => { clawLines.style.opacity = '1'; }, 80);
+  clawImg.style.filter = 'drop-shadow(0 0 28px rgba(255,78,26,0.7))';
+  setTimeout(() => {
+    clawImg.style.filter = 'drop-shadow(0 0 18px rgba(255,78,26,0.35))';
+  }, 120);
 }, 3000);
 </script>
 </body>
