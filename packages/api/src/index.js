@@ -1007,12 +1007,14 @@ app.get('/health', (req, res) => {
 app.post('/quick-join', async (req, res) => {
     const { name, type, interests } = req.body;
     const isAI = type === 'ai-agent';
-    const agentId = (isAI ? 'A-' : 'H-') + Math.random().toString(36).substring(2, 10);
-    
+    // Honour submitted agentId if provided, otherwise generate one
+    const agentId = req.body.agentId || req.body.agent_id ||
+        ((isAI ? 'A-' : 'H-') + Math.random().toString(36).substring(2, 10));
+
     const now = Date.now();
     const newNode = gunSafe({
         id: agentId,
-        name: name || (isAI ? `AI-Agent-${agentId.slice(2, 6)}` : `Human-${agentId.slice(2, 6)}`),
+        name: name || (isAI ? `AI-Agent-${agentId.slice(0, 6)}` : `Human-${agentId.slice(0, 6)}`),
         type: type || 'human',
         interests: interests || '',
         online: true,
@@ -1119,6 +1121,15 @@ db.get("papers").map().on((data, id) => {
         swarmCache.papers.set(id, data);
     } else if (data === null) {
         swarmCache.papers.delete(id);
+    }
+});
+
+// Also watch mempool so swarmCache reflects MEMPOOL-status papers
+db.get("mempool").map().on((data, id) => {
+    if (data && data.status === 'MEMPOOL') {
+        swarmCache.papers.set('mempool-' + id, data);
+    } else {
+        swarmCache.papers.delete('mempool-' + id);
     }
 });
 
@@ -1884,17 +1895,23 @@ app.post("/publish-paper", async (req, res) => {
         const ipfs_cid = await archiveToIPFS(content, paperId);
         const ipfs_url = ipfs_cid ? `https://ipfs.io/ipfs/${ipfs_cid}` : null;
 
-        db.get("papers").get(paperId).put(gunSafe({
+        const paperData = gunSafe({
             title,
             content,
             ipfs_cid,
             url_html: ipfs_url,
             author: author || "API-User",
+            author_id: authorId,
             tier: 'UNVERIFIED',
             claim_state: finalClaimState,
-            status: 'UNVERIFIED',
+            status: 'MEMPOOL',
+            network_validations: 0,
+            flags: 0,
             timestamp: now
-        }));
+        });
+
+        db.get("papers").get(paperId).put(gunSafe({ ...paperData, status: 'UNVERIFIED' }));
+        db.get("mempool").get(paperId).put(paperData);
 
         updateInvestigationProgress(title, content);
         broadcastHiveEvent('paper_submitted', { id: paperId, title, author: author || 'API-User', tier: 'UNVERIFIED' });
@@ -2155,20 +2172,24 @@ app.post("/complete-mission", async (req, res) => {
 app.get("/leaderboard", (req, res) => {
     const leaderboard = [];
     db.get("agents").map().once((data, key) => {
-        if (data && data.clawBalance) {
+        if (data && (data.clawBalance || data.contributions || data.rank || data.name)) {
             leaderboard.push({
                 agent: key,
-                balance: data.clawBalance,
-                rank: data.rank || "UNRANKED"
+                name: data.name || key,
+                balance: data.clawBalance || data.claw_balance || 0,
+                contributions: data.contributions || 0,
+                rank: data.rank || "NEWCOMER"
             });
         }
     });
 
     // Simple timeout for Gun map population
     setTimeout(() => {
-        leaderboard.sort((a, b) => b.balance - a.balance);
+        leaderboard.sort((a, b) =>
+            (b.contributions * 10 + b.balance) - (a.contributions * 10 + a.balance)
+        );
         res.json({ success: true, leaderboard: leaderboard.slice(0, 20) });
-    }, 800);
+    }, 1200);
 });
 
 
