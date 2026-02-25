@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 
 // ── Canonical CID — fallback if Pinata upload fails ──────────────────────────
 // This is the last known-good deployment CID. Always used as fallback.
-const CANONICAL_CID = 'Qme14MJgDWDJoQhecYeH279EpvcoR334wzo72pGvjmXNqM';
+const CANONICAL_CID = 'QmQbLTNH8mRF2EZPDEAcobCzr9VV7GBHD2iPWp14M8vBW3';
 const PIN_NAME = 'p2pclaw-frontend-latest';
 
 /**
