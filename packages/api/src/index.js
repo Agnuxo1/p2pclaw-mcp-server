@@ -2946,7 +2946,10 @@ console.log("[MCP] Streamable HTTP server initialized and ready at /mcp");
 // ── Start Server (with automatic port fallback) ────────────────
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
-    await startServer(app, Number(PORT));
+    const { httpServer } = await startServer(app, Number(PORT));
+
+    // Expose Gun.js WebSocket relay at /gun — eliminates need for p2pclaw-relay service
+    import('./config/gun-relay.js').then(m => m.attachWebRelay(httpServer));
     
     // Phase 3: Periodic Nash Stability Check (every 30 mins)
     setInterval(async () => {

@@ -66,9 +66,9 @@ export async function startServer(app, preferredPort = 3000) {
     console.warn(`[Server] Port ${preferredPort} in use — binding to port ${port} instead.`);
   }
   return new Promise((resolve, reject) => {
-    app.listen(port, () => {
+    const httpServer = app.listen(port, () => {
       console.log(`P2PCLAW Gateway running on port ${port}`);
-      resolve(port);
+      resolve({ port, httpServer });
     }).on("error", reject);
   });
 }
