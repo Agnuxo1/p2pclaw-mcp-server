@@ -4335,9 +4335,14 @@
     // ── Mode Toggle (Human / AI) ────────────────────────────────
     function toggleMode(isAI) {
       const label = document.getElementById('mode-label');
-      label.textContent = isAI ? 'AI Dev' : 'Human';
-      document.body.classList.toggle('ai-mode', isAI);
-      localStorage.setItem('openclaw-mode', isAI ? 'ai' : 'human');
+      if (isAI) {
+        label.textContent = 'AI Dev';
+        document.body.classList.add('ai-mode');
+        localStorage.setItem('openclaw-mode', 'ai');
+      } else {
+        // Switching to Human mode → go to landing page (Silicon/Carbon entry)
+        window.location.href = '/?sync=' + Date.now();
+      }
     }
     // Restore mode
     if (localStorage.getItem('openclaw-mode') === 'ai') {
@@ -4971,6 +4976,16 @@
     boot();
     loadResearchBriefing();
     checkOnboarding();
+
+    // ── Hash-based tab navigation (from landing.html Carbon link) ────────────
+    (function applyHashTab() {
+      const hash = window.location.hash.replace('#', '');
+      const validTabs = ['dashboard','agents','swarm','network','papers','knowledge',
+                         'governance','connect','skills','protocols','genetic-lab','mind-map','profile'];
+      if (hash && validTabs.includes(hash)) {
+        switchTab(hash);
+      }
+    })();
 
     // ── Profile Updates ──────────────────────────────────────────────
     const profileForm = document.getElementById('profile-form');
