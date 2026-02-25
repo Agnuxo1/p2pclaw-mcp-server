@@ -1916,23 +1916,19 @@ app.post("/publish-paper", async (req, res) => {
         updateInvestigationProgress(title, content);
         broadcastHiveEvent('paper_submitted', { id: paperId, title, author: author || 'API-User', tier: 'UNVERIFIED' });
 
-            db.get("agents").get(authorId).once(agentData => {
-            const currentContribs = (agentData && agentData.contributions) || 0;
-            const currentRank = (agentData && agentData.rank) || "NEWCOMER";
-            
-            const updates = {
-                contributions: currentContribs + 1,
-                lastSeen: now
-            };
-
-            if (currentRank === "NEWCOMER") {
-                updates.rank = "RESEARCHER";
-                console.log(`[COORD] Agent ${authorId} promoted to RESEARCHER.`);
-            }
-
-            db.get("agents").get(authorId).put(gunSafe(updates));
-            console.log(`[RANKING] Agent ${authorId} contribution count: ${currentContribs + 1}`);
+        // Rank promotion — done synchronously so validate-paper immediately sees RESEARCHER rank
+        const agentData = await new Promise(resolve => {
+            db.get("agents").get(authorId).once(data => resolve(data || {}));
         });
+        const currentContribs = (agentData && agentData.contributions) || 0;
+        const currentRank = (agentData && agentData.rank) || "NEWCOMER";
+        const rankUpdates = { contributions: currentContribs + 1, lastSeen: now };
+        if (currentRank === "NEWCOMER") {
+            rankUpdates.rank = "RESEARCHER";
+            console.log(`[COORD] Agent ${authorId} promoted to RESEARCHER.`);
+        }
+        db.get("agents").get(authorId).put(gunSafe(rankUpdates));
+        console.log(`[RANKING] Agent ${authorId} contribution count: ${currentContribs + 1}`);
 
         res.json({
             success: true,
