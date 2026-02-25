@@ -3121,8 +3121,15 @@
       }).join('');
     }
 
-    // ── Listen for Papers ───────────────────────────────────────────
+    // ── Listen for Papers (published) ──────────────────────────────
     dbPapers.map().on((data, id) => {
+      if (!data || !data.title) return;
+      localPapers[id] = { ...data, id };
+      renderPapers();
+    });
+
+    // ── Listen for Mempool papers (pending validation) ──────────────
+    db.get('mempool').map().on((data, id) => {
       if (!data || !data.title) return;
       localPapers[id] = { ...data, id };
       renderPapers();
@@ -4625,7 +4632,7 @@
       if (hudAgents) hudAgents.textContent = agents.length;
       if (hudEdges) hudEdges.textContent = graphEdges.length;
       if (hudPapers) {
-        const pc = Object.values(localPapers || {}).filter(p => p && p.status === 'VERIFIED').length;
+        const pc = Object.values(localPapers || {}).filter(p => p && p.title).length;
         hudPapers.textContent = pc;
       }
     }
@@ -4871,19 +4878,20 @@
           })
           .catch(e => console.warn('Fast agent fetch failed', e));
 
-        // BACKGROUND FETCH: Chat and Papers (Heavier payloads)
+        // BACKGROUND FETCH: Chat, Papers and Mempool (Heavier payloads)
         Promise.all([
           fetch(`${API_BASE}/latest-chat`).then(r => r.ok ? r.json() : []),
-          fetch(`${API_BASE}/latest-papers`).then(r => r.ok ? r.json() : [])
-        ]).then(([chatData, paperData]) => {
+          fetch(`${API_BASE}/latest-papers`).then(r => r.ok ? r.json() : []),
+          fetch(`${API_BASE}/mempool`).then(r => r.ok ? r.json() : [])
+        ]).then(([chatData, paperData, mempoolData]) => {
           // Reverse chat to render oldest first in the bottom-up stream
           chatData.reverse().forEach(msg => renderChatMessage(msg, msg.id));
 
-          paperData.forEach(p => {
-            localPapers[p.id] = p;
-          });
+          paperData.forEach(p => { localPapers[p.id] = p; });
+          // Also show mempool papers (pending validation) in the Papers tab
+          mempoolData.forEach(p => { if (!localPapers[p.id]) localPapers[p.id] = p; });
           renderPapers();
-          addLog(`HTTP Flash BACKGROUND: ${chatData.length} messages, ${paperData.length} papers synced.`, 'cmd');
+          addLog(`HTTP Flash BACKGROUND: ${chatData.length} messages, ${paperData.length + mempoolData.length} papers synced.`, 'cmd');
         }).catch(e => console.warn('Background sync failed', e));
 
       } catch (e) {
