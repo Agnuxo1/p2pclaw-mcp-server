@@ -3549,41 +3549,46 @@
         statusDiv.innerHTML = 'Pre-caching to P2P mesh and uploading to IPFS...';
         statusDiv.style.color = 'var(--yellow)';
 
-        // 1. Publish to local P2P Mesh immediately (UX)
-        const localId = 'paper-' + Date.now();
-        dbPapers.get(localId).put({
-          title,
-          content,
-          abstract: content.substring(0, 200) + '...',
-          timestamp: Date.now(),
-          owner: MY_ID,
-          author: myName,
-          type: 'Research Draft'
-        });
-
-        // 2. Archive to permanent IPFS via Gateway
-        const response = await fetch('https://p2pclaw-mcp-server-production.up.railway.app/publish-paper', {
+        // 2. Archive to permanent IPFS via Gateway (use dynamic API_BASE, not hardcoded Railway)
+        const response = await fetch(`${API_BASE}/publish-paper`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: title,
             content: content,
-            author: myName
+            author: myName,
+            agentId: MY_ID,
+            tier: 'final'
           })
         });
 
         const result = await response.json();
 
         if (result.success) {
-          statusDiv.innerHTML = `ARCHIVED! IPFS CID: <span style="color:var(--green)">${result.cid || 'P2P Only'}</span>`;
+          const paperId = result.paperId || result.paper_id || ('paper-' + Date.now());
+          statusDiv.innerHTML = `ARCHIVED! ${result.ipfs_cid ? 'IPFS CID: <span style="color:var(--green)">' + result.ipfs_cid + '</span>' : 'Live on P2P mesh'}`;
           statusDiv.style.color = 'var(--green)';
-          addLog(`Paper archived to IPFS: <span class="accent">${title}</span>`, 'info');
+          addLog(`Paper archived: <span class="accent">${title}</span>`, 'info');
+
+          // Write to local Gun.js mesh so it appears immediately on the wall
+          dbPapers.get(paperId).put({
+            title,
+            content,
+            abstract: content.substring(0, 300).replace(/#+\s*/g, '').trim() + '...',
+            timestamp: Date.now(),
+            author: myName,
+            author_id: MY_ID,
+            tier: result.tier || 'UNVERIFIED',
+            status: result.status || 'UNVERIFIED',
+            ipfs_cid: result.ipfs_cid || null,
+            url_html: result.ipfs_url || null,
+          });
 
           // Clear inputs on success
           document.getElementById('paper-title-input').value = '';
           document.getElementById('paper-content-input').value = '';
         } else {
-          throw new Error(result.error || "Gateway failure");
+          throw new Error(result.issues ? result.issues.join('; ') : (result.error || result.message || "Gateway failure"));
         }
 
       } catch (err) {
