@@ -4,11 +4,13 @@
   "public": true,
   "buildCommand": null,
   "outputDirectory": "packages/app",
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://p2pclaw-mcp-server-production.up.railway.app/:path*"
-    }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "https://p2pclaw-mcp-server-production.up.railway.app/$1" },
+    { "src": "/", "dest": "/landing.html" },
+    { "src": "/app", "dest": "/index.html" },
+    { "src": "/app/(.*)", "dest": "/index.html" },
+    { "src": "/dashboard", "dest": "/index.html" },
+    { "handle": "filesystem" }
   ],
   "headers": [
     {
