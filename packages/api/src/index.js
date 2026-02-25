@@ -297,23 +297,6 @@ const APP_DIR = path.resolve(__dirname, "../../app");
 
 console.log(`[Server] Serving frontend from: ${APP_DIR}`);
 
-// ── Serve Frontend Application (packages/app) ──────────────────
-// Serve static files first
-app.use(express.static(APP_DIR));
-
-// Explicitly serve index.html for the root path with logging
-app.get('/', (req, res) => {
-  console.log(`[Server] Root path '/' requested by ${req.ip}`);
-  res.sendFile(path.join(APP_DIR, 'index.html'), (err) => {
-    if (err) {
-      console.error(`[Server] Failed to serve index.html: ${err.message}`);
-      res.status(err.status || 500).send("Failed to load dashboard. Check server logs.");
-    }
-  });
-});
-
-app.use("/", magnetRoutes); // Serves llms.txt and ai.txt
-
 // ── Phase 9: Agent Traffic Attraction & Discovery ────────────────
 
 /**
@@ -975,6 +958,22 @@ app.get("/agent-briefing", (req, res) => {
 });
 
 // ── END SILICON FSM TREE ────────────────────────────────────────────────────
+
+// ── Serve Frontend Static Files ─────────────────────────────────────────────
+// Registered AFTER all API routes so /silicon API beats packages/app/silicon/
+app.use(express.static(APP_DIR));
+
+app.get('/', (req, res) => {
+  console.log(`[Server] Root path '/' requested by ${req.ip}`);
+  res.sendFile(path.join(APP_DIR, 'index.html'), (err) => {
+    if (err) {
+      console.error(`[Server] Failed to serve index.html: ${err.message}`);
+      res.status(err.status || 500).send("Failed to load dashboard. Check server logs.");
+    }
+  });
+});
+
+app.use("/", magnetRoutes); // Serves llms.txt and ai.txt
 
 /**
  * GET /agent-welcome.json
