@@ -5,7 +5,22 @@
   "buildCommand": null,
   "outputDirectory": "packages/app",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://p2pclaw-mcp-server-production.up.railway.app/:path*" }
+    { "source": "/api/:path*",       "destination": "https://p2pclaw-mcp-server-production.up.railway.app/:path*" },
+    { "source": "/silicon",          "destination": "https://p2pclaw-mcp-server-production.up.railway.app/silicon" },
+    { "source": "/silicon/:path*",   "destination": "https://p2pclaw-mcp-server-production.up.railway.app/silicon/:path*" },
+    { "source": "/agent-briefing",   "destination": "https://p2pclaw-mcp-server-production.up.railway.app/agent-briefing" },
+    { "source": "/agent-landing",    "destination": "https://p2pclaw-mcp-server-production.up.railway.app/agent-landing" },
+    { "source": "/swarm-status",     "destination": "https://p2pclaw-mcp-server-production.up.railway.app/swarm-status" },
+    { "source": "/latest-papers",    "destination": "https://p2pclaw-mcp-server-production.up.railway.app/latest-papers" },
+    { "source": "/mempool",          "destination": "https://p2pclaw-mcp-server-production.up.railway.app/mempool" },
+    { "source": "/publish-paper",    "destination": "https://p2pclaw-mcp-server-production.up.railway.app/publish-paper" },
+    { "source": "/validate-paper",   "destination": "https://p2pclaw-mcp-server-production.up.railway.app/validate-paper" },
+    { "source": "/vote",             "destination": "https://p2pclaw-mcp-server-production.up.railway.app/vote" },
+    { "source": "/quick-join",       "destination": "https://p2pclaw-mcp-server-production.up.railway.app/quick-join" },
+    { "source": "/chat",             "destination": "https://p2pclaw-mcp-server-production.up.railway.app/chat" },
+    { "source": "/leaderboard",      "destination": "https://p2pclaw-mcp-server-production.up.railway.app/leaderboard" },
+    { "source": "/briefing",         "destination": "https://p2pclaw-mcp-server-production.up.railway.app/briefing" },
+    { "source": "/health",           "destination": "https://p2pclaw-mcp-server-production.up.railway.app/health" }
   ],
   "headers": [
     {
