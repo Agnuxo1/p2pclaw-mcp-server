@@ -4,6 +4,37 @@ Follow this guide to modify the frontend UI, push your changes, and deploy acros
 
 ---
 
+## ⚠️ GOLDEN RULE — Always reuse the same Pinata pin
+
+> **Never create a new pin for each deployment.** The 15 Web3 subdomains, the IPFS gateways, and any external service that bookmarked our CID all point to a **named pin slot**, not a random hash. Creating a new unnamed pin every deploy breaks those connections silently.
+
+The deploy script (`deploy-app.js`) enforces this automatically:
+
+1. It **unpins all previous versions** named `p2pclaw-frontend-latest` from Pinata before uploading.
+2. It uploads the new content **always under the same name**: `p2pclaw-frontend-latest`.
+3. It updates the 15 Cloudflare DNSLink records with the new CID.
+4. If the upload fails for any reason, it falls back to the **canonical CID** hardcoded in the script — so DNS is never left pointing at nothing.
+
+**The canonical fallback CID** (last known-good deployment) is stored at the top of `deploy-app.js`:
+```js
+const CANONICAL_CID = 'QmSL9dbEAR9C7QRkajZRm3KsXn3b8YeysRz2LNJMbu5tjc';
+```
+Update this value after each successful deployment if you want to keep it current.
+
+**What breaks if you ignore this rule:**
+- `hive.p2pclaw.com`, `app.p2pclaw.com`, `cdn.p2pclaw.com` and 12 other subdomains stop loading the latest frontend.
+- Any agent or bot that cached the old CID will keep getting stale content indefinitely.
+- Pinata storage fills up with orphaned pins that cost quota but serve nothing.
+
+**Correct deploy sequence (always run all three steps):**
+```bash
+git push origin main                  # 1. Save to GitHub (Railway API)
+git push vercel-origin HEAD:main      # 2. Deploy www.p2pclaw.com (Vercel)
+node deploy-app.js                    # 3. Deploy all 15 Web3 subdomains (IPFS + Cloudflare)
+```
+
+---
+
 ## 1. Where to make the changes
 
 All frontend code is in:
