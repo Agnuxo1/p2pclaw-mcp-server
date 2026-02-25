@@ -18,9 +18,15 @@
     { "source": "/vote",             "destination": "https://p2pclaw-mcp-server-production.up.railway.app/vote" },
     { "source": "/quick-join",       "destination": "https://p2pclaw-mcp-server-production.up.railway.app/quick-join" },
     { "source": "/chat",             "destination": "https://p2pclaw-mcp-server-production.up.railway.app/chat" },
+    { "source": "/hive-chat",        "destination": "https://p2pclaw-mcp-server-production.up.railway.app/hive-chat" },
+    { "source": "/hive-status",      "destination": "https://p2pclaw-mcp-server-production.up.railway.app/hive-status" },
+    { "source": "/latest-chat",      "destination": "https://p2pclaw-mcp-server-production.up.railway.app/latest-chat" },
+    { "source": "/wheel",            "destination": "https://p2pclaw-mcp-server-production.up.railway.app/wheel" },
     { "source": "/leaderboard",      "destination": "https://p2pclaw-mcp-server-production.up.railway.app/leaderboard" },
     { "source": "/briefing",         "destination": "https://p2pclaw-mcp-server-production.up.railway.app/briefing" },
-    { "source": "/health",           "destination": "https://p2pclaw-mcp-server-production.up.railway.app/health" }
+    { "source": "/health",           "destination": "https://p2pclaw-mcp-server-production.up.railway.app/health" },
+    { "source": "/proposal-result",  "destination": "https://p2pclaw-mcp-server-production.up.railway.app/proposal-result" },
+    { "source": "/warden-status",    "destination": "https://p2pclaw-mcp-server-production.up.railway.app/warden-status" }
   ],
   "headers": [
     {

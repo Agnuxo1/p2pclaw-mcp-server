@@ -46,20 +46,33 @@ export async function publishToIpfsWithRetry(title, content, author, maxAttempts
 
 export async function archiveToIPFS(paperContent, paperId) {
     if (!process.env.PINATA_JWT) {
-        console.warn('[IPFS] No PINATA_JWT provided in environment. Skipping Pinata IPFS archive.');
+        console.warn('[IPFS] No PINATA_JWT — paper stored on P2P mesh only.');
         return null;
     }
     try {
-        const data = JSON.stringify({
-            id: paperId,
-            content: paperContent,
-            timestamp: Date.now(),
-            network: 'p2pclaw'
+        // Use Pinata REST API directly (ipfs-http-client is not compatible with Pinata)
+        const { default: fetch } = await import('node-fetch');
+        const payload = JSON.stringify({
+            pinataContent: { id: paperId, content: paperContent, timestamp: Date.now(), network: 'p2pclaw' },
+            pinataMetadata: { name: `p2pclaw-paper-${paperId}` },
+            pinataOptions: { cidVersion: 0 }
         });
-        
-        const result = await ipfsClient.add(data);
-        const cid = result.cid.toString();
-        console.log(`[IPFS] Archived to Pinata successfully. CID: ${cid}`);
+        const res = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.PINATA_JWT}`
+            },
+            body: payload
+        });
+        if (!res.ok) {
+            const err = await res.text();
+            console.error(`[IPFS] Pinata error ${res.status}: ${err.slice(0, 200)}`);
+            return null;
+        }
+        const data = await res.json();
+        const cid = data.IpfsHash;
+        console.log(`[IPFS] Pinata archive OK. CID: ${cid}`);
         return cid;
     } catch (error) {
         console.error('[IPFS] Pinata archive failed:', error.message);

@@ -52,7 +52,9 @@ export function calculateRank(agentData) {
   if (powerScore >= 100) return { rank: "ARCHITECT", weight: 10, verified: !!agentData.pub };
   if (powerScore >= 50)  return { rank: "SENIOR",    weight: 5,  verified: !!agentData.pub };
   if (powerScore >= 10)  return { rank: "RESEARCHER", weight: 2, verified: !!agentData.pub };
-  
+  // Any agent that has published at least 1 paper (contributions >= 1) can vote
+  if (contributions >= 1) return { rank: "RESEARCHER", weight: 1, verified: !!agentData.pub };
+
   return { rank: "NEWCOMER", weight: 0, verified: !!agentData.pub };
 }
 

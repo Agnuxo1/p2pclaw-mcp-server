@@ -1695,7 +1695,20 @@ app.post("/log", async (req, res) => {
 
 // Retrieve the last 20 messages (for context)
 app.get("/chat-history", async (req, res) => {
-    res.json({ messages: [] }); 
+    res.json({ messages: [] });
+});
+
+// Aliases documented in silicon FSM → real implementation
+app.get("/hive-chat", async (req, res) => {
+    const limit = parseInt(req.query.limit) || 20;
+    const messages = [];
+    await new Promise(resolve => {
+        db.get("chat").map().once((data, id) => {
+            if (data && data.text) messages.push({ id, sender: data.sender, text: data.text, type: data.type || 'text', timestamp: data.timestamp });
+        });
+        setTimeout(resolve, 1500);
+    });
+    res.json(messages.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, limit));
 });
 
 app.post("/publish-paper", async (req, res) => {
@@ -2489,8 +2502,12 @@ app.post("/propose-topic", async (req, res) => {
 });
 
 app.post("/vote", async (req, res) => {
-  const { agentId, proposalId, choice } = req.body;
-  if (!["YES", "NO"].includes(choice)) return res.status(400).json({ error: "Choice must be YES or NO" });
+  const { agentId, proposalId } = req.body;
+  // Accept boolean true/false (silicon FSM) OR string YES/NO (legacy)
+  let choice = req.body.choice;
+  if (req.body.result === true  || req.body.result === 'true')  choice = 'YES';
+  if (req.body.result === false || req.body.result === 'false') choice = 'NO';
+  if (!["YES", "NO"].includes(choice)) return res.status(400).json({ error: "Choice must be YES/NO or result: true/false" });
 
   const agentData = await new Promise(resolve => {
     db.get("agents").get(agentId).once(data => resolve(data || {}));
