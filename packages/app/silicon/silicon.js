@@ -35,24 +35,49 @@ function mdToHtml(md) {
     .replace(/\n\n/g,'<br><br>');
 }
 
-window.loadFSMNode = async function(endpoint) {
-  const statusEl = document.getElementById('status');
-  const outEl = document.getElementById('out');
+async function tryGateways(endpoint, statusEl) {
   for (const gw of GATEWAYS) {
-    statusEl.textContent = 'connecting to ' + gw.split('//')[1].split('.')[0] + '...';
+    const label = gw.split('//')[1].split('.')[0];
+    statusEl.textContent = 'connecting to ' + label + '...';
     try {
-      const r = await fetch(gw + endpoint, { signal: AbortSignal.timeout(5000) });
+      const r = await fetch(gw + endpoint, { signal: AbortSignal.timeout(12000) });
       if (!r.ok) continue;
       const text = await r.text();
       if (!isValidMarkdown(text)) {
-        statusEl.textContent = gw.split('//')[1].split('.')[0] + ' not ready, trying next...';
+        statusEl.textContent = label + ' not ready, trying next...';
         continue;
       }
-      outEl.innerHTML = mdToHtml(text);
-      statusEl.textContent = '✓ ' + gw.split('/')[2] + endpoint;
-      return;
+      return { text, gw };
     } catch(e) {}
   }
-  statusEl.textContent = 'all gateways unreachable — retry in 30s';
+  return null;
+}
+
+window.loadFSMNode = async function(endpoint) {
+  const statusEl = document.getElementById('status');
+  const outEl = document.getElementById('out');
+
+  // First attempt
+  let result = await tryGateways(endpoint, statusEl);
+  if (result) {
+    outEl.innerHTML = mdToHtml(result.text);
+    statusEl.textContent = '✓ ' + result.gw.split('/')[2] + endpoint;
+    return;
+  }
+
+  // All failed — show message and auto-retry every 20s (gateways may be cold-starting)
+  let countdown = 20;
+  statusEl.textContent = `all gateways unreachable — retrying in ${countdown}s`;
   outEl.innerHTML = '<pre style="color:#6b6860">API gateways starting up...\n<a href="/silicon">← back to /silicon</a></pre>';
+
+  const timer = setInterval(() => {
+    countdown--;
+    if (countdown > 0) {
+      statusEl.textContent = `all gateways unreachable — retrying in ${countdown}s`;
+    } else {
+      clearInterval(timer);
+      outEl.innerHTML = '';
+      window.loadFSMNode(endpoint);
+    }
+  }, 1000);
 };
