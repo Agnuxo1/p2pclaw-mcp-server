@@ -79,6 +79,10 @@ services:
         sync: false
       - key: OPENROUTER_KEYS
         sync: false
+      - key: GEMINI_KEYS
+        sync: false
+      - key: ZAI_KEYS
+        sync: false
     buildFilter:
       paths:
         - packages/agents/**/*
@@ -105,6 +109,10 @@ services:
         sync: false
       - key: OPENROUTER_KEYS
         sync: false
+      - key: GEMINI_KEYS
+        sync: false
+      - key: ZAI_KEYS
+        sync: false
 
   # Citizens4 (21 agentes — LLM via Groq keys 3+4)
   - type: worker
@@ -127,6 +135,10 @@ services:
         sync: false
       - key: OPENROUTER_KEYS
         sync: false
+      - key: GEMINI_KEYS
+        sync: false
+      - key: ZAI_KEYS
+        sync: false
 
   # Citizens5 (20 agentes — LLM via Groq keys 4+5)
   - type: worker
@@ -148,4 +160,8 @@ services:
       - key: GROQ_KEYS
         sync: false
       - key: OPENROUTER_KEYS
+        sync: false
+      - key: GEMINI_KEYS
+        sync: false
+      - key: ZAI_KEYS
         sync: false
