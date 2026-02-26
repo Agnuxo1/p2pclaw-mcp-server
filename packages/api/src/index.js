@@ -16,7 +16,7 @@ import { tauCoordinator } from "./services/tauCoordinator.js";
 import { verifyWithTier1, reVerifyProofHash } from "./services/tier1Service.js";
 import { server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema } from "./services/mcpService.js";
 import { broadcastHiveEvent } from "./services/hiveService.js";
-import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates } from "./services/consensusService.js";
+import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates, titleExistsExact, titleCache } from "./services/consensusService.js";
 import { SAMPLE_MISSIONS, sandboxService } from "./services/sandboxService.js";
 import { economyService } from "./services/economyService.js";
 import { wardenInspect, detectRogueAgents, BANNED_PHRASES, BANNED_WORDS_EXACT, STRIKE_LIMIT, offenderRegistry, WARDEN_WHITELIST } from "./services/wardenService.js";
@@ -1004,6 +1004,69 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', version: '1.3.2-hotfix', timestamp: Date.now() });
 });
 
+/**
+ * POST /admin/purge-duplicates
+ * Removes duplicate mempool & papers entries keeping only the oldest per title.
+ * Protected by ADMIN_SECRET env var.
+ */
+app.post('/admin/purge-duplicates', async (req, res) => {
+    const secret = req.headers['x-admin-secret'] || req.body?.secret;
+    if (!secret || secret !== process.env.ADMIN_SECRET) {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const seen = new Map(); // normalizedTitle -> { id, timestamp }
+    const toDelete = [];
+
+    // Collect all mempool entries
+    const mempoolEntries = await new Promise(resolve => {
+        const entries = [];
+        db.get("mempool").map().once((data, id) => {
+            if (data && data.title) entries.push({ id, title: data.title, timestamp: data.timestamp || 0 });
+        });
+        setTimeout(() => resolve(entries), 2000);
+    });
+
+    for (const entry of mempoolEntries.sort((a, b) => a.timestamp - b.timestamp)) {
+        const key = normalizeTitle(entry.title);
+        if (seen.has(key)) {
+            toDelete.push({ store: 'mempool', id: entry.id, title: entry.title });
+        } else {
+            seen.set(key, entry.id);
+        }
+    }
+
+    // Collect all papers entries
+    const papersEntries = await new Promise(resolve => {
+        const entries = [];
+        db.get("papers").map().once((data, id) => {
+            if (data && data.title) entries.push({ id, title: data.title, timestamp: data.timestamp || 0 });
+        });
+        setTimeout(() => resolve(entries), 2000);
+    });
+
+    for (const entry of papersEntries.sort((a, b) => a.timestamp - b.timestamp)) {
+        const key = normalizeTitle(entry.title);
+        if (seen.has(key)) {
+            toDelete.push({ store: 'papers', id: entry.id, title: entry.title });
+        } else {
+            seen.set(key, entry.id);
+        }
+    }
+
+    // Mark duplicates as REJECTED (Gun.js can't delete nodes)
+    for (const dup of toDelete) {
+        if (dup.store === 'mempool') {
+            db.get("mempool").get(dup.id).put(gunSafe({ status: 'REJECTED', rejected_reason: 'DUPLICATE_PURGE' }));
+        } else {
+            db.get("papers").get(dup.id).put(gunSafe({ status: 'PURGED', rejected_reason: 'DUPLICATE_PURGE' }));
+        }
+    }
+
+    console.log(`[ADMIN] Purge-duplicates: marked ${toDelete.length} entries as REJECTED/PURGED`);
+    res.json({ success: true, purged: toDelete.length, details: toDelete.slice(0, 20) });
+});
+
 app.post('/quick-join', async (req, res) => {
     const { name, type, interests } = req.body;
     const isAI = type === 'ai-agent';
@@ -1722,11 +1785,36 @@ app.get("/hive-chat", async (req, res) => {
     res.json(messages.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, limit));
 });
 
+// ── Per-agent publish rate-limiter: max 3 papers per hour ─────────
+const agentPublishLog = new Map(); // authorId -> [timestamp, ...]
+const PUBLISH_RATE_LIMIT = 3;
+const PUBLISH_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+function checkPublishRateLimit(authorId) {
+    const now = Date.now();
+    const cutoff = now - PUBLISH_RATE_WINDOW_MS;
+    const times = (agentPublishLog.get(authorId) || []).filter(t => t > cutoff);
+    if (times.length >= PUBLISH_RATE_LIMIT) return false;
+    times.push(now);
+    agentPublishLog.set(authorId, times);
+    return true;
+}
+
 app.post("/publish-paper", async (req, res) => {
     const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature, force, claim_state } = req.body;
     const authorId = agentId || author || "API-User";
 
     trackAgentPresence(req, authorId);
+
+    // ── Rate limit: max 3 papers per agent per hour ────────────────
+    if (!checkPublishRateLimit(authorId)) {
+        return res.status(429).json({
+            success: false,
+            error: 'RATE_LIMITED',
+            message: `Too many submissions. Maximum ${PUBLISH_RATE_LIMIT} papers per hour per agent.`,
+            retry_after: 'Wait up to 1 hour before submitting again.'
+        });
+    }
 
     const errors = [];
 
@@ -1802,6 +1890,17 @@ app.post("/publish-paper", async (req, res) => {
     }
 
     if (!force) {
+        // ── Exact title check (O(1), in-memory) — blocks floods instantly ──
+        if (titleExistsExact(title)) {
+            return res.status(409).json({
+                success: false,
+                error: 'EXACT_DUPLICATE',
+                message: `The Wheel Protocol: A paper with this exact title already exists. Titles must be unique.`,
+                hint: 'If this is an update or improvement, change the title to reflect it (e.g. "... v2", "A Commentary on ...", "Extended Analysis of ...") and describe the new contribution.',
+                force_override: 'Add "force": true to body only for genuine title corrections.'
+            });
+        }
+
         const duplicates = await checkDuplicates(title);
         if (duplicates.length > 0) {
             const topMatch = duplicates[0];
@@ -1912,6 +2011,7 @@ app.post("/publish-paper", async (req, res) => {
 
         db.get("papers").get(paperId).put(gunSafe({ ...paperData, status: 'UNVERIFIED' }));
         db.get("mempool").get(paperId).put(paperData);
+        titleCache.add(normalizeTitle(title)); // instant cache update so next duplicate is blocked immediately
 
         updateInvestigationProgress(title, content);
         broadcastHiveEvent('paper_submitted', { id: paperId, title, author: author || 'API-User', tier: 'UNVERIFIED' });
@@ -2905,7 +3005,9 @@ app.get("/latest-papers", async (req, res) => {
 
     await new Promise(resolve => {
         db.get("papers").map().once((data, id) => {
-            if (data && data.title) papers.push({ id, title: data.title, author: data.author, ipfs_cid: data.ipfs_cid || null, url_html: data.url_html || null, tier: data.tier, status: data.status, timestamp: data.timestamp });
+            if (data && data.title && data.status !== 'PURGED' && data.status !== 'REJECTED') {
+                papers.push({ id, title: data.title, author: data.author, ipfs_cid: data.ipfs_cid || null, url_html: data.url_html || null, tier: data.tier, status: data.status, timestamp: data.timestamp });
+            }
         });
         setTimeout(resolve, 1500);
     });
