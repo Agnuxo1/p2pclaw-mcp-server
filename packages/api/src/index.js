@@ -16,7 +16,7 @@ import { tauCoordinator } from "./services/tauCoordinator.js";
 import { verifyWithTier1, reVerifyProofHash } from "./services/tier1Service.js";
 import { server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema } from "./services/mcpService.js";
 import { broadcastHiveEvent } from "./services/hiveService.js";
-import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates, titleExistsExact, titleCache, checkRegistryDeep, wordCountExistsExact, checkWordCountDeep, wordCountCache } from "./services/consensusService.js";
+import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates, titleExistsExact, titleCache, checkRegistryDeep, wordCountExistsExact, checkWordCountDeep, wordCountCache, getContentHash, contentHashExists, checkHashDeep, contentHashCache } from "./services/consensusService.js";
 import { SAMPLE_MISSIONS, sandboxService } from "./services/sandboxService.js";
 import { economyService } from "./services/economyService.js";
 import { wardenInspect, detectRogueAgents, BANNED_PHRASES, BANNED_WORDS_EXACT, STRIKE_LIMIT, offenderRegistry, WARDEN_WHITELIST } from "./services/wardenService.js";
@@ -1877,10 +1877,13 @@ app.post("/publish-paper", async (req, res) => {
         // ── Deep Persistent & Exact In-memory title check — blocks floods instantly ──
         const existingInRegistry = await checkRegistryDeep(title);
         const existingWordCountInRegistry = await checkWordCountDeep(wordCount);
+        const existingHashInRegistry = await checkHashDeep(content);
 
-        if (titleExistsExact(title) || existingInRegistry || wordCountExistsExact(wordCount) || existingWordCountInRegistry) {
+        if (titleExistsExact(title) || existingInRegistry || wordCountExistsExact(wordCount) || existingWordCountInRegistry || contentHashExists(content) || existingHashInRegistry) {
             const isWordCountMatch = wordCountExistsExact(wordCount) || existingWordCountInRegistry;
-            console.warn(`[DEDUP] Blocking duplicate ${isWordCountMatch ? 'word count' : 'title'}: "${title}" (${wordCount} words)`);
+            const isContentMatch = contentHashExists(content) || existingHashInRegistry;
+            
+            console.warn(`[DEDUP] Blocking duplicate ${isContentMatch ? 'CONTENT' : (isWordCountMatch ? 'word count' : 'title')}: "${title}" (${wordCount} words)`);
             
             // Proactive Purge: If it's a mempool-level duplicate, mark it REJECTED
             const targetId = existingInRegistry?.paperId || existingWordCountInRegistry?.paperId;
@@ -1894,10 +1897,12 @@ app.post("/publish-paper", async (req, res) => {
             return res.status(409).json({
                 success: false,
                 error: 'DUPLICATE_CONTENT',
-                message: isWordCountMatch 
-                    ? `A paper with exactly ${wordCount} words already exists. Please diversify your content.`
-                    : 'A paper with this exact title already exists.',
-                hint: isWordCountMatch ? 'Add or remove a few words to ensure uniqueness.' : 'Change the title for your contribution.',
+                message: isContentMatch
+                    ? 'This exact paper content has already been published. Clonic activity is blocked.'
+                    : (isWordCountMatch 
+                        ? `A paper with exactly ${wordCount} words already exists. Please diversify your content.`
+                        : 'A paper with this exact title already exists.'),
+                hint: isContentMatch ? 'Do not republish existing research.' : (isWordCountMatch ? 'Add or remove a few words to ensure uniqueness.' : 'Change the title for your contribution.'),
                 force_override: 'Add "force": true to body ONLY if you are correcting a paper you already own.'
             });
         }
@@ -1910,10 +1915,14 @@ app.post("/publish-paper", async (req, res) => {
         wordCountCache.add(wordCount);
         db.get("registry/wordcounts").get(wordCount.toString()).put({ paperId: `temp-${Date.now()}`, verified: false });
         
+        const contentHash = getContentHash(content);
+        contentHashCache.add(contentHash);
+        db.get("registry/contenthashes").get(contentHash).put({ paperId: `temp-${Date.now()}`, verified: false });
+        
         const duplicates = await checkDuplicates(title);
         if (duplicates.length > 0) {
             const topMatch = duplicates[0];
-            if (topMatch.similarity >= 0.90) {
+            if (topMatch.similarity >= 0.80) {
                 return res.status(409).json({
                     success: false,
                     error: 'WHEEL_DUPLICATE',

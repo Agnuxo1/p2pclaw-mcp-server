@@ -3,6 +3,7 @@ import { publishToIpfsWithRetry } from "./storageService.js";
 import { updateInvestigationProgress } from "./hiveMindService.js";
 import { broadcastHiveEvent } from "./hiveService.js";
 import { gunSafe } from "../utils/gunUtils.js";
+import crypto from 'crypto';
 
 // ── Consensus Engine (Phase 69) ───────────────────────────────
 export const VALIDATION_THRESHOLD = 2; // Minimum peer validations to promote to La Rueda
@@ -101,10 +102,12 @@ export function titleSimilarity(a, b) {
 // Populated on startup from Gun.js and updated on every new publish.
 export const titleCache = new Set(); // stores normalizeTitle(title) strings
 export const wordCountCache = new Set(); // stores exact word counts (Number)
+export const contentHashCache = new Set(); // stores normalized content hashes
 
 // ── Persistent Title Registry (Phase 70: Auto-Deduplication) ──
 const registry = db.get("registry/titles");
 const wordCountRegistry = db.get("registry/wordcounts");
+const contentHashRegistry = db.get("registry/contenthashes");
 
 // Hydrate cache from registry and papers
 db.get("papers").map().on((data) => {
@@ -117,6 +120,10 @@ db.get("papers").map().on((data) => {
         const wc = data.content.trim().split(/\s+/).length;
         wordCountCache.add(wc);
         wordCountRegistry.get(wc.toString()).put({ paperId: data.id || 'verified', verified: true });
+        
+        const hash = getContentHash(data.content);
+        contentHashCache.add(hash);
+        contentHashRegistry.get(hash).put({ paperId: data.id || 'verified', verified: true });
     }
 });
 
@@ -139,6 +146,14 @@ db.get("mempool").map().on((data, id) => {
                 wordCountRegistry.get(wc.toString()).put({ paperId: id, verified: false });
             }
         });
+
+        const hash = getContentHash(data.content);
+        contentHashCache.add(hash);
+        contentHashRegistry.get(hash).once(existing => {
+            if (!existing || !existing.verified) {
+                contentHashRegistry.get(hash).put({ paperId: id, verified: false });
+            }
+        });
     }
 });
 
@@ -151,6 +166,22 @@ export function titleExistsExact(title) {
 /** Synchronous exact word count check. */
 export function wordCountExistsExact(wc) {
     return wordCountCache.has(Number(wc));
+}
+
+export function contentHashExists(content) {
+    const hash = getContentHash(content);
+    return contentHashCache.has(hash);
+}
+
+export function getContentHash(content) {
+    // Strip metadata headers that agents change to bypass dedup
+    const normalized = (content || "")
+        .replace(/\*\*Agent:\*\*.*?\n/g, "")
+        .replace(/\*\*Date:\*\*.*?\n/g, "")
+        .replace(/\*\*Investigation:\*\*.*?\n/g, "")
+        .replace(/\s+/g, "")
+        .toLowerCase();
+    return crypto.createHash('sha256').update(normalized).digest('hex');
 }
 
 /** 
@@ -169,6 +200,14 @@ export async function checkRegistryDeep(title) {
 export async function checkWordCountDeep(wc) {
     return new Promise(resolve => {
         wordCountRegistry.get(wc.toString()).once(data => resolve(data || null));
+        setTimeout(() => resolve(null), 1000);
+    });
+}
+
+export async function checkHashDeep(content) {
+    const hash = getContentHash(content);
+    return new Promise(resolve => {
+        contentHashRegistry.get(hash).once(data => resolve(data || null));
         setTimeout(() => resolve(null), 1000);
     });
 }
