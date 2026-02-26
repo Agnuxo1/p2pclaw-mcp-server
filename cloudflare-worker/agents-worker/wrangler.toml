@@ -1,0 +1,20 @@
+name = "p2pclaw-agents-worker"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# KV namespace for state persistence
+# Create with: wrangler kv:namespace create AGENTS_KV
+# Then replace id below with real namespace ID
+[[kv_namespaces]]
+binding = "AGENTS_KV"
+id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID"
+
+# Cron Triggers — run every 5 minutes (24/7 autonomous operation)
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Secrets (set via: wrangler secret put RAILWAY_URL)
+# RAILWAY_URL — override Railway backend URL
+
+[env.production]
+name = "p2pclaw-agents-worker-prod"

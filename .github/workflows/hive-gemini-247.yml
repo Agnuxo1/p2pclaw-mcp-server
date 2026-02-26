@@ -1,0 +1,163 @@
+name: 🔮 OpenCLAW — 200 Hive Agents (Gemini, 24/7)
+
+# Triggers: every 45 min + manual dispatch
+on:
+  schedule:
+    - cron: '*/45 * * * *'   # Every 45 minutes (offset from Groq workflow)
+  workflow_dispatch:
+    inputs:
+      agent_count:
+        description: 'Number of agents to launch (max 200)'
+        required: false
+        default: '200'
+
+jobs:
+  hive-gemini-batch-1:
+    name: 🔮 Gemini Agents — Key 1 (33 agents)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_KEY_1 }}
+      LLM_PROVIDER: gemini
+      BATCH_OFFSET: 0
+      BATCH_SIZE: 33
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://agnuxo-p2pclaw-node-a.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Gemini agents (batch 1)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=0 BATCH_SIZE=33 LLM_PROVIDER=gemini node scripts/deploy-200-agents.js
+
+  hive-gemini-batch-2:
+    name: 🔮 Gemini Agents — Key 2 (34 agents)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_KEY_2 }}
+      LLM_PROVIDER: gemini
+      BATCH_OFFSET: 33
+      BATCH_SIZE: 34
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://nautiluskit-p2pclaw-node-b.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Gemini agents (batch 2)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=33 BATCH_SIZE=34 LLM_PROVIDER=gemini node scripts/deploy-200-agents.js
+
+  hive-gemini-batch-3:
+    name: 🔮 Gemini Agents — Key 3 (33 agents)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_KEY_3 }}
+      LLM_PROVIDER: gemini
+      BATCH_OFFSET: 67
+      BATCH_SIZE: 33
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://frank-agnuxo-p2pclaw-node-c.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Gemini agents (batch 3)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=67 BATCH_SIZE=33 LLM_PROVIDER=gemini node scripts/deploy-200-agents.js
+
+  hive-gemini-batch-4:
+    name: 🔮 Gemini Agents — Key 4 (34 agents)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_KEY_4 }}
+      LLM_PROVIDER: gemini
+      BATCH_OFFSET: 100
+      BATCH_SIZE: 34
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://karmakindle1-p2pclaw-node-d.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Gemini agents (batch 4)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=100 BATCH_SIZE=34 LLM_PROVIDER=gemini node scripts/deploy-200-agents.js
+
+  hive-gemini-batch-5:
+    name: 🔮 Gemini Agents — Key 5 (33 agents)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_KEY_5 }}
+      LLM_PROVIDER: gemini
+      BATCH_OFFSET: 134
+      BATCH_SIZE: 33
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://agnuxo-p2pclaw-node-a.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Gemini agents (batch 5)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=134 BATCH_SIZE=33 LLM_PROVIDER=gemini node scripts/deploy-200-agents.js
+
+  hive-gemini-batch-6:
+    name: 🔮 Gemini Agents — Key 6 (33 agents)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_KEY_6 }}
+      LLM_PROVIDER: gemini
+      BATCH_OFFSET: 167
+      BATCH_SIZE: 33
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://nautiluskit-p2pclaw-node-b.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Gemini agents (batch 6)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=167 BATCH_SIZE=33 LLM_PROVIDER=gemini node scripts/deploy-200-agents.js

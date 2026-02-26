@@ -41,7 +41,7 @@ from datetime import datetime, UTC
 from typing import Optional
 
 # ── Configuration ──────────────────────────────────────────────
-GATEWAY     = os.environ.get("GATEWAY",    "https://p2pclaw-mcp-server-production.up.railway.app")
+GATEWAY     = os.environ.get("GATEWAY",    "https://agnuxo-p2pclaw-node-a.hf.space")
 RELAY_NODE  = os.environ.get("RELAY_NODE", "https://p2pclaw-relay-production.up.railway.app/gun")
 HF_TOKEN    = os.environ.get("HF_TOKEN",   "")
 NODE_ID     = os.environ.get("NODE_ID",    "kaggle-node")
@@ -66,15 +66,21 @@ try:
 except ImportError:
     print(f"[CONFIG] Running outside Kaggle. NODE_ID={NODE_ID}")
 
-# ── Fallback gateway list ───────────────────────────────────────
+# ── Fallback gateway list (HF nodes first, Railway as last resort) ──
 GATEWAYS = [
     GATEWAY,
-    "https://p2pclaw-mcp-server-production.up.railway.app",
     "https://agnuxo-p2pclaw-node-a.hf.space",
     "https://nautiluskit-p2pclaw-node-b.hf.space",
     "https://frank-agnuxo-p2pclaw-node-c.hf.space",
     "https://karmakindle1-p2pclaw-node-d.hf.space",
+    "https://api-production-ff1b.up.railway.app",  # Railway: fallback only
 ]
+
+# ── OpenRouter API for LLM backup when HF rate-limits ──────────
+OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "")
+TOGETHER_KEY   = os.environ.get("TOGETHER_KEY", "")
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+TOGETHER_URL   = "https://api.together.xyz/v1/chat/completions"
 
 _active_gateway = GATEWAY
 
@@ -148,6 +154,34 @@ def call_hf_llm(prompt: str, max_tokens: int = 200) -> Optional[str]:
     except Exception as e:
         print(f"[HF_LLM] Error: {e}")
     return None
+
+# ── OpenRouter / Together LLM (backup when HF rate-limits) ────
+def call_openrouter_llm(prompt: str, max_tokens: int = 200) -> Optional[str]:
+    for (key, url, model) in [
+        (OPENROUTER_KEY, OPENROUTER_URL, "mistralai/mistral-7b-instruct:free"),
+        (TOGETHER_KEY,   TOGETHER_URL,   "mistralai/Mistral-7B-Instruct-v0.1"),
+    ]:
+        if not key:
+            continue
+        try:
+            r = requests.post(url,
+                headers={"Authorization": f"Bearer {key}",
+                         "Content-Type": "application/json"},
+                json={"model": model,
+                      "messages": [{"role": "user", "content": prompt}],
+                      "max_tokens": max_tokens, "temperature": 0.75},
+                timeout=30)
+            if r.ok:
+                text = r.json()["choices"][0]["message"]["content"].strip()
+                if text and len(text) > 15:
+                    return text.split("\n")[0][:280]
+        except Exception as e:
+            print(f"[LLM_BACKUP] {url[:30]}... error: {e}")
+    return None
+
+def call_llm(prompt: str, max_tokens: int = 200) -> Optional[str]:
+    """Try HF first, then OpenRouter/Together as backup."""
+    return call_hf_llm(prompt, max_tokens) or call_openrouter_llm(prompt, max_tokens)
 
 # ── Network Functions ──────────────────────────────────────────
 def post_chat(agent_id: str, message: str) -> bool:
@@ -227,13 +261,13 @@ def build_paper(agent: dict, topic: str, investigation: str) -> str:
         f"Write a 200-word scientific abstract for a paper titled: '{topic}'. "
         f"The paper investigates {investigation}. Be specific and scientific. No all-caps."
     )
-    abstract = call_hf_llm(abstract_prompt, max_tokens=250) or agent.get("default_abstract","")
+    abstract = call_llm(abstract_prompt, max_tokens=250) or agent.get("default_abstract","")
 
     intro_prompt = (
         f"You are {agent['name']}, specialized in {agent['specialization']}. "
         f"Write a 150-word Introduction section for '{topic}'. Scientific tone. No all-caps."
     )
-    intro = call_hf_llm(intro_prompt, max_tokens=200) or agent.get("default_intro","")
+    intro = call_llm(intro_prompt, max_tokens=200) or agent.get("default_intro","")
 
     # Build full paper from template
     paper = f"""# {topic}
@@ -393,7 +427,7 @@ def run_agent(agent: dict, state: dict, stop_event: threading.Event):
             f"in a decentralized P2P research network. Write one scientific insight "
             f"or research update (max 2 sentences). No all-caps."
         )
-        message = call_hf_llm(prompt, max_tokens=80) or random.choice(agent.get("templates", [
+        message = call_llm(prompt, max_tokens=80) or random.choice(agent.get("templates", [
             f"Research update from {agent['name']}: {agent['specialization']} analysis ongoing.",
             f"Node {NODE_ID} reporting: {agent['role']} active. Network healthy.",
             f"Scientific note from {agent['name']}: peer review is the foundation of reliable knowledge.",

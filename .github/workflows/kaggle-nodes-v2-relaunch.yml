@@ -1,0 +1,161 @@
+name: 🔬 Kaggle Research Nodes v2 (5 new accounts)
+
+# Triggers every 11h 30min (offset 30min from v1 which runs on the hour)
+on:
+  schedule:
+    - cron: '30 */11 * * *'   # At minute 30, every 11 hours
+  workflow_dispatch:
+
+jobs:
+  # charlysmith account
+  kaggle-charlysmith:
+    name: 🔬 Kaggle Node — charlysmith (materials team)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install Kaggle CLI
+        run: pip install kaggle --quiet
+
+      - name: 🔑 Configure Kaggle credentials
+        env:
+          KAGGLE_JSON: ${{ secrets.KAGGLE_JSON_CHARLYSMITH }}
+        run: |
+          mkdir -p ~/.kaggle
+          echo "$KAGGLE_JSON" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+
+      - name: 🚀 Push & Run charlysmith kernel
+        run: |
+          cd p2pclaw-mcp-server/kaggle-nodes/kernels/charlysmith
+          kaggle kernels push -p .
+          echo "✅ Kernel pushed: charlysmith"
+
+  # escritoresanalfabeto account
+  kaggle-escritores:
+    name: 🔬 Kaggle Node — escritoresanalfabeto (neuro team)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install Kaggle CLI
+        run: pip install kaggle --quiet
+
+      - name: 🔑 Configure Kaggle credentials
+        env:
+          KAGGLE_JSON: ${{ secrets.KAGGLE_JSON_ESCRITORESANALFABETO }}
+        run: |
+          mkdir -p ~/.kaggle
+          echo "$KAGGLE_JSON" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+
+      - name: 🚀 Push & Run escritoresanalfabeto kernel
+        run: |
+          cd p2pclaw-mcp-server/kaggle-nodes/kernels/escritoresanalfabeto
+          kaggle kernels push -p .
+          echo "✅ Kernel pushed: escritoresanalfabeto"
+
+  # karmakindle account
+  kaggle-karmakindle:
+    name: 🔬 Kaggle Node — karmakindle (math team)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install Kaggle CLI
+        run: pip install kaggle --quiet
+
+      - name: 🔑 Configure Kaggle credentials
+        env:
+          KAGGLE_JSON: ${{ secrets.KAGGLE_JSON_KARMAKINDLE }}
+        run: |
+          mkdir -p ~/.kaggle
+          echo "$KAGGLE_JSON" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+
+      - name: 🚀 Push & Run karmakindle kernel
+        run: |
+          cd p2pclaw-mcp-server/kaggle-nodes/kernels/karmakindle
+          kaggle kernels push -p .
+          echo "✅ Kernel pushed: karmakindle"
+
+  # nebulaagi account
+  kaggle-nebulaagi:
+    name: 🔬 Kaggle Node — nebulaagi (astro team)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install Kaggle CLI
+        run: pip install kaggle --quiet
+
+      - name: 🔑 Configure Kaggle credentials
+        env:
+          KAGGLE_JSON: ${{ secrets.KAGGLE_JSON_NEBULAAGI }}
+        run: |
+          mkdir -p ~/.kaggle
+          echo "$KAGGLE_JSON" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+
+      - name: 🚀 Push & Run nebulaagi kernel
+        run: |
+          cd p2pclaw-mcp-server/kaggle-nodes/kernels/nebulaagi
+          kaggle kernels push -p .
+          echo "✅ Kernel pushed: nebulaagi"
+
+  # franciscoangulo account (uses agnuxo kernel with different NODE_ID)
+  kaggle-franciscoangulo:
+    name: 🔬 Kaggle Node — franciscoangulo (quantum team v2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install Kaggle CLI
+        run: pip install kaggle --quiet
+
+      - name: 🔑 Configure Kaggle credentials (franciscoangulo = nebulaagi backup key)
+        env:
+          KAGGLE_JSON: ${{ secrets.KAGGLE_JSON_FRANCISCOANGULO }}
+        run: |
+          mkdir -p ~/.kaggle
+          echo "$KAGGLE_JSON" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+
+      - name: 🚀 Push & Run franciscoangulo kernel (v2)
+        run: |
+          cd p2pclaw-mcp-server/kaggle-nodes/kernels/agnuxo
+          # Patch NODE_ID for this account
+          sed 's/kaggle-node/kaggle-franciscoangulo/g' agnuxo_team.py > /tmp/franciscoangulo_team.py
+          cp /tmp/franciscoangulo_team.py agnuxo_team.py
+          kaggle kernels push -p .
+          echo "✅ Kernel pushed: franciscoangulo (quantum v2)"

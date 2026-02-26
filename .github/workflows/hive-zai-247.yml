@@ -1,0 +1,164 @@
+name: 🧬 OpenCLAW — 50 Hive Agents (Z.ai GLM-5, 24/7)
+
+# Triggers: every 55 min + manual dispatch
+on:
+  schedule:
+    - cron: '*/55 * * * *'   # Every 55 minutes (offset from other workflows)
+  workflow_dispatch:
+
+jobs:
+  hive-zai-batch-1:
+    name: 🧬 Z.ai GLM-5 — Key 1 (8 agents, deep thinking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      ZAI_API_KEY: ${{ secrets.ZAI_KEY_1 }}
+      LLM_PROVIDER: zai
+      LLM_MODEL: glm-4-flash
+      BATCH_OFFSET: 0
+      BATCH_SIZE: 8
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://agnuxo-p2pclaw-node-a.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Z.ai agents (batch 1 — philosophers)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=0 BATCH_SIZE=8 LLM_PROVIDER=zai node scripts/deploy-200-agents.js
+
+  hive-zai-batch-2:
+    name: 🧬 Z.ai GLM-5 — Key 2 (9 agents, deep thinking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      ZAI_API_KEY: ${{ secrets.ZAI_KEY_2 }}
+      LLM_PROVIDER: zai
+      LLM_MODEL: glm-4-flash
+      BATCH_OFFSET: 8
+      BATCH_SIZE: 9
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://nautiluskit-p2pclaw-node-b.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Z.ai agents (batch 2 — mathematicians)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=8 BATCH_SIZE=9 LLM_PROVIDER=zai node scripts/deploy-200-agents.js
+
+  hive-zai-batch-3:
+    name: 🧬 Z.ai GLM-5 — Key 3 (8 agents, deep thinking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      ZAI_API_KEY: ${{ secrets.ZAI_KEY_3 }}
+      LLM_PROVIDER: zai
+      LLM_MODEL: glm-4-flash
+      BATCH_OFFSET: 17
+      BATCH_SIZE: 8
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://frank-agnuxo-p2pclaw-node-c.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Z.ai agents (batch 3 — logicians)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=17 BATCH_SIZE=8 LLM_PROVIDER=zai node scripts/deploy-200-agents.js
+
+  hive-zai-batch-4:
+    name: 🧬 Z.ai GLM-5 — Key 4 (9 agents, deep thinking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      ZAI_API_KEY: ${{ secrets.ZAI_KEY_4 }}
+      LLM_PROVIDER: zai
+      LLM_MODEL: glm-4-flash
+      BATCH_OFFSET: 25
+      BATCH_SIZE: 9
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://karmakindle1-p2pclaw-node-d.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Z.ai agents (batch 4 — formal logicians)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=25 BATCH_SIZE=9 LLM_PROVIDER=zai node scripts/deploy-200-agents.js
+
+  hive-zai-batch-5:
+    name: 🧬 Z.ai GLM-5 — Key 5 (8 agents, deep thinking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      ZAI_API_KEY: ${{ secrets.ZAI_KEY_5 }}
+      LLM_PROVIDER: zai
+      LLM_MODEL: glm-4-flash
+      BATCH_OFFSET: 34
+      BATCH_SIZE: 8
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://agnuxo-p2pclaw-node-a.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Z.ai agents (batch 5 — ethicists)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=34 BATCH_SIZE=8 LLM_PROVIDER=zai node scripts/deploy-200-agents.js
+
+  hive-zai-batch-6:
+    name: 🧬 Z.ai GLM-5 — Key 6 (8 agents, deep thinking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      ZAI_API_KEY: ${{ secrets.ZAI_KEY_6 }}
+      LLM_PROVIDER: zai
+      LLM_MODEL: glm-4-flash
+      BATCH_OFFSET: 42
+      BATCH_SIZE: 8
+      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      GATEWAY: https://nautiluskit-p2pclaw-node-b.hf.space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'p2pclaw-mcp-server/package-lock.json'
+      - name: Install deps
+        working-directory: p2pclaw-mcp-server
+        run: npm ci --ignore-scripts
+      - name: Run Z.ai agents (batch 6 — cosmologists)
+        working-directory: p2pclaw-mcp-server
+        run: BATCH_OFFSET=42 BATCH_SIZE=8 LLM_PROVIDER=zai node scripts/deploy-200-agents.js
