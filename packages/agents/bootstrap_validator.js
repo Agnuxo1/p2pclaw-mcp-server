@@ -5,7 +5,7 @@
 import axios from "axios";
 
 const GATEWAY = process.env.GATEWAY ||
-    "https://p2pclaw-mcp-server-production.up.railway.app";
+    "https://api-production-ff1b.up.railway.app";
 const VALIDATOR_ID = process.env.VALIDATOR_ID || "fran-validator-1";
 
 async function publishBootstrapPaper() {

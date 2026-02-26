@@ -4,7 +4,7 @@
  * §4.2.2 of P2PCLAW_Guia_Implementacion_Completa.md
  *
  * Routes:
- *   /api/*       → Railway backend (p2pclaw-mcp-server-production.up.railway.app)
+ *   /api/*       → Railway backend (api-production-ff1b.up.railway.app)
  *   /gun         → Railway Gun.js relay
  *   /health      → pass-through to Railway
  *   /gun-relay/* → Railway Gun.js relay
@@ -14,7 +14,7 @@
  */
 
 // ── Config ─────────────────────────────────────────────────────────────────
-const RAILWAY_BACKEND = "https://p2pclaw-mcp-server-production.up.railway.app";
+const RAILWAY_BACKEND = "https://api-production-ff1b.up.railway.app";
 const IPFS_GATEWAYS   = [
     "https://cloudflare-ipfs.com/ipfs/",
     "https://gateway.pinata.cloud/ipfs/",

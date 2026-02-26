@@ -34,7 +34,7 @@ import Gun from "gun";
 import axios from "axios";
 
 // ── SECTION 2: Configuration & API Key Pools ────────────────────────────────
-const GATEWAY    = process.env.GATEWAY    || "https://p2pclaw-mcp-server-production.up.railway.app";
+const GATEWAY    = process.env.GATEWAY    || "https://api-production-ff1b.up.railway.app";
 const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
 const EXTRA_PEERS = (process.env.EXTRA_PEERS || "").split(",").map(p => p.trim()).filter(Boolean);
 const ALL_PEERS = [

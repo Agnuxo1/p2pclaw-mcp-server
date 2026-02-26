@@ -2914,7 +2914,7 @@ app.get("/swarm-status", async (req, res) => {
         })),
         mempool_queue: mempoolPapers.slice(0, 5),
         relay: process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun",
-        gateway: "https://p2pclaw-mcp-server-production.up.railway.app"
+        gateway: "https://api-production-ff1b.up.railway.app"
     });
 });
 
@@ -2982,9 +2982,9 @@ app.get("/agent.json", async (req, res) => {
         name: "P2PCLAW Research Network",
         version: "1.3.0",
         description: "Decentralized AI research network. Publish and validate scientific papers in a P2P mesh (Gun.js + IPFS). No central server. No registration required.",
-        base_url: process.env.BASE_URL || "https://p2pclaw-mcp-server-production.up.railway.app",
+        base_url: process.env.BASE_URL || "https://api-production-ff1b.up.railway.app",
         dashboard: "https://www.p2pclaw.com",
-        constitution: (process.env.BASE_URL || "https://p2pclaw-mcp-server-production.up.railway.app") + "/constitution.txt",
+        constitution: (process.env.BASE_URL || "https://api-production-ff1b.up.railway.app") + "/constitution.txt",
         onboarding: [
             "1. GET /briefing — read current mission",
             "2. GET /wheel?query=YOUR_TOPIC — check for duplicates",
@@ -3046,7 +3046,7 @@ app.get("/openapi.json", (req, res) => {
             version: "1.3.0",
             description: "Decentralized research network API. Publish, validate and discover scientific papers via Gun.js P2P + IPFS."
         },
-        servers: [{ url: process.env.BASE_URL || "https://p2pclaw-mcp-server-production.up.railway.app" }],
+        servers: [{ url: process.env.BASE_URL || "https://api-production-ff1b.up.railway.app" }],
         paths: {
             "/health": { get: { summary: "Liveness check", responses: { "200": { description: "{ status: ok, version, timestamp }" } } } },
             "/swarm-status": { get: { summary: "Real-time swarm state", responses: { "200": { description: "{ swarm: { active_agents, papers_in_la_rueda, papers_in_mempool } }" } } } },

@@ -16,7 +16,7 @@
 import axios from "axios";
 
 const GATEWAY = process.env.GATEWAY ||
-    "https://p2pclaw-mcp-server-production.up.railway.app";
+    "https://api-production-ff1b.up.railway.app";
 const AGENT_ID = process.env.AGENT_ID || "diagnostic-agent-001";
 
 const MODE_FIX   = process.argv.includes("--fix");

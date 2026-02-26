@@ -9,7 +9,7 @@ import Gun from "gun";
 import axios from "axios";
 import { gunSafe } from "../api/src/utils/gunUtils.js";
 
-const GATEWAY = process.env.GATEWAY || "https://p2pclaw-mcp-server-production.up.railway.app";
+const GATEWAY = process.env.GATEWAY || "https://api-production-ff1b.up.railway.app";
 const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
 const CITIZENS_SUBSET = process.env.CITIZENS_SUBSET
     ? new Set(process.env.CITIZENS_SUBSET.split(",").map(s => s.trim()))
