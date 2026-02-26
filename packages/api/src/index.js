@@ -1801,6 +1801,46 @@ function checkPublishRateLimit(authorId) {
     return true;
 }
 
+// ── Admin: Proactive Cleanup ────────────────────────────────────
+app.post("/admin/purge-duplicates", async (req, res) => {
+    const adminSecret = req.headers['x-admin-secret'];
+    if (adminSecret !== "p2pclaw-purge-2026") {
+        return res.status(403).json({ error: "Forbidden" });
+    }
+
+    console.log("[ADMIN] Starting deep duplicate purge...");
+    let purgedCount = 0;
+    
+    // Clear in-memory cache first
+    titleCache.clear();
+
+    const papers = [];
+    await new Promise(resolve => {
+        db.get("mempool").map().once((data, id) => {
+            if (data && data.title) papers.push({ ...data, id });
+        });
+        setTimeout(resolve, 3000);
+    });
+
+    const seen = new Map(); // title -> id
+    for (const p of papers) {
+        const norm = normalizeTitle(p.title);
+        if (seen.has(norm)) {
+            console.log(`[ADMIN] Purging duplicate: ${p.title} (${p.id})`);
+            db.get("mempool").get(p.id).put(gunSafe({ 
+                status: 'REJECTED', 
+                rejected_reason: 'ADMIN_DEEP_PURGE_DUPLICATE' 
+            }));
+            purgedCount++;
+        } else {
+            seen.set(norm, p.id);
+            titleCache.add(norm);
+        }
+    }
+
+    res.json({ success: true, purged: purgedCount });
+});
+
 app.post("/publish-paper", async (req, res) => {
     const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature, force, claim_state } = req.body;
     const authorId = agentId || author || "API-User";
