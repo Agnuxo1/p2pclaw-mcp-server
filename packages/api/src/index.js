@@ -1700,11 +1700,13 @@ function checkPublishRateLimit(authorId) {
 
 // ── Internal auto-purge logic (shared by cron + admin endpoint) ─
 async function runDuplicatePurge() {
-    console.log("[PURGE] Starting duplicate purge (Title + WordCount)...");
+    console.log("[PURGE] Starting duplicate purge (Title + WordCount + Hash)...");
     titleCache.clear();
     wordCountCache.clear();
+    contentHashCache.clear();
     const seenTitles = new Map();
     const seenWordCounts = new Map();
+    const seenHashes = new Map();
     const toDelete = [];
 
     const mempoolEntries = await new Promise(resolve => {
@@ -1712,22 +1714,31 @@ async function runDuplicatePurge() {
         db.get("mempool").map().once((data, id) => {
             if (data && data.title && data.content) {
                 const wc = data.content.trim().split(/\s+/).length;
-                entries.push({ id, title: data.title, content: data.content, wordCount: wc, timestamp: data.timestamp || 0 });
+                const hash = getContentHash(data.content);
+                entries.push({ id, title: data.title, content: data.content, wordCount: wc, hash, timestamp: data.timestamp || 0 });
             }
         });
-        setTimeout(() => resolve(entries), 3000);
+        setTimeout(() => resolve(entries), 5000);
     });
 
     for (const entry of mempoolEntries.sort((a, b) => a.timestamp - b.timestamp)) {
         const titleKey = normalizeTitle(entry.title);
         const wcKey = entry.wordCount;
-        if (seenTitles.has(titleKey) || seenWordCounts.has(wcKey)) {
-            toDelete.push({ store: 'mempool', id: entry.id, title: entry.title, reason: seenTitles.has(titleKey) ? 'TITLE_DUP' : 'WC_DUP' });
+        const hashKey = entry.hash;
+
+        if (seenTitles.has(titleKey) || seenWordCounts.has(wcKey) || seenHashes.has(hashKey)) {
+            let reason = 'TITLE_DUP';
+            if (seenHashes.has(hashKey)) reason = 'HASH_DUP';
+            else if (seenWordCounts.has(wcKey)) reason = 'WC_DUP';
+            
+            toDelete.push({ store: 'mempool', id: entry.id, title: entry.title, reason });
         } else {
             seenTitles.set(titleKey, entry.id);
             seenWordCounts.set(wcKey, entry.id);
+            seenHashes.set(hashKey, entry.id);
             titleCache.add(titleKey);
             wordCountCache.add(wcKey);
+            contentHashCache.add(hashKey);
         }
     }
 
@@ -1736,22 +1747,31 @@ async function runDuplicatePurge() {
         db.get("papers").map().once((data, id) => {
             if (data && data.title && data.content) {
                 const wc = data.content.trim().split(/\s+/).length;
-                entries.push({ id, title: data.title, content: data.content, wordCount: wc, timestamp: data.timestamp || 0 });
+                const hash = getContentHash(data.content);
+                entries.push({ id, title: data.title, content: data.content, wordCount: wc, hash, timestamp: data.timestamp || 0 });
             }
         });
-        setTimeout(() => resolve(entries), 3000);
+        setTimeout(() => resolve(entries), 5000);
     });
 
     for (const entry of papersEntries.sort((a, b) => a.timestamp - b.timestamp)) {
         const titleKey = normalizeTitle(entry.title);
         const wcKey = entry.wordCount;
-        if (seenTitles.has(titleKey) || seenWordCounts.has(wcKey)) {
-            toDelete.push({ store: 'papers', id: entry.id, title: entry.title, reason: seenTitles.has(titleKey) ? 'TITLE_DUP' : 'WC_DUP' });
+        const hashKey = entry.hash;
+
+        if (seenTitles.has(titleKey) || seenWordCounts.has(wcKey) || seenHashes.has(hashKey)) {
+            let reason = 'TITLE_DUP';
+            if (seenHashes.has(hashKey)) reason = 'HASH_DUP';
+            else if (seenWordCounts.has(wcKey)) reason = 'WC_DUP';
+
+            toDelete.push({ store: 'papers', id: entry.id, title: entry.title, reason });
         } else {
             seenTitles.set(titleKey, entry.id);
             seenWordCounts.set(wcKey, entry.id);
+            seenHashes.set(hashKey, entry.id);
             titleCache.add(titleKey);
             wordCountCache.add(wcKey);
+            contentHashCache.add(hashKey);
         }
     }
 
