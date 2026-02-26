@@ -3152,6 +3152,8 @@
     // ── Listen for Papers (published) ──────────────────────────────
     dbPapers.map().on((data, id) => {
       if (!data || !data.title) return;
+      const s = (data.status || '').toUpperCase();
+      if (s === 'PURGED' || s === 'REJECTED') { delete localPapers[id]; renderPapers(); return; }
       localPapers[id] = { ...data, id };
       renderPapers();
     });
@@ -3159,6 +3161,8 @@
     // ── Listen for Mempool papers (pending validation) ──────────────
     db.get('mempool').map().on((data, id) => {
       if (!data || !data.title) return;
+      const s = (data.status || '').toUpperCase();
+      if (s === 'PURGED' || s === 'REJECTED') { delete localPapers[id]; renderPapers(); return; }
       localPapers[id] = { ...data, id };
       renderPapers();
     });
@@ -3841,7 +3845,9 @@
 
     function renderPapers() {
       const grid = document.getElementById('paper-grid');
-      const papers = Object.values(localPapers).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      const papers = Object.values(localPapers)
+        .filter(p => { const s = (p.status||'').toUpperCase(); return s !== 'PURGED' && s !== 'REJECTED' && s !== 'PROMOTED'; })
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
       if (papers.length === 0) {
         grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px 0;">No papers yet. Be the first to publish.</div>';
