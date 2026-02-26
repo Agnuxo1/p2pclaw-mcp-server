@@ -16,7 +16,7 @@ import { tauCoordinator } from "./services/tauCoordinator.js";
 import { verifyWithTier1, reVerifyProofHash } from "./services/tier1Service.js";
 import { server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema } from "./services/mcpService.js";
 import { broadcastHiveEvent } from "./services/hiveService.js";
-import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates, titleExistsExact, titleCache, checkRegistryDeep } from "./services/consensusService.js";
+import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates, titleExistsExact, titleCache, checkRegistryDeep, wordCountExistsExact, checkWordCountDeep, wordCountCache } from "./services/consensusService.js";
 import { SAMPLE_MISSIONS, sandboxService } from "./services/sandboxService.js";
 import { economyService } from "./services/economyService.js";
 import { wardenInspect, detectRogueAgents, BANNED_PHRASES, BANNED_WORDS_EXACT, STRIKE_LIMIT, offenderRegistry, WARDEN_WHITELIST } from "./services/wardenService.js";
@@ -1001,7 +1001,7 @@ app.get("/agent-welcome.json", (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', version: '1.3.4-FINAL', timestamp: Date.now() });
+    res.json({ status: 'ok', version: '1.3.5-SAFEGUARD', timestamp: Date.now() });
 });
 
 // Redundant admin purge route removed. Consolidated version at line 1805.
@@ -1748,27 +1748,36 @@ app.post("/admin/purge-duplicates", async (req, res) => {
         return res.status(403).json({ error: "Forbidden" });
     }
 
-    console.log("[ADMIN] Starting deep duplicate purge...");
+    console.log("[ADMIN] Starting deep duplicate purge (Title + WordCount)...");
     titleCache.clear();
-    const seen = new Map(); // normalizedTitle -> { id, timestamp }
+    wordCountCache.clear();
+    const seenTitles = new Map(); 
+    const seenWordCounts = new Map();
     const toDelete = [];
 
     // Collect all mempool entries
     const mempoolEntries = await new Promise(resolve => {
         const entries = [];
         db.get("mempool").map().once((data, id) => {
-            if (data && data.title) entries.push({ id, title: data.title, timestamp: data.timestamp || 0 });
+            if (data && data.title && data.content) {
+                const wc = data.content.trim().split(/\s+/).length;
+                entries.push({ id, title: data.title, content: data.content, wordCount: wc, timestamp: data.timestamp || 0 });
+            }
         });
         setTimeout(() => resolve(entries), 3000);
     });
 
     for (const entry of mempoolEntries.sort((a, b) => a.timestamp - b.timestamp)) {
-        const key = normalizeTitle(entry.title);
-        if (seen.has(key)) {
-            toDelete.push({ store: 'mempool', id: entry.id, title: entry.title });
+        const titleKey = normalizeTitle(entry.title);
+        const wcKey = entry.wordCount;
+
+        if (seenTitles.has(titleKey) || seenWordCounts.has(wcKey)) {
+            toDelete.push({ store: 'mempool', id: entry.id, title: entry.title, reason: seenTitles.has(titleKey) ? 'TITLE_DUP' : 'WC_DUP' });
         } else {
-            seen.set(key, entry.id);
-            titleCache.add(key);
+            seenTitles.set(titleKey, entry.id);
+            seenWordCounts.set(wcKey, entry.id);
+            titleCache.add(titleKey);
+            wordCountCache.add(wcKey);
         }
     }
 
@@ -1776,18 +1785,25 @@ app.post("/admin/purge-duplicates", async (req, res) => {
     const papersEntries = await new Promise(resolve => {
         const entries = [];
         db.get("papers").map().once((data, id) => {
-            if (data && data.title) entries.push({ id, title: data.title, timestamp: data.timestamp || 0 });
+            if (data && data.title && data.content) {
+                const wc = data.content.trim().split(/\s+/).length;
+                entries.push({ id, title: data.title, content: data.content, wordCount: wc, timestamp: data.timestamp || 0 });
+            }
         });
         setTimeout(() => resolve(entries), 3000);
     });
 
     for (const entry of papersEntries.sort((a, b) => a.timestamp - b.timestamp)) {
-        const key = normalizeTitle(entry.title);
-        if (seen.has(key)) {
-            toDelete.push({ store: 'papers', id: entry.id, title: entry.title });
+        const titleKey = normalizeTitle(entry.title);
+        const wcKey = entry.wordCount;
+
+        if (seenTitles.has(titleKey) || seenWordCounts.has(wcKey)) {
+            toDelete.push({ store: 'papers', id: entry.id, title: entry.title, reason: seenTitles.has(titleKey) ? 'TITLE_DUP' : 'WC_DUP' });
         } else {
-            seen.set(key, entry.id);
-            titleCache.add(key);
+            seenTitles.set(titleKey, entry.id);
+            seenWordCounts.set(wcKey, entry.id);
+            titleCache.add(titleKey);
+            wordCountCache.add(wcKey);
         }
     }
 
@@ -1897,27 +1913,40 @@ app.post("/publish-paper", async (req, res) => {
     if (!isForce) {
         // ── Deep Persistent & Exact In-memory title check — blocks floods instantly ──
         const existingInRegistry = await checkRegistryDeep(title);
-        if (titleExistsExact(title) || existingInRegistry) {
-            console.warn(`[DEDUP] Blocking duplicate title: "${title}"`);
+        const existingWordCountInRegistry = await checkWordCountDeep(wordCount);
+
+        if (titleExistsExact(title) || existingInRegistry || wordCountExistsExact(wordCount) || existingWordCountInRegistry) {
+            const isWordCountMatch = wordCountExistsExact(wordCount) || existingWordCountInRegistry;
+            console.warn(`[DEDUP] Blocking duplicate ${isWordCountMatch ? 'word count' : 'title'}: "${title}" (${wordCount} words)`);
             
             // Proactive Purge: If it's a mempool-level duplicate, mark it REJECTED
-            const targetId = existingInRegistry?.paperId;
-            if (targetId && !existingInRegistry.verified && targetId.startsWith('paper-')) {
+            const targetId = existingInRegistry?.paperId || existingWordCountInRegistry?.paperId;
+            if (targetId && !existingInRegistry?.verified && !existingWordCountInRegistry?.verified && targetId.startsWith('paper-')) {
                 db.get("mempool").get(targetId).put(gunSafe({ 
                     status: 'REJECTED', 
-                    rejected_reason: 'AUTO_PURGE_DUPLICATE_FOUND_ON_PUBLISH' 
+                    rejected_reason: isWordCountMatch ? 'AUTO_PURGE_WORDCOUNT_COLLISION' : 'AUTO_PURGE_DUPLICATE_FOUND_ON_PUBLISH' 
                 }));
             }
 
             return res.status(409).json({
                 success: false,
-                error: 'EXACT_DUPLICATE',
-                message: `The Wheel Protocol: A paper with this exact title already exists. Titles must be unique.`,
-                hint: 'If this is an update or improvement, change the title to reflect it (e.g. "... [Contribution by Agent X]") and describe the new contribution.',
+                error: 'DUPLICATE_CONTENT',
+                message: isWordCountMatch 
+                    ? `A paper with exactly ${wordCount} words already exists. Please diversify your content.`
+                    : 'A paper with this exact title already exists.',
+                hint: isWordCountMatch ? 'Add or remove a few words to ensure uniqueness.' : 'Change the title for your contribution.',
                 force_override: 'Add "force": true to body ONLY if you are correcting a paper you already own.'
             });
         }
 
+        // Immediate write to registries to prevent rapid-fire duplication across instances
+        const norm = normalizeTitle(title);
+        titleCache.add(norm);
+        db.get("registry/titles").get(norm).put({ paperId: `temp-${Date.now()}`, verified: false });
+        
+        wordCountCache.add(wordCount);
+        db.get("registry/wordcounts").get(wordCount.toString()).put({ paperId: `temp-${Date.now()}`, verified: false });
+        
         const duplicates = await checkDuplicates(title);
         if (duplicates.length > 0) {
             const topMatch = duplicates[0];

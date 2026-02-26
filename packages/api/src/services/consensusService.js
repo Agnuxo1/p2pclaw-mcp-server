@@ -100,9 +100,11 @@ export function titleSimilarity(a, b) {
 // ── In-memory exact-title cache (survives within process lifetime) ──
 // Populated on startup from Gun.js and updated on every new publish.
 export const titleCache = new Set(); // stores normalizeTitle(title) strings
+export const wordCountCache = new Set(); // stores exact word counts (Number)
 
 // ── Persistent Title Registry (Phase 70: Auto-Deduplication) ──
 const registry = db.get("registry/titles");
+const wordCountRegistry = db.get("registry/wordcounts");
 
 // Hydrate cache from registry and papers
 db.get("papers").map().on((data) => {
@@ -110,6 +112,11 @@ db.get("papers").map().on((data) => {
         const norm = normalizeTitle(data.title);
         titleCache.add(norm);
         registry.get(norm).put({ paperId: data.id || 'verified', verified: true });
+    }
+    if (data && data.content) {
+        const wc = data.content.trim().split(/\s+/).length;
+        wordCountCache.add(wc);
+        wordCountRegistry.get(wc.toString()).put({ paperId: data.id || 'verified', verified: true });
     }
 });
 
@@ -124,12 +131,26 @@ db.get("mempool").map().on((data, id) => {
             }
         });
     }
+    if (data && data.content && data.status === 'MEMPOOL') {
+        const wc = data.content.trim().split(/\s+/).length;
+        wordCountCache.add(wc);
+        wordCountRegistry.get(wc.toString()).once(existing => {
+            if (!existing || !existing.verified) {
+                wordCountRegistry.get(wc.toString()).put({ paperId: id, verified: false });
+            }
+        });
+    }
 });
 
 /** Synchronous exact-match check against in-memory cache. O(1). */
 export function titleExistsExact(title) {
     const norm = normalizeTitle(title);
     return titleCache.has(norm);
+}
+
+/** Synchronous exact word count check. */
+export function wordCountExistsExact(wc) {
+    return wordCountCache.has(Number(wc));
 }
 
 /** 
@@ -140,6 +161,14 @@ export async function checkRegistryDeep(title) {
     const norm = normalizeTitle(title);
     return new Promise(resolve => {
         registry.get(norm).once(data => resolve(data || null));
+        setTimeout(() => resolve(null), 1000);
+    });
+}
+
+/** Proactively check if a word count exists in the persistent registry. */
+export async function checkWordCountDeep(wc) {
+    return new Promise(resolve => {
+        wordCountRegistry.get(wc.toString()).once(data => resolve(data || null));
         setTimeout(() => resolve(null), 1000);
     });
 }
