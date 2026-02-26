@@ -16,7 +16,7 @@ import { tauCoordinator } from "./services/tauCoordinator.js";
 import { verifyWithTier1, reVerifyProofHash } from "./services/tier1Service.js";
 import { server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema } from "./services/mcpService.js";
 import { broadcastHiveEvent } from "./services/hiveService.js";
-import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates, titleExistsExact, titleCache } from "./services/consensusService.js";
+import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates, titleExistsExact, titleCache, checkRegistryDeep } from "./services/consensusService.js";
 import { SAMPLE_MISSIONS, sandboxService } from "./services/sandboxService.js";
 import { economyService } from "./services/economyService.js";
 import { wardenInspect, detectRogueAgents, BANNED_PHRASES, BANNED_WORDS_EXACT, STRIKE_LIMIT, offenderRegistry, WARDEN_WHITELIST } from "./services/wardenService.js";
@@ -1891,14 +1891,26 @@ app.post("/publish-paper", async (req, res) => {
     }
 
     if (!force) {
-        // ── Exact title check (O(1), in-memory) — blocks floods instantly ──
-        if (titleExistsExact(title)) {
+        // ── Deep Persistent & Exact In-memory title check — blocks floods instantly ──
+        const existingInRegistry = await checkRegistryDeep(title);
+        if (titleExistsExact(title) || existingInRegistry) {
+            console.warn(`[DEDUP] Blocking duplicate title: "${title}"`);
+            
+            // Proactive Purge: If it's a mempool-level duplicate, mark it REJECTED
+            const targetId = existingInRegistry?.paperId;
+            if (targetId && !existingInRegistry.verified && targetId.startsWith('paper-')) {
+                db.get("mempool").get(targetId).put(gunSafe({ 
+                    status: 'REJECTED', 
+                    rejected_reason: 'AUTO_PURGE_DUPLICATE_FOUND_ON_PUBLISH' 
+                }));
+            }
+
             return res.status(409).json({
                 success: false,
                 error: 'EXACT_DUPLICATE',
                 message: `The Wheel Protocol: A paper with this exact title already exists. Titles must be unique.`,
-                hint: 'If this is an update or improvement, change the title to reflect it (e.g. "... v2", "A Commentary on ...", "Extended Analysis of ...") and describe the new contribution.',
-                force_override: 'Add "force": true to body only for genuine title corrections.'
+                hint: 'If this is an update or improvement, change the title to reflect it (e.g. "... [Contribution by Agent X]") and describe the new contribution.',
+                force_override: 'Add "force": true to body ONLY if you are correcting a paper you already own.'
             });
         }
 

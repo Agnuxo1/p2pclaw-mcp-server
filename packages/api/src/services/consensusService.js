@@ -101,17 +101,49 @@ export function titleSimilarity(a, b) {
 // Populated on startup from Gun.js and updated on every new publish.
 export const titleCache = new Set(); // stores normalizeTitle(title) strings
 
+// ── Persistent Title Registry (Phase 70: Auto-Deduplication) ──
+const registry = db.get("registry/titles");
+
+// Hydrate cache from registry and papers
 db.get("papers").map().on((data) => {
-    if (data && data.title) titleCache.add(normalizeTitle(data.title));
+    if (data && data.title) {
+        const norm = normalizeTitle(data.title);
+        titleCache.add(norm);
+        registry.get(norm).put({ paperId: data.id || 'verified', verified: true });
+    }
 });
-db.get("mempool").map().on((data) => {
-    if (data && data.title && data.status === 'MEMPOOL') titleCache.add(normalizeTitle(data.title));
+
+db.get("mempool").map().on((data, id) => {
+    if (data && data.title && data.status === 'MEMPOOL') {
+        const norm = normalizeTitle(data.title);
+        titleCache.add(norm);
+        // Do not overwrite a verified registry entry with a mempool one
+        registry.get(norm).once(existing => {
+            if (!existing || !existing.verified) {
+                registry.get(norm).put({ paperId: id, verified: false });
+            }
+        });
+    }
 });
 
 /** Synchronous exact-match check against in-memory cache. O(1). */
 export function titleExistsExact(title) {
-    return titleCache.has(normalizeTitle(title));
+    const norm = normalizeTitle(title);
+    return titleCache.has(norm);
 }
+
+/** 
+ * Proactively check if a title exists in the persistent registry.
+ * Used for deep verification before rejection.
+ */
+export async function checkRegistryDeep(title) {
+    const norm = normalizeTitle(title);
+    return new Promise(resolve => {
+        registry.get(norm).once(data => resolve(data || null));
+        setTimeout(() => resolve(null), 1000);
+    });
+}
+
 
 export async function checkDuplicates(title) {
     const allPapers = [];
