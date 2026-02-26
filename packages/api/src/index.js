@@ -1001,7 +1001,7 @@ app.get("/agent-welcome.json", (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', version: '1.3.2-hotfix', timestamp: Date.now() });
+    res.json({ status: 'ok', version: '1.3.3-dedup', timestamp: Date.now() });
 });
 
 /**
