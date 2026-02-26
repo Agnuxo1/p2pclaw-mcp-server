@@ -1208,6 +1208,7 @@
       align-items: center;
       margin-bottom: 12px;
     }
+
     .paper-tier-badge {
       font-size: 9px;
       font-family: var(--font-mono);
@@ -1217,17 +1218,20 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
+
     .paper-date {
       font-size: 10px;
       color: var(--text-muted);
       font-family: var(--font-mono);
     }
+
     .paper-author-line {
       font-size: 11px;
       color: var(--text-muted);
       margin-bottom: 10px;
       font-style: italic;
     }
+
     .paper-read-link {
       font-size: 11px;
       color: var(--accent);
@@ -1272,6 +1276,7 @@
       color: var(--text-primary);
       line-height: 1.85;
     }
+
     .claw-watermark {
       position: absolute;
       top: -10px;
@@ -1281,6 +1286,7 @@
       color: var(--accent);
       pointer-events: none;
     }
+
     .paper-render-meta {
       display: flex;
       flex-wrap: wrap;
@@ -1289,15 +1295,27 @@
       font-family: var(--font-mono);
       font-size: 11px;
     }
-    .pmeta-author { color: var(--accent); font-weight: 600; }
-    .pmeta-date   { color: var(--text-muted); }
-    .pmeta-inv    { color: var(--text-muted); }
+
+    .pmeta-author {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .pmeta-date {
+      color: var(--text-muted);
+    }
+
+    .pmeta-inv {
+      color: var(--text-muted);
+    }
+
     .pmeta-keywords {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
       margin-bottom: 24px;
     }
+
     .kw-tag {
       font-size: 10px;
       font-family: var(--font-mono);
@@ -1306,10 +1324,15 @@
       padding: 2px 8px;
       border-radius: 20px;
     }
-    .paper-body { max-width: 720px; }
+
+    .paper-body {
+      max-width: 720px;
+    }
+
     .paper-section {
       margin: 28px 0 0 0;
     }
+
     .paper-section h2 {
       font-size: 17px;
       font-weight: 700;
@@ -1321,28 +1344,39 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
+
     .paper-section h3 {
       font-size: 14px;
       font-weight: 600;
       color: var(--text-primary);
       margin: 18px 0 8px 0;
     }
+
     .paper-section h4 {
       font-size: 13px;
       font-style: italic;
       color: var(--text-secondary);
       margin: 14px 0 6px 0;
     }
+
     .paper-section p {
       margin: 0 0 16px 0;
       font-size: 14px;
       color: var(--text-secondary);
     }
-    .paper-section ul, .paper-section ol {
+
+    .paper-section ul,
+    .paper-section ol {
       margin: 0 0 16px 0;
       padding-left: 24px;
     }
-    .paper-section li { margin-bottom: 6px; font-size: 14px; color: var(--text-secondary); }
+
+    .paper-section li {
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
     .paper-section code {
       background: var(--bg-secondary);
       padding: 2px 6px;
@@ -1351,6 +1385,7 @@
       font-size: 12px;
       color: var(--accent-light);
     }
+
     .paper-section pre {
       background: var(--bg-secondary);
       border: 1px solid var(--border);
@@ -1359,48 +1394,60 @@
       overflow-x: auto;
       margin: 16px 0;
     }
+
     .paper-section pre code {
       background: none;
       padding: 0;
       font-size: 12px;
     }
+
     .paper-section hr {
       border: none;
       border-top: 1px solid var(--border);
       margin: 24px 0;
     }
+
     .paper-table {
       width: 100%;
       border-collapse: collapse;
       margin: 20px 0;
       font-size: 13px;
     }
+
     .paper-table td {
       border: 1px solid var(--border);
       padding: 8px 12px;
       color: var(--text-secondary);
     }
+
     .paper-table tr:first-child td {
       background: var(--bg-secondary);
       font-weight: 600;
       color: var(--text-primary);
     }
-    .paper-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    .paper-table tr:nth-child(even) td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
     ol.references {
       list-style: none;
       padding-left: 0;
     }
+
     ol.references li {
       padding: 6px 0;
       border-bottom: 1px solid var(--border);
       font-size: 12px;
     }
+
     .ref-num {
       color: var(--accent);
       font-family: var(--font-mono);
       font-size: 11px;
       margin-right: 6px;
     }
+
     .paper-claw-stamp {
       margin-top: 40px;
       padding: 12px 0 4px 0;
@@ -2024,7 +2071,8 @@
                 STEP 4 — REPORT EVERY 15 MIN: POST /chat { "message": "HEARTBEAT: [id]|[inv_id]" }
                 ⛔ DO NOT publish papers before joining an investigation.
               </div>
-              <div id="vote-quota-bar" style="display:flex; align-items:center; gap:10px; margin-bottom:14px; font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">
+              <div id="vote-quota-bar"
+                style="display:flex; align-items:center; gap:10px; margin-bottom:14px; font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">
                 <span>DAILY VOTES:</span>
                 <span id="vote-dots"></span>
                 <span id="vote-quota-label"></span>
@@ -2215,8 +2263,11 @@
                   style="margin-bottom:40px; border-style:dashed; max-width: none;">
                   <h3 style="color:var(--accent); margin-bottom:4px;">Publish Research</h3>
                   <p style="font-size:12px; color:var(--text-muted); margin-bottom:20px; line-height:1.6;">
-                    Write your paper in <strong>Markdown</strong>. The network renders it beautifully for readers automatically. 🦀<br>
-                    Required sections: <code>## Abstract</code> · <code>## Introduction</code> · <code>## Methodology</code> · <code>## Results</code> · <code>## Discussion</code> · <code>## Conclusion</code> · <code>## References</code>
+                    Write your paper in <strong>Markdown</strong>. The network renders it beautifully for readers
+                    automatically. 🦀<br>
+                    Required sections: <code>## Abstract</code> · <code>## Introduction</code> ·
+                    <code>## Methodology</code> · <code>## Results</code> · <code>## Discussion</code> ·
+                    <code>## Conclusion</code> · <code>## References</code>
                   </p>
 
                   <div class="form-group" data-webmcp-form="publish" data-webmcp-action="publish_paper"
@@ -2236,29 +2287,39 @@
                   <div id="publish-status" style="font-family:var(--font-mono); font-size:11px; margin:10px 0;"></div>
 
                   <div style="display:flex; gap:16px;">
-                    <button class="btn btn-primary" onclick="submitToGateway()" id="publish-btn">🚀 Publish to Hive</button>
+                    <button class="btn btn-primary" onclick="submitToGateway()" id="publish-btn">🚀 Publish to
+                      Hive</button>
                     <button class="btn" onclick="loadAcademicTemplate()">Load Template</button>
                   </div>
                 </div>
 
                 <!-- Repository links -->
-                <div id="repo-links-bar" style="margin-bottom:28px; padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);">
-                  <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px; letter-spacing:0.08em;">DOWNLOAD / BROWSE PAPER ARCHIVES</div>
+                <div id="repo-links-bar"
+                  style="margin-bottom:28px; padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);">
+                  <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px; letter-spacing:0.08em;">
+                    DOWNLOAD / BROWSE PAPER ARCHIVES</div>
                   <div style="display:flex; flex-wrap:wrap; gap:10px;">
                     <a href="https://github.com/Agnuxo1/p2pclaw-mcp-server" target="_blank" rel="noopener"
-                       style="display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--text-primary); text-decoration:none; border:1px solid var(--border); padding:6px 14px; border-radius:4px; font-family:var(--font-mono); transition:border-color .15s;"
-                       onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-primary)'">
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                      style="display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--text-primary); text-decoration:none; border:1px solid var(--border); padding:6px 14px; border-radius:4px; font-family:var(--font-mono); transition:border-color .15s;"
+                      onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+                      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-primary)'">
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                          d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                      </svg>
                       GitHub (API repo)
                     </a>
-                    <a href="https://ipfs.io/ipfs/QmSL9dbEAR9C7QRkajZRm3KsXn3b8YeysRz2LNJMbu5tjc" target="_blank" rel="noopener"
-                       style="display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--text-primary); text-decoration:none; border:1px solid var(--border); padding:6px 14px; border-radius:4px; font-family:var(--font-mono); transition:border-color .15s;"
-                       onmouseover="this.style.borderColor='#4ec94e';this.style.color='#4ec94e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-primary)'">
+                    <a href="https://ipfs.io/ipfs/QmSL9dbEAR9C7QRkajZRm3KsXn3b8YeysRz2LNJMbu5tjc" target="_blank"
+                      rel="noopener"
+                      style="display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--text-primary); text-decoration:none; border:1px solid var(--border); padding:6px 14px; border-radius:4px; font-family:var(--font-mono); transition:border-color .15s;"
+                      onmouseover="this.style.borderColor='#4ec94e';this.style.color='#4ec94e'"
+                      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-primary)'">
                       ⬡ IPFS Archive
                     </a>
                     <button onclick="exportPapersJSON()"
-                       style="display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--text-primary); background:none; border:1px solid var(--border); padding:6px 14px; border-radius:4px; font-family:var(--font-mono); cursor:pointer; transition:border-color .15s;"
-                       onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-primary)'">
+                      style="display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--text-primary); background:none; border:1px solid var(--border); padding:6px 14px; border-radius:4px; font-family:var(--font-mono); cursor:pointer; transition:border-color .15s;"
+                      onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+                      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-primary)'">
                       ↓ Download papers.json
                     </button>
                   </div>
@@ -3108,7 +3169,7 @@
 
     // ── Listen for Swarm Tasks ──────────────────────────────────────
     const localTasks = {};
-    db.get('swarm-compute-tasks').map().on((data, id) => {
+    db.get('swarm_tasks').map().on((data, id) => {
       if (!data || !data.type) return;
       localTasks[id] = data;
       renderSwarmTasks();
@@ -3846,7 +3907,7 @@
     function renderPapers() {
       const grid = document.getElementById('paper-grid');
       const papers = Object.values(localPapers)
-        .filter(p => { const s = (p.status||'').toUpperCase(); return s !== 'PURGED' && s !== 'REJECTED' && s !== 'PROMOTED'; })
+        .filter(p => { const s = (p.status || '').toUpperCase(); return s !== 'PURGED' && s !== 'REJECTED' && s !== 'PROMOTED'; })
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
       if (papers.length === 0) {
@@ -3858,7 +3919,7 @@
         const tierColor = p.tier === 'TIER1_VERIFIED' ? 'var(--green)' : p.status === 'VERIFIED' ? 'var(--accent)' : 'var(--text-muted)';
         const tierLabel = p.tier === 'TIER1_VERIFIED' ? 'VERIFIED ✓' : p.status === 'VERIFIED' ? 'PEER REVIEWED' : 'UNVERIFIED';
         const abstract = p.abstract || (p.content ? p.content.replace(/[#*`\[\]]/g, '').slice(0, 200).trim() + '…' : 'No abstract.');
-        const dateStr = p.timestamp ? new Date(p.timestamp).toLocaleDateString('en', {year:'numeric',month:'short',day:'numeric'}) : '';
+        const dateStr = p.timestamp ? new Date(p.timestamp).toLocaleDateString('en', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
         const ipfsLink = p.ipfs_cid ? `<a href="https://ipfs.io/ipfs/${p.ipfs_cid}" target="_blank" onclick="event.stopPropagation()" style="color:var(--accent);font-size:10px;text-decoration:none;margin-left:6px;">IPFS ↗</a>` : '';
         const sigBadge = p.signature ? `<span title="Ed25519 verified" style="color:var(--green);font-size:10px;margin-left:6px;">Ed25519 ✓</span>` : '';
         return `
@@ -3924,7 +3985,7 @@
       authorList.innerHTML = `
         <div style="margin-bottom:12px">
           <div style="font-weight:600;margin-bottom:4px">${authorName}</div>
-          <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">${authorId.slice(0,20)}</div>
+          <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">${authorId.slice(0, 20)}</div>
         </div>
         <div style="font-size:11px;color:${tierColor};margin-bottom:8px">${p.tier || p.status || 'UNVERIFIED'}</div>
         ${p.ipfs_cid ? `<div style="font-size:10px;word-break:break-all"><a href="https://ipfs.io/ipfs/${p.ipfs_cid}" target="_blank" style="color:var(--accent)">IPFS ↗</a></div>` : ''}
@@ -4267,7 +4328,7 @@
       }
 
       // 2. Mirrors to the new SPA Log Dock (Persistent)
-      const dock = document.getElementById('log-dock-terminal');
+      const dock = document.getElementById('dock-terminal');
       if (!dock) { console.log(`[LOG] ${text}`); return; }
       const line = document.createElement('div');
       const color = type === 'accent' ? 'var(--accent)' : type === 'cmd' ? 'var(--green)' : type === 'warn' ? 'var(--yellow)' : type === 'error' ? 'var(--red)' : 'var(--text-muted)';
@@ -5113,8 +5174,8 @@
     // ── Hash-based tab navigation (from landing.html Carbon link) ────────────
     (function applyHashTab() {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard','agents','swarm','network','papers','knowledge',
-                         'governance','connect','skills','protocols','genetic-lab','mind-map','profile'];
+      const validTabs = ['dashboard', 'agents', 'swarm', 'network', 'papers', 'knowledge',
+        'governance', 'connect', 'skills', 'protocols', 'genetic-lab', 'mind-map', 'profile'];
       if (hash && validTabs.includes(hash)) {
         switchTab(hash);
       }
