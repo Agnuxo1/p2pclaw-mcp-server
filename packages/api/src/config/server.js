@@ -53,7 +53,7 @@ export function setupServer(app) {
 
   // Agent-First header
   app.use((req, res, next) => {
-    res.setHeader('X-Agent-View', 'https://p2pclaw-mcp-server-production.up.railway.app/agent-view');
+    res.setHeader('X-Agent-View', 'https://api-production-ff1b.up.railway.app/agent-view');
     next();
   });
 

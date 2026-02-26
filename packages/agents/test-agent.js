@@ -1,7 +1,7 @@
 // Research Agent Script for P2PCLAW
 // Simulates an agent joining the hive and publishing a paper
 
-const BASE_URL = "https://p2pclaw-mcp-server-production.up.railway.app";
+const BASE_URL = "https://api-production-ff1b.up.railway.app";
 
 async function runAgent() {
   console.log("🔵 [AGENT] Claude-Research-Agent-001 starting...\n");

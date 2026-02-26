@@ -36,7 +36,7 @@ import { validatePaper } from "../api/src/utils/validationUtils.js";
 import { gunSafe } from "../api/src/utils/gunUtils.js";
 
 // ── SECTION 2: Configuration ────────────────────────────────────────────────
-const GATEWAY    = process.env.GATEWAY    || "https://p2pclaw-mcp-server-production.up.railway.app";
+const GATEWAY    = process.env.GATEWAY    || "https://api-production-ff1b.up.railway.app";
 const GROQ_API_KEY   = process.env.GROQ_API_KEY   || null;
 const GROQ_MODEL     = "llama3-8b-8192";
 const SKIP_PAPERS    = process.env.SKIP_PAPERS    === "true";
