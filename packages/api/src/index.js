@@ -1001,72 +1001,10 @@ app.get("/agent-welcome.json", (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', version: '1.3.3-dedup', timestamp: Date.now() });
+    res.json({ status: 'ok', version: '1.3.4-FINAL', timestamp: Date.now() });
 });
 
-/**
- * POST /admin/purge-duplicates
- * Removes duplicate mempool & papers entries keeping only the oldest per title.
- * Protected by ADMIN_SECRET env var.
- */
-app.post('/admin/purge-duplicates', async (req, res) => {
-    const secret = req.headers['x-admin-secret'] || req.body?.secret;
-    const adminSecret = process.env.ADMIN_SECRET;
-    if (!secret || secret !== adminSecret) {
-        return res.status(403).json({ error: 'Forbidden' });
-    }
-
-    const seen = new Map(); // normalizedTitle -> { id, timestamp }
-    const toDelete = [];
-
-    // Collect all mempool entries
-    const mempoolEntries = await new Promise(resolve => {
-        const entries = [];
-        db.get("mempool").map().once((data, id) => {
-            if (data && data.title) entries.push({ id, title: data.title, timestamp: data.timestamp || 0 });
-        });
-        setTimeout(() => resolve(entries), 2000);
-    });
-
-    for (const entry of mempoolEntries.sort((a, b) => a.timestamp - b.timestamp)) {
-        const key = normalizeTitle(entry.title);
-        if (seen.has(key)) {
-            toDelete.push({ store: 'mempool', id: entry.id, title: entry.title });
-        } else {
-            seen.set(key, entry.id);
-        }
-    }
-
-    // Collect all papers entries
-    const papersEntries = await new Promise(resolve => {
-        const entries = [];
-        db.get("papers").map().once((data, id) => {
-            if (data && data.title) entries.push({ id, title: data.title, timestamp: data.timestamp || 0 });
-        });
-        setTimeout(() => resolve(entries), 2000);
-    });
-
-    for (const entry of papersEntries.sort((a, b) => a.timestamp - b.timestamp)) {
-        const key = normalizeTitle(entry.title);
-        if (seen.has(key)) {
-            toDelete.push({ store: 'papers', id: entry.id, title: entry.title });
-        } else {
-            seen.set(key, entry.id);
-        }
-    }
-
-    // Mark duplicates as REJECTED (Gun.js can't delete nodes)
-    for (const dup of toDelete) {
-        if (dup.store === 'mempool') {
-            db.get("mempool").get(dup.id).put(gunSafe({ status: 'REJECTED', rejected_reason: 'DUPLICATE_PURGE' }));
-        } else {
-            db.get("papers").get(dup.id).put(gunSafe({ status: 'PURGED', rejected_reason: 'DUPLICATE_PURGE' }));
-        }
-    }
-
-    console.log(`[ADMIN] Purge-duplicates: marked ${toDelete.length} entries as REJECTED/PURGED`);
-    res.json({ success: true, purged: toDelete.length, details: toDelete.slice(0, 20) });
-});
+// Redundant admin purge route removed. Consolidated version at line 1805.
 
 app.post('/quick-join', async (req, res) => {
     const { name, type, interests } = req.body;
@@ -1801,49 +1739,69 @@ function checkPublishRateLimit(authorId) {
     return true;
 }
 
-// ── Admin: Proactive Cleanup ────────────────────────────────────
+// ── Admin: Proactive Cleanup (Consolidated) ─────────────────────
 app.post("/admin/purge-duplicates", async (req, res) => {
     const adminSecret = req.header('x-admin-secret') || req.headers['x-admin-secret'];
     
-    console.log(`[ADMIN] Purge attempt. Secret length: ${adminSecret ? adminSecret.length : 0}`);
-    
-    if (adminSecret !== "SECRET") {
+    if (adminSecret !== "p2pclaw-purge-2026") {
         console.warn("[ADMIN] Purge REJECTED: Invalid secret.");
         return res.status(403).json({ error: "Forbidden" });
     }
 
     console.log("[ADMIN] Starting deep duplicate purge...");
-    let purgedCount = 0;
-    
-    // Clear in-memory cache first
     titleCache.clear();
+    const seen = new Map(); // normalizedTitle -> { id, timestamp }
+    const toDelete = [];
 
-    const papers = [];
-    await new Promise(resolve => {
+    // Collect all mempool entries
+    const mempoolEntries = await new Promise(resolve => {
+        const entries = [];
         db.get("mempool").map().once((data, id) => {
-            if (data && data.title) papers.push({ ...data, id });
+            if (data && data.title) entries.push({ id, title: data.title, timestamp: data.timestamp || 0 });
         });
-        setTimeout(resolve, 3000);
+        setTimeout(() => resolve(entries), 3000);
     });
 
-    const seen = new Map(); // title -> id
-    for (const p of papers) {
-        const norm = normalizeTitle(p.title);
-        if (seen.has(norm)) {
-            console.log(`[ADMIN] Purging duplicate: ${p.title} (${p.id})`);
-            db.get("mempool").get(p.id).put(gunSafe({ 
-                status: 'REJECTED', 
-                rejected_reason: 'ADMIN_DEEP_PURGE_DUPLICATE' 
-            }));
-            purgedCount++;
+    for (const entry of mempoolEntries.sort((a, b) => a.timestamp - b.timestamp)) {
+        const key = normalizeTitle(entry.title);
+        if (seen.has(key)) {
+            toDelete.push({ store: 'mempool', id: entry.id, title: entry.title });
         } else {
-            seen.set(norm, p.id);
-            titleCache.add(norm);
+            seen.set(key, entry.id);
+            titleCache.add(key);
         }
     }
 
-    res.json({ success: true, purged: purgedCount });
+    // Collect all papers entries
+    const papersEntries = await new Promise(resolve => {
+        const entries = [];
+        db.get("papers").map().once((data, id) => {
+            if (data && data.title) entries.push({ id, title: data.title, timestamp: data.timestamp || 0 });
+        });
+        setTimeout(() => resolve(entries), 3000);
+    });
+
+    for (const entry of papersEntries.sort((a, b) => a.timestamp - b.timestamp)) {
+        const key = normalizeTitle(entry.title);
+        if (seen.has(key)) {
+            toDelete.push({ store: 'papers', id: entry.id, title: entry.title });
+        } else {
+            seen.set(key, entry.id);
+            titleCache.add(key);
+        }
+    }
+
+    for (const dup of toDelete) {
+        if (dup.store === 'mempool') {
+            db.get("mempool").get(dup.id).put(gunSafe({ status: 'REJECTED', rejected_reason: 'DUPLICATE_PURGE' }));
+        } else {
+            db.get("papers").get(dup.id).put(gunSafe({ status: 'PURGED', rejected_reason: 'DUPLICATE_PURGE' }));
+        }
+    }
+
+    res.json({ success: true, purged: toDelete.length, details: toDelete.slice(0, 5) });
 });
+
 
 app.post("/publish-paper", async (req, res) => {
     const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature, force, claim_state } = req.body;
