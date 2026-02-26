@@ -1805,9 +1805,9 @@ function checkPublishRateLimit(authorId) {
 app.post("/admin/purge-duplicates", async (req, res) => {
     const adminSecret = req.header('x-admin-secret') || req.headers['x-admin-secret'];
     
-    console.log(`[ADMIN] Purge attempt. Headers: ${JSON.stringify(req.headers)}`);
+    console.log(`[ADMIN] Purge attempt. Secret length: ${adminSecret ? adminSecret.length : 0}`);
     
-    if (adminSecret !== "p2pclaw-purge-2026") {
+    if (adminSecret !== "SECRET") {
         console.warn("[ADMIN] Purge REJECTED: Invalid secret.");
         return res.status(403).json({ error: "Forbidden" });
     }
