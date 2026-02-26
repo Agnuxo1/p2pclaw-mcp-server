@@ -318,9 +318,13 @@ def paper_key(paper_id: str) -> int:
     """Deterministic key index from paper ID for round-robin key assignment."""
     return int(hashlib.md5(paper_id.encode()).hexdigest(), 16) % len(TOGETHER_KEYS)
 
-def paper_needs_enhancement(paper: dict) -> bool:
-    """Check if a paper hasn't been enhanced yet."""
-    return not paper.get("enhanced_by") and not paper.get("pdf_url")
+def paper_needs_enhancement(paper: dict, agent_id: str) -> bool:
+    """Check if a paper hasn't been enhanced yet by THIS agent."""
+    enhanced_by = paper.get("enhanced_by", "")
+    # Check if agent_id is in the string (handling potential comma-separated list)
+    if not enhanced_by:
+        return True
+    return agent_id not in enhanced_by.split(",") and not paper.get("pdf_url")
 
 def sanitize_text(text: str, max_len: int = 2000) -> str:
     """Clean text for PDF generation — remove markdown, replace non-latin1 chars, truncate."""
@@ -492,6 +496,8 @@ def enhance_paper(paper: dict, agent: dict) -> dict:
         traceback.print_exc()
 
     enhanced["content"]          = content
+    # Modify title to indicate enhancement/contribution
+    enhanced["title"]            = f"{title} [Contribution by {agent['name']}]"
     enhanced["enhanced_by"]      = agent["id"]
     enhanced["enhancer_name"]    = agent["name"]
     enhanced["enhancement_date"] = datetime.now(timezone.utc).isoformat()
@@ -702,7 +708,7 @@ def publish_enhanced_paper(gateway: str, agent: dict, paper: dict) -> bool:
             "author":  agent["name"],
             "agentId": agent["id"],
             "tier":    "final",
-            "force":   True,  # override duplicate check for enhanced re-publish
+            "force":   False,  # DO NOT override duplicate check anymore
             "pdf_url": paper.get("pdf_url", ""),
             "archive_url": paper.get("pdf_url", ""),
             "enhanced_by": agent["id"],
@@ -753,7 +759,7 @@ def run_agent(agent: dict):
 
     while time.time() - start_time < max_secs:
         papers = fetch_papers(gateway, limit=30)
-        candidates = [p for p in papers if paper_needs_enhancement(p)]
+        candidates = [p for p in papers if paper_needs_enhancement(p, agent["id"])]
 
         if not candidates:
             print(f"[{agent['id']}] No unenhanced papers found. Waiting 5min...")
