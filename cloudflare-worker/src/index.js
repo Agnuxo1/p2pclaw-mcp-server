@@ -24,7 +24,7 @@ const IPFS_GATEWAYS   = [
 
 // Current deployed CID — updated by deploy-app.js via wrangler secret
 // Fallback to this static CID if KV is unavailable
-const FALLBACK_CID = "QmfAU8YaWapbq4QsJyQivrB4RjqgHtbM55i7gqA9eeXtZQ";
+const FALLBACK_CID = "Qme5UDsjeNovFznJaYjQLXFQvvKPdeeXk2YgGLrh57aTL2";
 
 // Routes that always go to Railway backend
 const BACKEND_PREFIXES = [

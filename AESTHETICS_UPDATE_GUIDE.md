@@ -17,7 +17,7 @@ The deploy script (`deploy-app.js`) enforces this automatically:
 
 **The canonical fallback CID** (last known-good deployment) is stored at the top of `deploy-app.js`:
 ```js
-const CANONICAL_CID = 'QmfAU8YaWapbq4QsJyQivrB4RjqgHtbM55i7gqA9eeXtZQ';
+const CANONICAL_CID = 'Qme5UDsjeNovFznJaYjQLXFQvvKPdeeXk2YgGLrh57aTL2';
 ```
 Update this value after each successful deployment if you want to keep it current.
 
