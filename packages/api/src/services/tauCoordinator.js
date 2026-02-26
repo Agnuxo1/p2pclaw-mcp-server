@@ -82,6 +82,28 @@ class TauCoordinator {
     const tau2 = this.agentProgress.get(agentId2)?.tau || 0;
     return Math.abs(tau1 - tau2) <= windowSize;
   }
+
+  /**
+   * Return current τ/κ status for all tracked agents.
+   * Used by GET /tau-status endpoint.
+   */
+  getStatus() {
+    const agents = [];
+    for (const [agentId, data] of this.agentProgress) {
+      agents.push({
+        id: agentId,
+        tau: parseFloat(data.tau.toFixed(6)),
+        kappa: parseFloat(data.kappa.toFixed(6)),
+        lastUpdate: data.lastUpdate
+      });
+    }
+    agents.sort((a, b) => b.tau - a.tau);
+    return {
+      agents,
+      total: agents.length,
+      description: "tau = internal progress time (Al-Mayahi Two-Clock). kappa = instantaneous progress rate."
+    };
+  }
 }
 
 export const tauCoordinator = new TauCoordinator();
