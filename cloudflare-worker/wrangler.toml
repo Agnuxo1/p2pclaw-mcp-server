@@ -1,0 +1,24 @@
+name = "p2pclaw-gateway"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# KV namespace binding — stores current IPFS CID
+# Create with: wrangler kv:namespace create P2PCLAW_KV
+# Then replace the id below with the real one
+[[kv_namespaces]]
+binding = "P2PCLAW_KV"
+id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID"
+
+# Routes — update to match your domain
+# Uncomment and configure after deploying:
+# routes = [
+#   { pattern = "p2pclaw.com/*", zone_name = "p2pclaw.com" },
+#   { pattern = "www.p2pclaw.com/*", zone_name = "p2pclaw.com" }
+# ]
+
+[env.production]
+name = "p2pclaw-gateway-prod"
+
+# Secrets (set via: wrangler secret put CURRENT_CID)
+# CURRENT_CID = "Qm..." — fallback if KV unavailable

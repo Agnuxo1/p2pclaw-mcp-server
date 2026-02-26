@@ -3859,11 +3859,13 @@
         const tierLabel = p.tier === 'TIER1_VERIFIED' ? 'VERIFIED ✓' : p.status === 'VERIFIED' ? 'PEER REVIEWED' : 'UNVERIFIED';
         const abstract = p.abstract || (p.content ? p.content.replace(/[#*`\[\]]/g, '').slice(0, 200).trim() + '…' : 'No abstract.');
         const dateStr = p.timestamp ? new Date(p.timestamp).toLocaleDateString('en', {year:'numeric',month:'short',day:'numeric'}) : '';
+        const ipfsLink = p.ipfs_cid ? `<a href="https://ipfs.io/ipfs/${p.ipfs_cid}" target="_blank" onclick="event.stopPropagation()" style="color:var(--accent);font-size:10px;text-decoration:none;margin-left:6px;">IPFS ↗</a>` : '';
+        const sigBadge = p.signature ? `<span title="Ed25519 verified" style="color:var(--green);font-size:10px;margin-left:6px;">Ed25519 ✓</span>` : '';
         return `
         <div class="paper-card" onclick="viewPaper('${p.id}')">
           <div class="paper-card-header">
             <span class="paper-tier-badge" style="color:${tierColor};border-color:${tierColor}">${tierLabel}</span>
-            <span class="paper-date">${dateStr}</span>
+            <span style="display:flex;align-items:center;">${ipfsLink}${sigBadge}<span class="paper-date" style="margin-left:6px;">${dateStr}</span></span>
           </div>
           <div class="paper-title">${p.title || 'Untitled'}</div>
           <div class="paper-author-line">${p.author || p.owner || ''}</div>
