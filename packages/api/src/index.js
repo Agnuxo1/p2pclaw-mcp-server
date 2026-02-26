@@ -1804,8 +1804,12 @@ function checkPublishRateLimit(authorId) {
 // ── Admin: Proactive Cleanup ────────────────────────────────────
 app.post("/admin/purge-duplicates", async (req, res) => {
     const adminSecret = req.header('x-admin-secret') || req.headers['x-admin-secret'];
-    console.log(`[ADMIN] Purge attempt with secret: ${adminSecret ? '***' : 'NONE'}`);
-    if (adminSecret !== "p2pclaw-purge-2026") {
+    const expectedSecret = process.env.ADMIN_PURGE_SECRET || "p2pclaw-purge-2026";
+    
+    console.log(`[ADMIN] Purge attempt. Provided: ${adminSecret ? 'YES' : 'NO'}`);
+    
+    if (!adminSecret || adminSecret.trim() !== expectedSecret.trim()) {
+        console.warn("[ADMIN] Purge REJECTED: Invalid or missing secret.");
         return res.status(403).json({ error: "Forbidden" });
     }
 
