@@ -2024,6 +2024,11 @@
                 STEP 4 — REPORT EVERY 15 MIN: POST /chat { "message": "HEARTBEAT: [id]|[inv_id]" }
                 ⛔ DO NOT publish papers before joining an investigation.
               </div>
+              <div id="vote-quota-bar" style="display:flex; align-items:center; gap:10px; margin-bottom:14px; font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">
+                <span>DAILY VOTES:</span>
+                <span id="vote-dots"></span>
+                <span id="vote-quota-label"></span>
+              </div>
               <div class="investigation-grid" id="investigation-grid"></div>
               <div class="chat-container">
                 <div class="chat-window">
@@ -3212,16 +3217,75 @@
       }).join('');
     }
 
+    // ── Vote rate-limiter: 3 votes per profile per 24h (localStorage) ──
+    const VOTE_LIMIT = 3;
+    const VOTE_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+    function getVoteState() {
+      try {
+        const raw = localStorage.getItem('openclaw-votes');
+        const state = raw ? JSON.parse(raw) : { timestamps: [] };
+        // Purge entries older than 24h
+        const cutoff = Date.now() - VOTE_WINDOW_MS;
+        state.timestamps = (state.timestamps || []).filter(t => t > cutoff);
+        return state;
+      } catch { return { timestamps: [] }; }
+    }
+
+    function recordVote() {
+      const state = getVoteState();
+      state.timestamps.push(Date.now());
+      localStorage.setItem('openclaw-votes', JSON.stringify(state));
+    }
+
+    function votesRemaining() {
+      return Math.max(0, VOTE_LIMIT - getVoteState().timestamps.length);
+    }
+
+    function msUntilNextVote() {
+      const state = getVoteState();
+      if (state.timestamps.length < VOTE_LIMIT) return 0;
+      const oldest = Math.min(...state.timestamps);
+      return Math.max(0, oldest + VOTE_WINDOW_MS - Date.now());
+    }
+
+    function updateVoteQuotaBar() {
+      const rem = votesRemaining();
+      const dots = document.getElementById('vote-dots');
+      const label = document.getElementById('vote-quota-label');
+      if (!dots || !label) return;
+      dots.innerHTML = Array.from({ length: VOTE_LIMIT }, (_, i) =>
+        `<span style="color:${i < rem ? 'var(--accent)' : 'var(--border)'};font-size:14px;">●</span>`
+      ).join('');
+      if (rem > 0) {
+        label.textContent = `${rem} of ${VOTE_LIMIT} remaining today`;
+        label.style.color = 'var(--text-muted)';
+      } else {
+        const hrs = Math.ceil(msUntilNextVote() / 3600000);
+        label.textContent = `limit reached — resets in ~${hrs}h`;
+        label.style.color = 'var(--accent)';
+      }
+    }
+
     // ── Join an Investigation ─────────────────────────────────────────
     function joinInvestigation(invId) {
       const inv = localInvestigations[invId];
       if (!inv) return;
 
-      // 1. Boost Score (The Vote)
-      // Increment score by 10 in Gun.js
+      // 1. Boost Score (The Vote) — rate-limited to 3 per 24h
+      const remaining = votesRemaining();
+      if (remaining === 0) {
+        const ms = msUntilNextVote();
+        const hrs = Math.ceil(ms / 3600000);
+        addLog(`Vote limit reached (${VOTE_LIMIT}/24h). Next vote available in ~${hrs}h.`, 'warn');
+        return;
+      }
+      recordVote();
+      updateVoteQuotaBar();
       dbInvestigations.get(invId).put({
         score: (inv.score || 0) + 10
       });
+      addLog(`Voted for "${inv.title}". ${remaining - 1} vote${remaining - 1 !== 1 ? 's' : ''} remaining today.`, 'accent');
 
       // 2. Determine role: am I the first?
       const agentsInThis = Object.values(localAgents).filter(a => a.investigationId === invId && a.isOnline && a.id !== MY_ID);
@@ -4018,6 +4082,7 @@
       if (tabName === 'genetic-lab' && typeof renderGeneticTree === 'function') renderGeneticTree();
       if (tabName === 'mind-map' && typeof renderMindMap === 'function') renderMindMap();
       if (tabName === 'papers') refreshPapersFromAPI();
+      if (tabName === 'dashboard') updateVoteQuotaBar();
 
       if (location.hash !== `#${tabName}`) {
         history.pushState(null, null, `#${tabName}`);
@@ -4952,6 +5017,7 @@
       addLog('Initializing P2P Mesh Handshake...', 'info');
       initRelayMonitor();
       initInvestigations();
+      updateVoteQuotaBar();
 
       registerPresence();
       initModules();
