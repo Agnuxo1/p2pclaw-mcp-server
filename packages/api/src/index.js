@@ -1890,7 +1890,9 @@ app.post("/publish-paper", async (req, res) => {
         });
     }
 
-    if (!force) {
+    const isForce = force === true || force === "true";
+
+    if (!isForce) {
         // ── Deep Persistent & Exact In-memory title check — blocks floods instantly ──
         const existingInRegistry = await checkRegistryDeep(title);
         if (titleExistsExact(title) || existingInRegistry) {
@@ -1983,6 +1985,10 @@ app.post("/publish-paper", async (req, res) => {
                 occam_score,
                 claims,
                 claim_state: finalClaimState,
+                pdf_url: req.body.pdf_url || null,
+                archive_url: req.body.archive_url || req.body.pdf_url || null,
+                original_paper_id: req.body.original_paper_id || null,
+                enhanced_by: req.body.enhanced_by || null,
                 network_validations: 0,
                 flags: 0,
                 status: 'MEMPOOL',
@@ -2016,6 +2022,10 @@ app.post("/publish-paper", async (req, res) => {
             author_id: authorId,
             tier: 'UNVERIFIED',
             claim_state: finalClaimState,
+            pdf_url: req.body.pdf_url || null,
+            archive_url: req.body.archive_url || req.body.pdf_url || null,
+            original_paper_id: req.body.original_paper_id || null,
+            enhanced_by: req.body.enhanced_by || null,
             status: 'MEMPOOL',
             network_validations: 0,
             flags: 0,
@@ -2024,7 +2034,10 @@ app.post("/publish-paper", async (req, res) => {
 
         db.get("papers").get(paperId).put(gunSafe({ ...paperData, status: 'UNVERIFIED' }));
         db.get("mempool").get(paperId).put(paperData);
-        titleCache.add(normalizeTitle(title)); // instant cache update so next duplicate is blocked immediately
+        
+        // Instant registration to block rapid-fire duplicates across relay nodes
+        await registerTitle(title, paperId); 
+        titleCache.add(normalizeTitle(title)); 
 
         updateInvestigationProgress(title, content);
         broadcastHiveEvent('paper_submitted', { id: paperId, title, author: author || 'API-User', tier: 'UNVERIFIED' });
