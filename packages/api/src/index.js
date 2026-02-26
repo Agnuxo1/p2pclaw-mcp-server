@@ -9,7 +9,7 @@ import { db } from "./config/gun.js";
 import { setupServer, startServer, serveMarkdown } from "./config/server.js";
 
 // Service imports
-import { publisher, cachedBackupMeta, updateCachedBackupMeta, publishToIpfsWithRetry, archiveToIPFS } from "./services/storageService.js";
+import { publisher, cachedBackupMeta, updateCachedBackupMeta, publishToIpfsWithRetry, archiveToIPFS, migrateExistingPapersToIPFS } from "./services/storageService.js";
 import { fetchHiveState, updateInvestigationProgress, sendToHiveChat } from "./services/hiveMindService.js";
 import { trackAgentPresence, calculateRank } from "./services/agentService.js";
 import { tauCoordinator } from "./services/tauCoordinator.js";
@@ -20,6 +20,9 @@ import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle,
 import { SAMPLE_MISSIONS, sandboxService } from "./services/sandboxService.js";
 import { economyService } from "./services/economyService.js";
 import { wardenInspect, detectRogueAgents, BANNED_PHRASES, BANNED_WORDS_EXACT, STRIKE_LIMIT, offenderRegistry, WARDEN_WHITELIST } from "./services/wardenService.js";
+import { generateAgentKeypair, signPaper, verifyPaperSignature } from "./services/crypto-service.js";
+import { getAgentRankFromDB, creditClaw, CLAW_REWARDS } from "./services/claw-service.js";
+import { getFederatedLearning } from "./services/federated-learning.js";
 
 // Route imports
 import magnetRoutes from "./routes/magnetRoutes.js";
@@ -1001,7 +1004,7 @@ app.get("/agent-welcome.json", (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', version: '1.3.5-SAFEGUARD', timestamp: Date.now() });
+    res.json({ status: 'ok', version: '2.0.0', timestamp: Date.now() });
 });
 
 // Redundant admin purge route removed. Consolidated version at line 1805.
@@ -1012,6 +1015,15 @@ app.post('/quick-join', async (req, res) => {
     // Honour submitted agentId if provided, otherwise generate one
     const agentId = req.body.agentId || req.body.agent_id ||
         ((isAI ? 'A-' : 'H-') + Math.random().toString(36).substring(2, 10));
+
+    // Ed25519 keypair: use submitted publicKey or generate new pair
+    let publicKey  = req.body.publicKey  || null;
+    let privateKey = null; // never stored server-side
+    if (!publicKey) {
+        const kp = generateAgentKeypair();
+        publicKey  = kp.publicKey;
+        privateKey = kp.privateKey; // returned once to the client
+    }
 
     const now = Date.now();
     const newNode = gunSafe({
@@ -1025,22 +1037,30 @@ app.post('/quick-join', async (req, res) => {
         claw_balance: isAI ? 0 : 10,
         rank: isAI ? 'RESEARCHER' : 'NEWCOMER',
         role: 'viewer',
-        computeSplit: '50/50'
+        computeSplit: '50/50',
+        public_key: publicKey
     });
-    
-    db.get('agents').get(agentId).put(newNode);
-    console.log(`[P2P] New agent quick-joined: ${agentId} (${name || 'Anonymous'})`);
 
-    res.json({ 
-        success: true, 
+    db.get('agents').get(agentId).put(newNode);
+    console.log(`[P2P] New agent quick-joined: ${agentId} (${name || 'Anonymous'}) Ed25519=${!!publicKey}`);
+
+    const response = {
+        success: true,
         agentId,
+        publicKey,
         message: "Successfully joined the P2PCLAW Hive Mind.",
         config: {
             relay: "https://p2pclaw-relay-production.up.railway.app/gun",
             mcp_endpoint: "/sse",
             api_base: "/briefing"
         }
-    });
+    };
+    // Only include privateKey if we generated it here — client must store it safely
+    if (privateKey) {
+        response.privateKey = privateKey;
+        response.crypto_note = "Store privateKey securely — it will never be shown again.";
+    }
+    res.json(response);
 });
 
 // ── Legacy Compatibility Aliases (Universal Agent Reconnection) ──
@@ -1048,7 +1068,17 @@ app.post("/register", (req, res) => res.redirect(307, "/quick-join"));
 app.post("/presence", (req, res) => {
     const agentId = req.body.agentId || req.body.sender;
     const name = req.body.name || req.body.agentName || null;
-    if (agentId) trackAgentPresence(req, agentId, name);
+    if (agentId) {
+        trackAgentPresence(req, agentId, name);
+        // Update τ on every heartbeat
+        const stats = {
+            tps: req.body.tps || 0,
+            tps_max: 100,
+            validatedWorkUnits: req.body.validations || 0,
+            informationGain: req.body.papers || 0
+        };
+        tauCoordinator.updateTau(agentId, stats);
+    }
     res.json({ success: true, status: "online", timestamp: Date.now() });
 });
 app.get("/agent-profile", (req, res) => {
@@ -1739,23 +1769,15 @@ function checkPublishRateLimit(authorId) {
     return true;
 }
 
-// ── Admin: Proactive Cleanup (Consolidated) ─────────────────────
-app.post("/admin/purge-duplicates", async (req, res) => {
-    const adminSecret = req.header('x-admin-secret') || req.headers['x-admin-secret'];
-    
-    if (adminSecret !== "p2pclaw-purge-2026") {
-        console.warn("[ADMIN] Purge REJECTED: Invalid secret.");
-        return res.status(403).json({ error: "Forbidden" });
-    }
-
-    console.log("[ADMIN] Starting deep duplicate purge (Title + WordCount)...");
+// ── Internal auto-purge logic (shared by cron + admin endpoint) ─
+async function runDuplicatePurge() {
+    console.log("[PURGE] Starting duplicate purge (Title + WordCount)...");
     titleCache.clear();
     wordCountCache.clear();
-    const seenTitles = new Map(); 
+    const seenTitles = new Map();
     const seenWordCounts = new Map();
     const toDelete = [];
 
-    // Collect all mempool entries
     const mempoolEntries = await new Promise(resolve => {
         const entries = [];
         db.get("mempool").map().once((data, id) => {
@@ -1770,7 +1792,6 @@ app.post("/admin/purge-duplicates", async (req, res) => {
     for (const entry of mempoolEntries.sort((a, b) => a.timestamp - b.timestamp)) {
         const titleKey = normalizeTitle(entry.title);
         const wcKey = entry.wordCount;
-
         if (seenTitles.has(titleKey) || seenWordCounts.has(wcKey)) {
             toDelete.push({ store: 'mempool', id: entry.id, title: entry.title, reason: seenTitles.has(titleKey) ? 'TITLE_DUP' : 'WC_DUP' });
         } else {
@@ -1781,7 +1802,6 @@ app.post("/admin/purge-duplicates", async (req, res) => {
         }
     }
 
-    // Collect all papers entries
     const papersEntries = await new Promise(resolve => {
         const entries = [];
         db.get("papers").map().once((data, id) => {
@@ -1796,7 +1816,6 @@ app.post("/admin/purge-duplicates", async (req, res) => {
     for (const entry of papersEntries.sort((a, b) => a.timestamp - b.timestamp)) {
         const titleKey = normalizeTitle(entry.title);
         const wcKey = entry.wordCount;
-
         if (seenTitles.has(titleKey) || seenWordCounts.has(wcKey)) {
             toDelete.push({ store: 'papers', id: entry.id, title: entry.title, reason: seenTitles.has(titleKey) ? 'TITLE_DUP' : 'WC_DUP' });
         } else {
@@ -1815,12 +1834,27 @@ app.post("/admin/purge-duplicates", async (req, res) => {
         }
     }
 
-    res.json({ success: true, purged: toDelete.length, details: toDelete.slice(0, 5) });
+    console.log(`[PURGE] Done — ${toDelete.length} duplicates purged.`);
+    return toDelete;
+}
+
+// ── Admin: Proactive Cleanup (Consolidated) ─────────────────────
+app.post("/admin/purge-duplicates", async (req, res) => {
+    const adminSecret = req.header('x-admin-secret') || req.headers['x-admin-secret'] || req.body?.secret;
+    const validSecret = process.env.ADMIN_SECRET || 'p2pclaw-purge-2026';
+
+    if (adminSecret !== validSecret) {
+        console.warn("[ADMIN] Purge REJECTED: Invalid secret.");
+        return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const purged = await runDuplicatePurge();
+    res.json({ success: true, purged: purged.length, details: purged.slice(0, 20) });
 });
 
 
 app.post("/publish-paper", async (req, res) => {
-    const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature, force, claim_state } = req.body;
+    const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature, force, claim_state, privateKey } = req.body;
     const authorId = agentId || author || "API-User";
 
     trackAgentPresence(req, authorId);
@@ -2005,6 +2039,10 @@ app.post("/publish-paper", async (req, res) => {
         const finalTier = verificationResult.verified ? 'TIER1_VERIFIED' : 'UNVERIFIED';
 
         if (finalTier === 'TIER1_VERIFIED') {
+            // Archive to IPFS immediately for Tier-1 verified papers
+            const t1_cid = await archiveToIPFS(content, paperId);
+            const t1_url = t1_cid ? `https://ipfs.io/ipfs/${t1_cid}` : null;
+
             db.get("mempool").get(paperId).put(gunSafe({
                 title,
                 content,
@@ -2023,6 +2061,8 @@ app.post("/publish-paper", async (req, res) => {
                 network_validations: 0,
                 flags: 0,
                 status: 'MEMPOOL',
+                ipfs_cid: t1_cid,
+                url_html: t1_url,
                 timestamp: now
             }));
 
@@ -2033,6 +2073,7 @@ app.post("/publish-paper", async (req, res) => {
                 success: true,
                 status: 'MEMPOOL',
                 paperId,
+                ipfs_cid: t1_cid,
                 investigation_id: investigation_id || null,
                 note: `[TIER-1 VERIFIED] Paper submitted to Mempool. Awaiting ${VALIDATION_THRESHOLD} peer validations to enter La Rueda.`,
                 validate_endpoint: "POST /validate-paper { paperId, agentId, result, occam_score }",
@@ -2043,6 +2084,12 @@ app.post("/publish-paper", async (req, res) => {
 
         const ipfs_cid = await archiveToIPFS(content, paperId);
         const ipfs_url = ipfs_cid ? `https://ipfs.io/ipfs/${ipfs_cid}` : null;
+
+        // Ed25519 signature — sign if agent provides privateKey
+        let paperSignature = null;
+        if (privateKey) {
+            paperSignature = signPaper({ content, tier1_proof, timestamp: now }, privateKey);
+        }
 
         const paperData = gunSafe({
             title,
@@ -2060,6 +2107,7 @@ app.post("/publish-paper", async (req, res) => {
             status: 'MEMPOOL',
             network_validations: 0,
             flags: 0,
+            signature: paperSignature,
             timestamp: now
         });
 
@@ -2086,6 +2134,12 @@ app.post("/publish-paper", async (req, res) => {
         }
         db.get("agents").get(authorId).put(gunSafe(rankUpdates));
         console.log(`[RANKING] Agent ${authorId} contribution count: ${currentContribs + 1}`);
+
+        // CLAW credits for publishing
+        const clawAction = finalTier === 'TIER1_VERIFIED' ? 'PAPER_TIER1' : 'PAPER_DRAFT';
+        creditClaw(db, authorId, clawAction, { paperId });
+        if (ipfs_cid) creditClaw(db, authorId, 'IPFS_PINNED_BONUS', { paperId });
+        if (paperSignature) creditClaw(db, authorId, 'ED25519_SIGNED', { paperId });
 
         res.json({
             success: true,
@@ -2205,10 +2259,8 @@ app.post("/validate-paper", async (req, res) => {
         avg_occam_score: newAvgScore
     }));
 
-    // Reward Validator for contribution
-    import("./services/economyService.js").then(({ economyService }) => {
-        economyService.credit(agentId, 1, `Validation of ${paperId}`);
-    });
+    // CLAW credit for correct validation
+    creditClaw(db, agentId, 'VALIDATION_CORRECT', { paperId });
 
     console.log(`[CONSENSUS] Paper "${paper.title}" validated by ${agentId} (${rank}). Total: ${newValidations}/${VALIDATION_THRESHOLD} | MathValid: ${mathValid}`);
     broadcastHiveEvent('paper_validated', { id: paperId, title: paper.title, validator: agentId, validations: newValidations, threshold: VALIDATION_THRESHOLD });
@@ -2316,6 +2368,130 @@ app.post("/complete-mission", async (req, res) => {
     if (!agentId || !missionId) return res.status(400).json({ error: "Missing parameters" });
     const success = await sandboxService.completeMission(agentId, missionId);
     res.json({ success });
+});
+
+/**
+ * GET /tau-status
+ * Returns current τ-normalization state for all active agents.
+ */
+app.get("/tau-status", (req, res) => {
+    const status = tauCoordinator.getStatus();
+    res.json({
+        ...status,
+        timestamp: Date.now(),
+        description: "tau = internal progress time (Al-Mayahi Two-Clock). kappa = instantaneous progress rate."
+    });
+});
+
+/**
+ * GET /agent-memory/:agentId
+ * Returns list of paper IDs processed by an agent (for inter-session dedup).
+ * Used by scientific_editor.py to skip already-processed papers on restart.
+ */
+app.get("/agent-memory/:agentId", async (req, res) => {
+    const { agentId } = req.params;
+    const entries = [];
+    await new Promise(resolve => {
+        db.get("memories").get(agentId).map().once((data, key) => {
+            if (data && key && key.startsWith('processed:')) {
+                entries.push(key.replace('processed:', ''));
+            }
+        });
+        setTimeout(resolve, 1500);
+    });
+    res.json({ agentId, processed_paper_ids: entries, count: entries.length });
+});
+
+/**
+ * POST /agent-memory/:agentId
+ * Mark a paper as processed by an agent.
+ */
+app.post("/agent-memory/:agentId", (req, res) => {
+    const { agentId } = req.params;
+    const { paperId, metadata = {} } = req.body;
+    if (!paperId) return res.status(400).json({ error: "paperId required" });
+    db.get("memories").get(agentId).get(`processed:${paperId}`).put({
+        key: `processed:${paperId}`,
+        value: JSON.stringify({ paperId, ...metadata, ts: Date.now() }),
+        timestamp: Date.now()
+    });
+    res.json({ success: true, agentId, paperId });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  P8 — FEDERATED LEARNING (FedAvg + DP-SGD, Abadi 2016)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /fl/publish-update
+ * Agent publishes local gradient update for a specific FL round.
+ * Body: { agentId, round, gradient: number[], samples?: number }
+ * Returns: { updateId, round, dim, norm, dp_applied }
+ */
+app.post("/fl/publish-update", async (req, res) => {
+    const { agentId, round, gradient, samples = 1 } = req.body;
+    if (!agentId || !Array.isArray(gradient) || gradient.length === 0) {
+        return res.status(400).json({ error: "agentId and gradient[] required" });
+    }
+    if (typeof round !== "number" || round < 0) {
+        return res.status(400).json({ error: "round must be a non-negative number" });
+    }
+    try {
+        const fl = getFederatedLearning(db);
+        const result = await fl.publishUpdate(agentId, gradient, round, samples);
+        res.json({ success: true, ...result });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+/**
+ * GET /fl/aggregate/:round
+ * Aggregate all updates for a round via FedAvg.
+ * If fewer than MIN_AGENTS have contributed, returns status: "waiting".
+ * Query params: ?minAgents=3 (optional override)
+ */
+app.get("/fl/aggregate/:round", async (req, res) => {
+    const round = parseInt(req.params.round, 10);
+    if (isNaN(round)) return res.status(400).json({ error: "round must be integer" });
+    const minAgents = parseInt(req.query.minAgents, 10) || undefined;
+    try {
+        const fl = getFederatedLearning(db);
+        const result = await fl.aggregateRound(round, minAgents);
+        res.json({ success: true, ...result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * GET /fl/status/:round
+ * Get status of an FL round: contributors, aggregation state.
+ */
+app.get("/fl/status/:round", async (req, res) => {
+    const round = parseInt(req.params.round, 10);
+    if (isNaN(round)) return res.status(400).json({ error: "round must be integer" });
+    try {
+        const fl = getFederatedLearning(db);
+        const status = await fl.getRoundStatus(round);
+        res.json({ success: true, ...status });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * GET /fl/current-round
+ * Returns the latest FL round number with any contributions.
+ */
+app.get("/fl/current-round", async (req, res) => {
+    try {
+        const fl = getFederatedLearning(db);
+        const round = await fl.getCurrentRound();
+        res.json({ success: true, current_round: round });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 /**
@@ -2644,13 +2820,8 @@ app.get("/skills", async (req, res) => {
 app.get("/agent-rank", async (req, res) => {
   const agentId = req.query.agent;
   if (!agentId) return res.status(400).json({ error: "agent param required" });
-
-  const agentData = await new Promise(resolve => {
-    db.get("agents").get(agentId).once(data => resolve(data || {}));
-  });
-
-  const { rank, weight } = calculateRank(agentData);
-  res.json({ agentId, rank, weight, contributions: agentData.contributions || 0 });
+  const profile = await getAgentRankFromDB(agentId, db);
+  res.json(profile);
 });
 
 app.post("/propose-topic", async (req, res) => {
@@ -3223,5 +3394,14 @@ initializeTauHeartbeat();
     // Start Phase 23: Autonomous Operations
     initializeAbraxasService();
     initializeSocialService();
+
+// ── Auto-purge cron: run once on boot (after 60s) + every 6 hours ─
+setTimeout(() => runDuplicatePurge().catch(e => console.error('[PURGE-CRON] Error:', e.message)), 60_000);
+setInterval(() => runDuplicatePurge().catch(e => console.error('[PURGE-CRON] Error:', e.message)), 6 * 60 * 60 * 1000);
+console.log('[PURGE-CRON] Auto-purge scheduled: boot+60s, then every 6h.');
+
+// ── IPFS migration: pin existing papers without ipfs_cid (boot+90s) ─
+setTimeout(() => migrateExistingPapersToIPFS(db).catch(e => console.error('[IPFS-MIGRATE] Error:', e.message)), 90_000);
+console.log('[IPFS-MIGRATE] Migration scheduled: boot+90s.');
 
 export { app, server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema };

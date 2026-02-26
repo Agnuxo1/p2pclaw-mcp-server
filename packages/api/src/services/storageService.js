@@ -44,6 +44,46 @@ export async function publishToIpfsWithRetry(title, content, author, maxAttempts
     return { cid: null, html: null };
 }
 
+/**
+ * Migrate existing papers that have no ipfs_cid to IPFS (Pinata).
+ * Called once on API boot. Passes the Gun.js `db` instance so it can
+ * update the paper node after a successful pin.
+ */
+export async function migrateExistingPapersToIPFS(db) {
+    if (!process.env.PINATA_JWT) {
+        console.warn('[IPFS-MIGRATE] No PINATA_JWT — skipping migration.');
+        return;
+    }
+    console.log('[IPFS-MIGRATE] Scanning papers without ipfs_cid...');
+    const candidates = await new Promise(resolve => {
+        const list = [];
+        db.get('papers').map().once((data, id) => {
+            if (data && data.content && !data.ipfs_cid &&
+                data.status !== 'PURGED' && data.status !== 'REJECTED') {
+                list.push({ id, ...data });
+            }
+        });
+        setTimeout(() => resolve(list), 4000);
+    });
+
+    console.log(`[IPFS-MIGRATE] Found ${candidates.length} papers to migrate.`);
+    for (const paper of candidates) {
+        try {
+            const cid = await archiveToIPFS(paper.content, paper.id);
+            if (cid) {
+                db.get('papers').get(paper.id).put({ ipfs_cid: cid, url_html: `https://ipfs.io/ipfs/${cid}` });
+                db.get('mempool').get(paper.id).put({ ipfs_cid: cid, url_html: `https://ipfs.io/ipfs/${cid}` });
+                console.log(`[IPFS-MIGRATE] ✅ ${paper.id} → ${cid}`);
+            }
+        } catch (e) {
+            console.error(`[IPFS-MIGRATE] ❌ ${paper.id}: ${e.message}`);
+        }
+        // Throttle: 1 per second to avoid Pinata rate limits
+        await new Promise(r => setTimeout(r, 1000));
+    }
+    console.log('[IPFS-MIGRATE] Migration complete.');
+}
+
 export async function archiveToIPFS(paperContent, paperId) {
     if (!process.env.PINATA_JWT) {
         console.warn('[IPFS] No PINATA_JWT — paper stored on P2P mesh only.');
