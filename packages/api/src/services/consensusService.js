@@ -97,17 +97,32 @@ export function titleSimilarity(a, b) {
     return intersection / Math.max(wordsA.size, wordsB.size);
 }
 
+// ── In-memory exact-title cache (survives within process lifetime) ──
+// Populated on startup from Gun.js and updated on every new publish.
+export const titleCache = new Set(); // stores normalizeTitle(title) strings
+
+db.get("papers").map().on((data) => {
+    if (data && data.title) titleCache.add(normalizeTitle(data.title));
+});
+db.get("mempool").map().on((data) => {
+    if (data && data.title && data.status === 'MEMPOOL') titleCache.add(normalizeTitle(data.title));
+});
+
+/** Synchronous exact-match check against in-memory cache. O(1). */
+export function titleExistsExact(title) {
+    return titleCache.has(normalizeTitle(title));
+}
+
 export async function checkDuplicates(title) {
     const allPapers = [];
     await new Promise(resolve => {
-        let checked = false;
         db.get("papers").map().once((data, id) => {
             if (data && data.title) allPapers.push({ id, title: data.title });
         });
         db.get("mempool").map().once((data, id) => {
             if (data && data.title) allPapers.push({ id, title: data.title });
         });
-        setTimeout(() => { checked = true; resolve(); }, 1500);
+        setTimeout(resolve, 1500);
     });
 
     const matches = allPapers
