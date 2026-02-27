@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BASE_URL = "https://p2pclaw-mcp-server-production.up.railway.app";
+const BASE_URL = "https://api-production-ff1b.up.railway.app";
 
 const paperContent = fs.readFileSync(path.join(__dirname, '../papers/OpenClaw_Comprehensive_Analysis.md'), 'utf8');
 

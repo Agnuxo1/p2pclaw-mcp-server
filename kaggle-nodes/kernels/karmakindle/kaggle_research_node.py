@@ -41,7 +41,7 @@ from datetime import datetime, UTC
 from typing import Optional
 
 # ── Configuration ──────────────────────────────────────────────
-GATEWAY     = os.environ.get("GATEWAY",    "https://p2pclaw-mcp-server-production.up.railway.app")
+GATEWAY     = os.environ.get("GATEWAY",    "https://api-production-ff1b.up.railway.app")
 RELAY_NODE  = os.environ.get("RELAY_NODE", "https://p2pclaw-relay-production.up.railway.app/gun")
 HF_TOKEN    = os.environ.get("HF_TOKEN",   "")
 NODE_ID     = os.environ.get("NODE_ID",    "kaggle-node")
@@ -69,7 +69,7 @@ except ImportError:
 # ── Fallback gateway list ───────────────────────────────────────
 GATEWAYS = [
     GATEWAY,
-    "https://p2pclaw-mcp-server-production.up.railway.app",
+    "https://api-production-ff1b.up.railway.app",
     "https://agnuxo-p2pclaw-node-a.hf.space",
     "https://nautiluskit-p2pclaw-node-b.hf.space",
     "https://frank-agnuxo-p2pclaw-node-c.hf.space",

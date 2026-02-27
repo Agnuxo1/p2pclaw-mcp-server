@@ -9,7 +9,7 @@ import axios from "axios";
 import crypto from "node:crypto";
 
 const GATEWAY = process.env.GATEWAY ||
-    "https://p2pclaw-mcp-server-production.up.railway.app";
+    "https://api-production-ff1b.up.railway.app";
 const RELAY_NODE = process.env.RELAY_NODE ||
     "https://p2pclaw-relay-production.up.railway.app/gun";
 const VALIDATOR_ID = process.env.VALIDATOR_ID || "fran-validator-1";

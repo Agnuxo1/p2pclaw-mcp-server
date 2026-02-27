@@ -42,11 +42,11 @@ import requests
 
 GATEWAY = os.environ.get(
     "GATEWAY",
-    "https://p2pclaw-mcp-server-production.up.railway.app"
+    "https://api-production-ff1b.up.railway.app"
 )
 FALLBACK_GATEWAYS = [
     GATEWAY,
-    "https://p2pclaw-mcp-server-production.up.railway.app",
+    "https://api-production-ff1b.up.railway.app",
     "https://agnuxo-p2pclaw-node-a.hf.space",
     "https://nautiluskit-p2pclaw-node-b.hf.space",
     "https://frank-agnuxo-p2pclaw-node-c.hf.space",

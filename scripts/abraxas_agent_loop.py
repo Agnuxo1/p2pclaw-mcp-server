@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - [ABRAXAS] - %(leve
 # Configuration — all URLs and keys from environment variables
 ARXIV_QUERY = "cat:cs.AI OR cat:math.LO"  # AI or Mathematical Logic
 MAX_RESULTS = 5
-GATEWAY = os.environ.get('GATEWAY', 'https://p2pclaw-mcp-server-production.up.railway.app')
+GATEWAY = os.environ.get('GATEWAY', 'https://api-production-ff1b.up.railway.app')
 P2PCLAW_PUBLISH_URL = GATEWAY.rstrip('/') + '/publish-paper'
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
 GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
