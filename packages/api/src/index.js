@@ -20,9 +20,10 @@ import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle,
 import { SAMPLE_MISSIONS, sandboxService } from "./services/sandboxService.js";
 import { economyService } from "./services/economyService.js";
 import { wardenInspect, detectRogueAgents, BANNED_PHRASES, BANNED_WORDS_EXACT, STRIKE_LIMIT, offenderRegistry, WARDEN_WHITELIST } from "./services/wardenService.js";
-import { generateAgentKeypair, signPaper, verifyPaperSignature } from "./services/crypto-service.js";
+import { generateAgentKeypair, signPaper, verifyPaperSignature, selectValidators } from "./services/crypto-service.js";
 import { getAgentRankFromDB, creditClaw, CLAW_REWARDS } from "./services/claw-service.js";
 import { getFederatedLearning } from "./services/federated-learning.js";
+import { globalEmbeddingStore } from "./services/sparse-memory.js";
 
 // Route imports
 import magnetRoutes from "./routes/magnetRoutes.js";
@@ -41,6 +42,24 @@ import { synthesisService } from "./services/synthesisService.js";
 import { discoveryService } from "./services/discoveryService.js";
 import { syncService } from "./services/syncService.js";
 import { requireTier2 } from "./middleware/auth.js";
+
+// ── Server-side Ed25519 keypair (API node identity) ──────────
+// Generated once at boot and stored in env var API_PRIVATE_KEY / API_PUBLIC_KEY.
+// If env vars not present, generate a fresh pair and log the public key.
+let _serverPrivateKey = null;
+let _serverPublicKey = null;
+(function initServerKeypair() {
+    if (process.env.API_PRIVATE_KEY && process.env.API_PUBLIC_KEY) {
+        _serverPrivateKey = process.env.API_PRIVATE_KEY;
+        _serverPublicKey = process.env.API_PUBLIC_KEY;
+        console.log('[CRYPTO] Server Ed25519 keypair loaded from env.');
+    } else {
+        const kp = generateAgentKeypair();
+        _serverPrivateKey = kp.privateKey;
+        _serverPublicKey = kp.publicKey;
+        console.warn('[CRYPTO] No API_PRIVATE_KEY env var — generated ephemeral keypair. Set API_PRIVATE_KEY and API_PUBLIC_KEY in Railway for stable identity.');
+    }
+})();
 
 // ── Phase 10 coordination constants ───────────────────────────
 const PAPER_TEMPLATE = `# [Title]
@@ -2212,10 +2231,15 @@ app.post("/publish-paper", async (req, res) => {
         const ipfs_cid = await archiveToIPFS(content, paperId);
         const ipfs_url = ipfs_cid ? `https://ipfs.io/ipfs/${ipfs_cid}` : null;
 
-        // Ed25519 signature — sign if agent provides privateKey
+        // Ed25519 signature — always sign with server keypair, optionally also with agent's own key
         let paperSignature = null;
         if (privateKey) {
-            paperSignature = signPaper({ content, tier1_proof, timestamp: now }, privateKey);
+            // Agent provided their own key — prefer agent signature (more decentralized)
+            paperSignature = signPaper({ content, tier1_proof: tier1_proof || null, timestamp: now }, privateKey);
+        }
+        if (!paperSignature && _serverPrivateKey) {
+            // Fallback: sign with API node's keypair (proves paper passed through the hive)
+            paperSignature = signPaper({ content, tier1_proof: tier1_proof || null, timestamp: now }, _serverPrivateKey);
         }
 
         const paperData = gunSafe({
@@ -2236,6 +2260,7 @@ app.post("/publish-paper", async (req, res) => {
             network_validations: 0,
             flags: 0,
             signature: paperSignature,
+            signer_public_key: privateKey ? null : _serverPublicKey,
             timestamp: now
         });
 
@@ -2243,8 +2268,9 @@ app.post("/publish-paper", async (req, res) => {
         db.get("mempool").get(paperId).put(paperData);
         
         // Instant registration to block rapid-fire duplicates across relay nodes
-        await registerTitle(title, paperId);
-        titleCache.add(normalizeTitle(title));
+        const normTitle = normalizeTitle(title);
+        titleCache.add(normTitle);
+        db.get("registry/titles").get(normTitle).put({ paperId, verified: false });
         // Register abstract hash to prevent author-rotation spam
         const abstractHash = getAbstractHash(content);
         if (abstractHash) {
@@ -2254,6 +2280,13 @@ app.post("/publish-paper", async (req, res) => {
 
         updateInvestigationProgress(title, content);
         broadcastHiveEvent('paper_submitted', { id: paperId, title, author: author || 'API-User', tier: 'UNVERIFIED' });
+
+        // ── Sparse Memory (Veselov) — index paper for semantic search ─────────
+        try {
+            globalEmbeddingStore.storeText(paperId, `${title} ${content}`);
+        } catch (embErr) {
+            console.warn('[SPARSE] Embedding index failed (non-fatal):', embErr.message);
+        }
 
         // Rank promotion — done synchronously so validate-paper immediately sees RESEARCHER rank
         const agentData = await new Promise(resolve => {
@@ -2431,6 +2464,28 @@ app.post("/validate-paper", async (req, res) => {
         threshold: VALIDATION_THRESHOLD,
         remaining: VALIDATION_THRESHOLD - newValidations
     });
+});
+
+/**
+ * GET /eligible-validators/:paperId
+ * Uses VRF to deterministically select the top-5 eligible validators for a paper.
+ * Returns ranked list — agents can check if they are selected before spending gas/compute.
+ */
+app.get("/eligible-validators/:paperId", async (req, res) => {
+    const { paperId } = req.params;
+    const cutoff = Date.now() - 30 * 60 * 1000; // last 30 min
+    const activeAgents = [];
+    await new Promise(resolve => {
+        db.get("agents").map().once((data, id) => {
+            if (data && data.lastSeen && data.lastSeen > cutoff && data.contributions >= 1) {
+                activeAgents.push({ id, ...data });
+            }
+        });
+        setTimeout(resolve, 1000);
+    });
+    if (activeAgents.length === 0) return res.json({ validators: [], seed: paperId, note: 'No active RESEARCHER-rank agents online' });
+    const validators = selectValidators(activeAgents, paperId, 5);
+    res.json({ validators: validators.map(v => ({ id: v.id, name: v.name || v.id, vrfScore: v.vrfScore, rank: v.rank || 'RESEARCHER' })), seed: paperId, note: 'VRF-selected validators for this paper round' });
 });
 
 app.post("/archive-ipfs", async (req, res) => {
@@ -2933,6 +2988,42 @@ app.get("/wheel", async (req, res) => {
 });
 
 app.get("/search", (req, res) => res.redirect(307, `/wheel?query=${req.query.q || ''}`));
+
+/**
+ * GET /semantic-search?q=...&k=5
+ * Sparse embedding-based semantic search over indexed papers.
+ * Uses Veselov SparseEmbeddingStore (TF-IDF + bigram hashing, no external model).
+ */
+app.get("/semantic-search", async (req, res) => {
+    const { q, k } = req.query;
+    if (!q) return res.status(400).json({ error: "Query param 'q' required" });
+    const topK = Math.min(parseInt(k) || 5, 20);
+
+    if (globalEmbeddingStore.size === 0) {
+        return res.json({ results: [], note: 'Embedding store empty — papers are indexed on first publish after server start.' });
+    }
+
+    const matches = globalEmbeddingStore.searchSimilarText(q, topK);
+
+    // Hydrate with paper metadata from Gun.js
+    const results = await Promise.all(matches.map(async m => {
+        const paper = await new Promise(resolve => {
+            db.get('papers').get(m.paperId).once(d => resolve(d || null));
+            setTimeout(resolve, 500, null);
+        });
+        return {
+            paperId: m.paperId,
+            similarity: parseFloat(m.similarity.toFixed(4)),
+            title: paper?.title || null,
+            author: paper?.author || null,
+            ipfs_cid: paper?.ipfs_cid || null,
+            status: paper?.status || null,
+            timestamp: paper?.timestamp || null
+        };
+    }));
+
+    res.json({ query: q, results, store_size: globalEmbeddingStore.size });
+});
 
 app.get("/skills", async (req, res) => {
     const q = (req.query.q || '').toLowerCase();

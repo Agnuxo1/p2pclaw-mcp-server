@@ -110,62 +110,54 @@ export function titleSimilarity(a, b) {
 
 // ── In-memory exact-title cache (survives within process lifetime) ──
 // Populated on startup from Gun.js and updated on every new publish.
+// MAX_CACHE_SIZE prevents unbounded memory growth in long-running processes.
+const MAX_CACHE_SIZE = 8000;
+
 export const titleCache = new Set(); // stores normalizeTitle(title) strings
 export const wordCountCache = new Set(); // stores exact word counts (Number)
 export const contentHashCache = new Set(); // stores normalized content hashes
+
+/** Add to a bounded Set — evicts oldest entries when limit is reached. */
+function boundedAdd(set, value) {
+    if (set.size >= MAX_CACHE_SIZE) {
+        const first = set.values().next().value;
+        set.delete(first);
+    }
+    set.add(value);
+}
 
 // ── Persistent Title Registry (Phase 70: Auto-Deduplication) ──
 const registry = db.get("registry/titles");
 const wordCountRegistry = db.get("registry/wordcounts");
 const contentHashRegistry = db.get("registry/contenthashes");
 
-// Hydrate cache from registry and papers
-db.get("papers").map().on((data) => {
-    if (data && data.title) {
-        const norm = normalizeTitle(data.title);
-        titleCache.add(norm);
-        registry.get(norm).put({ paperId: data.id || 'verified', verified: true });
-    }
-    if (data && data.content) {
-        const wc = data.content.trim().split(/\s+/).length;
-        wordCountCache.add(wc);
-        wordCountRegistry.get(wc.toString()).put({ paperId: data.id || 'verified', verified: true });
-        
-        const hash = getContentHash(data.content);
-        contentHashCache.add(hash);
-        contentHashRegistry.get(hash).put({ paperId: data.id || 'verified', verified: true });
-    }
-});
-
-db.get("mempool").map().on((data, id) => {
-    if (data && data.title && data.status === 'MEMPOOL') {
-        const norm = normalizeTitle(data.title);
-        titleCache.add(norm);
-        // Do not overwrite a verified registry entry with a mempool one
-        registry.get(norm).once(existing => {
-            if (!existing || !existing.verified) {
-                registry.get(norm).put({ paperId: id, verified: false });
-            }
-        });
-    }
-    if (data && data.content && data.status === 'MEMPOOL') {
-        const wc = data.content.trim().split(/\s+/).length;
-        wordCountCache.add(wc);
-        wordCountRegistry.get(wc.toString()).once(existing => {
-            if (!existing || !existing.verified) {
-                wordCountRegistry.get(wc.toString()).put({ paperId: id, verified: false });
-            }
-        });
-
-        const hash = getContentHash(data.content);
-        contentHashCache.add(hash);
-        contentHashRegistry.get(hash).once(existing => {
-            if (!existing || !existing.verified) {
-                contentHashRegistry.get(hash).put({ paperId: id, verified: false });
-            }
-        });
-    }
-});
+// Hydrate cache ONCE at startup — use .once() not .on() to avoid memory leaks
+// from persistent live subscriptions that accumulate every paper content in RAM.
+setTimeout(() => {
+    db.get("papers").map().once((data) => {
+        if (!data) return;
+        if (data.title) {
+            const norm = normalizeTitle(data.title);
+            boundedAdd(titleCache, norm);
+        }
+        if (data.content) {
+            const wc = data.content.trim().split(/\s+/).length;
+            boundedAdd(wordCountCache, wc);
+            boundedAdd(contentHashCache, getContentHash(data.content));
+        }
+    });
+    db.get("mempool").map().once((data, id) => {
+        if (!data || data.status !== 'MEMPOOL') return;
+        if (data.title) {
+            boundedAdd(titleCache, normalizeTitle(data.title));
+        }
+        if (data.content) {
+            const wc = data.content.trim().split(/\s+/).length;
+            boundedAdd(wordCountCache, wc);
+            boundedAdd(contentHashCache, getContentHash(data.content));
+        }
+    });
+}, 3000); // 3s after boot — let Gun.js peers connect first
 
 /** Synchronous exact-match check against in-memory cache. O(1). */
 export function titleExistsExact(title) {

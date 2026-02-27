@@ -2558,6 +2558,7 @@
                 <div class="paper-filter-bar" id="paper-filter-bar">
                   <input type="text" id="paper-search" placeholder="🔍 Search by title, author, investigation…"
                     oninput="filterPapers(this.value)" autocomplete="off">
+                  <button class="btn" style="font-size:11px; padding:6px 12px; white-space:nowrap;" onclick="semanticSearchPapers()" title="AI-powered semantic search using Veselov sparse embeddings">🧠 Semantic</button>
                   <div class="paper-filter-tabs">
                     <button class="filter-tab active" id="ftab-all"      onclick="setFilterTab('all')">All</button>
                     <button class="filter-tab"         id="ftab-verified" onclick="setFilterTab('verified')">✓ Verified</button>
@@ -4242,6 +4243,8 @@
 
     function setFilterTab(tab) {
       paperFilterTab = tab;
+      // Reset semantic search highlights
+      document.querySelectorAll('.paper-card').forEach(c => { c.style.opacity=''; c.style.borderColor=''; c.style.boxShadow=''; });
       document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
       const el = document.getElementById('ftab-' + tab);
       if (el) el.classList.add('active');
@@ -4251,6 +4254,37 @@
     function filterPapers(query) {
       paperFilterQuery = (query || '').toLowerCase().trim();
       renderPapers();
+    }
+
+    // ── Semantic Search (Veselov Sparse Embeddings) ────────────────
+    async function semanticSearchPapers() {
+      const q = document.getElementById('paper-search').value.trim();
+      if (!q) { addLog('Enter a search query first.', 'warn'); return; }
+      addLog(`[SEMANTIC] Searching for "${q}"…`, 'cmd');
+      try {
+        const res = await fetch(`${API_BASE}/semantic-search?q=${encodeURIComponent(q)}&k=10`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data.results || data.results.length === 0) {
+          addLog('[SEMANTIC] No results found. Papers are indexed after first publish.', 'warn');
+          return;
+        }
+        // Highlight matching papers in the grid
+        const matchIds = new Set(data.results.map(r => r.paperId));
+        const cards = document.querySelectorAll('.paper-card');
+        cards.forEach(c => {
+          const pid = c.dataset.paperId;
+          if (matchIds.has(pid)) {
+            c.style.borderColor = 'var(--accent)';
+            c.style.boxShadow = '0 0 12px rgba(255,120,40,0.4)';
+          } else {
+            c.style.opacity = '0.4';
+          }
+        });
+        addLog(`[SEMANTIC] Found ${data.results.length} similar papers (store: ${data.store_size} indexed). Click "All" filter to reset.`, 'ok');
+      } catch(e) {
+        addLog('[SEMANTIC] Search error: ' + e.message, 'error');
+      }
     }
 
     function renderPapers() {

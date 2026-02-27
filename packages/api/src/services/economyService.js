@@ -14,11 +14,11 @@ export const economyService = {
      */
     async credit(agentId, amount, reason = "contribution") {
         db.get("agents").get(agentId).once(data => {
-            const currentBalance = (data && data.clawBalance) || 0;
+            const currentBalance = (data && data.claw_balance) || 0;
             const newBalance = currentBalance + amount;
             
             db.get("agents").get(agentId).put(gunSafe({
-                clawBalance: newBalance,
+                claw_balance: newBalance,
                 lastEconomyUpdate: Date.now()
             }));
             
@@ -34,7 +34,7 @@ export const economyService = {
     async debit(agentId, amount, reason = "consumption") {
         return new Promise((resolve) => {
             db.get("agents").get(agentId).once(data => {
-                const currentBalance = (data && data.clawBalance) || 0;
+                const currentBalance = (data && data.claw_balance) || 0;
                 if (currentBalance < amount) {
                     console.log(`[Economy] Debit Failed for ${agentId}: Insufficient Balance (${currentBalance} < ${amount})`);
                     resolve({ success: false, balance: currentBalance });
@@ -43,7 +43,7 @@ export const economyService = {
                 
                 const newBalance = currentBalance - amount;
                 db.get("agents").get(agentId).put(gunSafe({
-                    clawBalance: newBalance,
+                    claw_balance: newBalance,
                     lastEconomyUpdate: Date.now()
                 }));
                 
@@ -59,7 +59,7 @@ export const economyService = {
     async getBalance(agentId) {
         return new Promise(resolve => {
             db.get("agents").get(agentId).once(data => {
-                resolve((data && data.clawBalance) || 0);
+                resolve((data && data.claw_balance) || 0);
             });
         });
     }
