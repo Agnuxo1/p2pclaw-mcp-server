@@ -1258,6 +1258,84 @@
       overflow: hidden;
     }
 
+    /* ══════════════════════════════════════════════════════
+       🧬 GENETIC LAB — Phase 17 Full GA Engine
+       ══════════════════════════════════════════════════════ */
+    .gl-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 10px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    .gl-stat-card:hover { border-color: var(--accent); }
+    .gl-stat-value {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      line-height: 1;
+    }
+    .gl-stat-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .gl-genome-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.18s;
+      position: relative;
+    }
+    .gl-genome-card:hover { background: var(--bg-card-hover); transform: translateY(-2px); }
+    .gl-genome-card.selected {
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 10px rgba(255,78,26,0.3);
+    }
+    .gl-genome-card.cross-a { border-color: #7788ff !important; }
+    .gl-genome-card.cross-b { border-color: #ff88ff !important; }
+    .gl-fitness-bar-wrap {
+      height: 5px;
+      background: var(--bg-primary);
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 6px 0;
+    }
+    .gl-fitness-bar { height: 100%; border-radius: 3px; transition: width 0.4s; }
+    .gl-gene-heatmap { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 6px; }
+    .gl-gene-dot {
+      width: 11px; height: 11px;
+      border-radius: 2px;
+      transition: transform 0.15s;
+    }
+    .gl-gene-dot:hover { transform: scale(1.6); z-index: 10; }
+    .gl-badge {
+      font-size: 8px;
+      font-family: var(--font-mono);
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .gl-badge-elite  { color: var(--yellow); border-color: var(--yellow); background: rgba(255,203,71,0.1); }
+    .gl-badge-cross  { color: #aaf;          border-color: #aaf;          background: rgba(170,170,255,0.1); }
+    .gl-badge-manual { color: var(--green);  border-color: var(--green);  background: rgba(78,201,78,0.1); }
+    .gl-gene-row { margin-bottom: 11px; }
+    .gl-gene-label-row { display:flex; justify-content:space-between; margin-bottom:3px; }
+    .gl-gene-bar-wrap { height: 4px; background: var(--bg-secondary); border-radius: 2px; overflow: hidden; }
+    .gl-gene-bar { height: 100%; border-radius: 2px; }
+    .gl-gene-desc { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
+    #gl-fitness-chart { display: block; width: 100%; border-radius: 4px; background: #0a0a0c; }
+    .gl-ctrl-btn { font-size: 11px; white-space: nowrap; }
+
     /* ── Paper Filter Bar ── */
     .paper-filter-bar {
       display: flex;
@@ -2718,44 +2796,113 @@
               </div>
             </div> <!-- Closes section-mind-map -->
 
-            <!-- Section: Genetic Lab (Phase 17) -->
+            <!-- Section: Genetic Lab (Phase 17) — Full Professional GA Engine -->
             <div class="section" id="section-genetic-lab" style="display:none;">
-              <h3 style="margin-bottom:16px; color:var(--accent);">Genetic Lab: Protocol Evolution</h3>
-              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-                <!-- Mutation Tree -->
-                <div class="card" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border);">
-                  <h4 style="margin-bottom:15px; display:flex; justify-content:space-between; font-size:14px;">
-                    Evolutionary Tree
-                    <span style="font-size:10px; color:var(--text-secondary);">Era-Synchronized</span>
-                  </h4>
-                  <div id="genetic-mutations-grid" style="display: grid; grid-template-columns: 1fr; gap:12px;">
-                    <!-- Mutation cards loaded via JS -->
-                    <div style="text-align:center; color:var(--text-muted); padding:40px; font-size:12px;">
-                      Scanning network for genetic variations...
+
+              <!-- ── Header + Controls ── -->
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+                <div>
+                  <h2 style="color:var(--accent);margin-bottom:5px;font-size:20px;">🧬 Genetic Lab — Protocol Evolution Engine</h2>
+                  <p style="font-size:11px;color:var(--text-muted);line-height:1.6;max-width:560px;">
+                    Evolutionary optimisation of P2PCLAW network parameters.
+                    Each <strong>genome</strong> encodes 8 protocol genes. A multi-objective <strong>fitness function</strong>
+                    evaluates network efficiency, quality, consensus health, and resilience.
+                    Generations evolve via <strong>tournament selection → uniform crossover → Gaussian mutation</strong>.
+                  </p>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                  <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">POP</label>
+                  <input type="number" id="gl-pop-size" value="12" min="4" max="32" step="2"
+                    style="width:52px;text-align:center;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:5px;border-radius:4px;font-family:var(--font-mono);font-size:11px;">
+                  <button class="btn btn-primary gl-ctrl-btn" id="gl-seed-btn" onclick="genLabSeed()">🌱 Seed Population</button>
+                  <button class="btn gl-ctrl-btn" id="gl-step-btn" onclick="genLabStep()" style="border-color:var(--accent);color:var(--accent);">⚡ Step Generation</button>
+                  <button class="btn gl-ctrl-btn" id="gl-auto-btn" onclick="genLabToggleAuto()">▶ Auto-Evolve</button>
+                </div>
+              </div>
+
+              <!-- ── Stats Bar ── -->
+              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;">
+                <div class="gl-stat-card"><div class="gl-stat-value" id="gl-stat-gen">0</div><div class="gl-stat-label">Generation</div></div>
+                <div class="gl-stat-card"><div class="gl-stat-value" id="gl-stat-size">—</div><div class="gl-stat-label">Population</div></div>
+                <div class="gl-stat-card"><div class="gl-stat-value" id="gl-stat-best" style="color:var(--yellow);">—</div><div class="gl-stat-label">Best Fitness</div></div>
+                <div class="gl-stat-card"><div class="gl-stat-value" id="gl-stat-avg" style="color:var(--accent);">—</div><div class="gl-stat-label">Avg Fitness</div></div>
+                <div class="gl-stat-card"><div class="gl-stat-value" id="gl-stat-div">—</div><div class="gl-stat-label">Diversity</div></div>
+              </div>
+
+              <!-- ── Main Area: Population + Inspector ── -->
+              <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:16px;align-items:start;">
+
+                <!-- Left: Fitness Chart + Population Grid -->
+                <div style="display:flex;flex-direction:column;gap:14px;min-width:0;">
+
+                  <!-- Fitness History Chart -->
+                  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                      <span style="font-size:10px;font-family:var(--font-mono);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;">Fitness History</span>
+                      <span style="font-size:9px;color:var(--text-muted);font-family:var(--font-mono);">
+                        <span style="color:var(--yellow);">━</span> Best &nbsp;
+                        <span style="color:var(--accent);">╌</span> Avg
+                      </span>
+                    </div>
+                    <canvas id="gl-fitness-chart" height="100"></canvas>
+                  </div>
+
+                  <!-- Population Grid -->
+                  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">
+                    <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.1em;">
+                      Population — click to inspect · heatmap = gene expression
+                    </div>
+                    <div id="gl-pop-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:10px;">
+                      <div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px;font-size:12px;">
+                        No population yet — click 🌱 Seed Population to initialise the first generation.
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- Lab Console -->
-                <div class="card" style="border-left: 2px solid var(--accent); background: rgba(0,0,0,0.2);">
-                  <h4 style="color:var(--accent); margin-bottom:10px; font-size:14px;">Mutation Console</h4>
-                  <p style="font-size:11px; color:var(--text-secondary); margin-bottom:15px;">
-                    Submit a protocol mutation. Code will be contained in the <b>Isolate Sandbox</b>.
-                  </p>
-                  <div class="onboard-form" style="display:block; padding:0; border:0; background:none;">
-                    <input type="text" id="mutation-title" placeholder="Mutation title..."
-                      style="width:100%; margin-bottom:10px;">
-                    <textarea id="mutation-code" placeholder="// JavaScript Protocol Logic..."
-                      style="width: 100%; height: 180px; background: #000; color: var(--green); border: 1px solid #333; padding: 10px; font-family: var(--font-mono); font-size: 11px; border-radius: 4px;"></textarea>
-                    <button class="onboard-submit" onclick="submitMutation()"
-                      style="width:100%; margin-top:10px; font-size:12px;"> DISPATCH MUTATION</button>
-                  </div>
-                  <div id="sandbox-log"
-                    style="margin-top:15px; font-size:10px; font-family:var(--font-mono); color:var(--text-secondary); background:#000; padding:8px; border-radius:4px; max-height:120px; overflow-y:auto; border:1px solid #222;">
-                    &gt; Sandbox idle...
+                <!-- Right: Genome Inspector -->
+                <div id="gl-inspector-wrap" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;overflow-y:auto;max-height:650px;position:sticky;top:8px;">
+                  <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.1em;">Genome Inspector</div>
+                  <div id="gl-inspector" style="font-size:11px;color:var(--text-secondary);line-height:1.5;">
+                    Select any genome from the population grid to inspect its gene expression, fitness breakdown, lineage, and crossover options.
                   </div>
                 </div>
               </div>
+
+              <!-- ── Code Mutation Sandbox (collapsed) ── -->
+              <details style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">
+                <summary style="font-size:12px;font-family:var(--font-mono);color:var(--accent);cursor:pointer;user-select:none;list-style:none;">
+                  ⚗ Code Mutation Sandbox — Execute arbitrary protocol logic in an isolated Docker/vm container
+                </summary>
+                <div style="margin-top:16px;display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+                  <div>
+                    <p style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;line-height:1.6;">
+                      Submit JavaScript code mutations. Each proposal runs in an <strong>IsolateSandbox</strong>
+                      (Docker if available, Node vm fallback). Results are stored in the <code>genetic_tree</code> ledger.
+                    </p>
+                    <div class="form-group" style="margin-bottom:10px;">
+                      <label style="font-size:11px;">Mutation Title</label>
+                      <input type="text" id="mutation-title" placeholder="e.g. Improved validation scoring v2"
+                        style="width:100%;">
+                    </div>
+                    <div class="form-group">
+                      <label style="font-size:11px;">Protocol Logic (JavaScript)</label>
+                      <textarea id="mutation-code" placeholder="// Runs inside isolated sandbox&#10;const score = agents.reduce((s, a) => s + a.fitness, 0) / agents.length;&#10;console.log('Network avg fitness:', score);"
+                        style="width:100%;height:160px;background:#000;color:#4ec94e;border:1px solid #333;padding:10px;font-family:var(--font-mono);font-size:11px;border-radius:4px;resize:vertical;"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="submitMutation()" style="margin-top:10px;font-size:11px;">🧪 Dispatch to Sandbox</button>
+                  </div>
+                  <div>
+                    <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;">Sandbox Log</div>
+                    <div id="sandbox-log" style="font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);background:#000;padding:8px;border-radius:4px;min-height:130px;max-height:180px;overflow-y:auto;border:1px solid #1a1a1a;">&gt; Sandbox idle…</div>
+                    <div style="margin-top:12px;">
+                      <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;">Mutation Ledger</div>
+                      <div id="genetic-mutations-grid" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;"></div>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
             </div>
 
 
@@ -4408,7 +4555,7 @@
         else if (typeof initNetworkViz === 'function') setTimeout(initNetworkViz, 50);
       }
       if (tabName === 'governance' && typeof fetchProposals === 'function') fetchProposals();
-      if (tabName === 'genetic-lab' && typeof renderGeneticTree === 'function') renderGeneticTree();
+      if (tabName === 'genetic-lab') { genLabLoad(); renderGeneticTree(); }
       if (tabName === 'mind-map' && typeof renderMindMap === 'function') renderMindMap();
       if (tabName === 'papers') refreshPapersFromAPI();
       if (tabName === 'dashboard') updateVoteQuotaBar();
@@ -4601,61 +4748,420 @@
     }
 
 
-    // ── Phase 17: Genetic Lab Functions ──────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // 🧬 GENETIC LAB — Phase 17 Full GA Engine
+    // ══════════════════════════════════════════════════════════════════════
+
+    // ── State ────────────────────────────────────────────────────────────
+    let _gl = {
+      population:   [],
+      stats:        { generation: 0, size: 0, best: 0, avg: 0, diversity: 0 },
+      history:      [],        // [{generation, best, avg, diversity}]
+      selected:     null,      // selected genome id
+      crossoverA:   null,
+      crossoverB:   null,
+      autoInterval: null,
+      geneDefs:     null,      // loaded from /genetic/gene-defs
+    };
+
+    // Gene labels/descriptions (mirrors backend GENE_DEFS; fetched on first load)
+    const _GL_GENE_LABELS = {
+      research_depth:        'Research Depth',
+      validation_strictness: 'Validation Strictness',
+      publication_rate:      'Publication Rate',
+      consensus_threshold:   'Consensus Threshold',
+      collaboration_weight:  'Collaboration Weight',
+      exploration_rate:      'Exploration Rate',
+      fault_tolerance:       'Fault Tolerance',
+      convergence_speed:     'Convergence Speed',
+    };
+    const _GL_GENE_DESC = {
+      research_depth:        'Depth vs. breadth of topic investigation',
+      validation_strictness: 'Rigor of peer review on submitted papers',
+      publication_rate:      'Frequency of publishing (high = spam risk)',
+      consensus_threshold:   'Min. agreement to promote a paper',
+      collaboration_weight:  'Collaboration tendency vs. solo research',
+      exploration_rate:      'New topics vs. established domain exploit',
+      fault_tolerance:       'Network resilience to failures & bad actors',
+      convergence_speed:     'Speed of consensus (too fast = premature)',
+    };
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+
+    /** Returns a CSS rgb color: 0=red, 0.5=amber, 1=green */
+    function _glFitnessColor(f) {
+      f = Math.max(0, Math.min(1, f));
+      if (f < 0.5) {
+        const t = f * 2;
+        return `rgb(${Math.round(230 + 25*t)},${Math.round(48 + 106*t)},30)`;
+      } else {
+        const t = (f - 0.5) * 2;
+        return `rgb(${Math.round(255 - 175*t)},${Math.round(154 + 47*t)},${Math.round(0 + 78*t)})`;
+      }
+    }
+
+    // ── Data loading ─────────────────────────────────────────────────────
+
+    async function genLabLoad() {
+      try {
+        const r = await fetch(`${API_BASE}/genetic/population`);
+        if (!r.ok) return;
+        const d = await r.json();
+        _gl.population = d.population || [];
+        _gl.stats      = d.stats      || _gl.stats;
+        _gl.history    = d.history    || _gl.history;
+        _glRenderAll();
+      } catch (e) { console.warn('[GenLab] Load failed', e); }
+    }
+
+    // ── Controls ─────────────────────────────────────────────────────────
+
+    async function genLabSeed() {
+      const btn = document.getElementById('gl-seed-btn');
+      btn.disabled = true; btn.textContent = '🌱 Seeding…';
+      try {
+        const size = parseInt(document.getElementById('gl-pop-size').value) || 12;
+        const r = await fetch(`${API_BASE}/genetic/seed`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ size })
+        });
+        const d = await r.json();
+        _gl.population = d.population || [];
+        _gl.stats      = d.stats      || _gl.stats;
+        _gl.history    = d.history    || [];
+        _gl.selected   = null;
+        _gl.crossoverA = null;
+        _gl.crossoverB = null;
+        _glRenderAll();
+        addLog(`🧬 Population seeded — ${size} genomes · Generation 0`, 'info');
+      } catch (e) { addLog('Seed failed: ' + e.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = '🌱 Seed Population'; }
+    }
+
+    async function genLabStep() {
+      if (_gl.population.length < 2) { addLog('🌱 Seed a population first!', 'warn'); return; }
+      const btn = document.getElementById('gl-step-btn');
+      btn.disabled = true; btn.textContent = '⚡ Evolving…';
+      try {
+        const r = await fetch(`${API_BASE}/genetic/evolve`, {
+          method: 'POST', headers: {'Content-Type':'application/json'}
+        });
+        const d = await r.json();
+        _gl.population = d.population || [];
+        _gl.stats      = d.stats      || _gl.stats;
+        _gl.history    = d.history    || _gl.history;
+        _gl.selected   = null;
+        _glRenderAll();
+        addLog(
+          `⚡ Gen ${_gl.stats.generation} — Best: ${(_gl.stats.best*100).toFixed(1)}% · Avg: ${(_gl.stats.avg*100).toFixed(1)}% · Div: ${(_gl.stats.diversity*100).toFixed(1)}%`,
+          'accent'
+        );
+      } catch (e) { addLog('Evolution failed: ' + e.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = '⚡ Step Generation'; }
+    }
+
+    function genLabToggleAuto() {
+      const btn = document.getElementById('gl-auto-btn');
+      if (_gl.autoInterval) {
+        clearInterval(_gl.autoInterval);
+        _gl.autoInterval = null;
+        btn.textContent = '▶ Auto-Evolve';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      } else {
+        btn.textContent = '⏸ Pause';
+        btn.style.borderColor = 'var(--green)';
+        btn.style.color = 'var(--green)';
+        _gl.autoInterval = setInterval(genLabStep, 2600);
+      }
+    }
+
+    // ── Master render ─────────────────────────────────────────────────────
+
+    function _glRenderAll() {
+      _glRenderStats();
+      _glRenderPopulation();
+      _glRenderFitnessChart();
+      if (_gl.selected) _glRenderInspector(_gl.selected);
+    }
+
+    // ── Stats bar ────────────────────────────────────────────────────────
+
+    function _glRenderStats() {
+      const s = _gl.stats;
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('gl-stat-gen',  s.generation);
+      set('gl-stat-size', s.size || _gl.population.length || '—');
+      set('gl-stat-best', s.best  ? (s.best  * 100).toFixed(1) + '%' : '—');
+      set('gl-stat-avg',  s.avg   ? (s.avg   * 100).toFixed(1) + '%' : '—');
+      set('gl-stat-div',  s.diversity ? (s.diversity * 100).toFixed(1) + '%' : '—');
+    }
+
+    // ── Population grid ──────────────────────────────────────────────────
+
+    function _glRenderPopulation() {
+      const grid = document.getElementById('gl-pop-grid');
+      if (!grid) return;
+      if (_gl.population.length === 0) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px;font-size:12px;">No population yet — click 🌱 Seed Population to initialise.</div>';
+        return;
+      }
+
+      const sorted = [..._gl.population].sort((a, b) => (b.fitness||0) - (a.fitness||0));
+      const geneKeys = Object.keys(_GL_GENE_LABELS);
+
+      grid.innerHTML = sorted.map((g, rank) => {
+        const f    = g.fitness || 0;
+        const col  = _glFitnessColor(f);
+        const isEl = g.status === 'ELITE';
+        const isSel = g.id === _gl.selected;
+        const isCA  = g.id === _gl.crossoverA;
+        const isCB  = g.id === _gl.crossoverB;
+
+        const borderCol = isSel ? 'var(--accent)' : isCA ? '#7788ff' : isCB ? '#ff88ff' : isEl ? col : 'var(--border)';
+        const rankMedal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `#${rank+1}`;
+        const selClass   = isSel ? ' selected' : '';
+        const crossClass = isCA ? ' cross-a' : isCB ? ' cross-b' : '';
+
+        const heatmap = geneKeys.map(k => {
+          const v = (g.genes || {})[k] || 0;
+          return `<div class="gl-gene-dot" style="background:${_glFitnessColor(v)}" title="${_GL_GENE_LABELS[k]}: ${(v*100).toFixed(0)}%"></div>`;
+        }).join('');
+
+        const badges = [
+          isEl                        ? '<span class="gl-badge gl-badge-elite">ELITE</span>'  : '',
+          g.status === 'MANUAL_CROSS' ? '<span class="gl-badge gl-badge-manual">♻ CROSS</span>' : '',
+          isCA                        ? '<span class="gl-badge gl-badge-cross">♀ A</span>'   : '',
+          isCB                        ? '<span class="gl-badge gl-badge-cross">♂ B</span>'   : '',
+        ].filter(Boolean).join(' ');
+
+        return `
+        <div class="gl-genome-card${selClass}${crossClass}"
+             onclick="genLabSelectGenome('${g.id}')"
+             style="border-color:${borderCol};">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);">G${g.generation||0}</span>
+            <span style="font-size:10px;">${rankMedal}</span>
+          </div>
+          ${badges ? `<div style="margin-bottom:6px;display:flex;gap:3px;flex-wrap:wrap;">${badges}</div>` : ''}
+          <div class="gl-fitness-bar-wrap">
+            <div class="gl-fitness-bar" style="width:${(f*100).toFixed(0)}%;background:${col};"></div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:6px;">
+            <span style="font-family:var(--font-mono);font-size:11px;color:${col};font-weight:700;">${(f*100).toFixed(1)}%</span>
+          </div>
+          <div class="gl-gene-heatmap">${heatmap}</div>
+          <div style="font-size:8px;font-family:var(--font-mono);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.id}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Genome Inspector ─────────────────────────────────────────────────
+
+    function genLabSelectGenome(id) {
+      _gl.selected = id;
+      _glRenderPopulation();
+      _glRenderInspector(id);
+    }
+
+    function _glRenderInspector(id) {
+      const g = _gl.population.find(x => x.id === id);
+      const panel = document.getElementById('gl-inspector');
+      if (!g || !panel) return;
+
+      const genes = g.genes || {};
+      const fc    = g.fitness_components || {};
+      const f     = g.fitness || 0;
+
+      const geneRows = Object.entries(_GL_GENE_LABELS).map(([k, label]) => {
+        const v   = genes[k] || 0;
+        const col = _glFitnessColor(v);
+        return `
+        <div class="gl-gene-row">
+          <div class="gl-gene-label-row">
+            <span style="font-size:11px;color:var(--text-primary);">${label}</span>
+            <span style="font-size:11px;font-family:var(--font-mono);color:${col};font-weight:600;">${(v*100).toFixed(1)}%</span>
+          </div>
+          <div class="gl-gene-bar-wrap"><div class="gl-gene-bar" style="width:${(v*100).toFixed(0)}%;background:${col};"></div></div>
+          <div class="gl-gene-desc">${_GL_GENE_DESC[k] || ''}</div>
+        </div>`;
+      }).join('');
+
+      const fcRows = Object.entries(fc).map(([k, v]) => {
+        const label = k.replace(/_/g,' ').replace(/\b\w/g, l => l.toUpperCase());
+        const col   = _glFitnessColor(v);
+        return `<div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+          <span style="font-size:10px;color:var(--text-secondary);">${label}</span>
+          <span style="font-size:10px;font-family:var(--font-mono);color:${col};">${(v*100).toFixed(1)}%</span>
+        </div>`;
+      }).join('');
+
+      const parents = (g.parent_ids || []).length
+        ? (g.parent_ids).map(pid =>
+            `<span style="font-size:9px;font-family:var(--font-mono);cursor:pointer;color:var(--accent);text-decoration:underline;" onclick="genLabSelectGenome('${pid}')">${pid.split('-').slice(-2).join('-')}</span>`
+          ).join(' <span style="color:var(--text-muted)">×</span> ')
+        : '<span style="font-size:9px;color:var(--text-muted);">Primordial — no parents</span>';
+
+      const showCrossBtn = _gl.crossoverA && _gl.crossoverB
+        ? `<button class="btn btn-primary" style="font-size:10px;" onclick="genLabDoCrossover()">⚡ Cross A×B → Offspring</button>`
+        : '';
+
+      panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:8px;">
+        <div style="min-width:0;">
+          <div style="font-size:9px;font-family:var(--font-mono);color:var(--text-muted);word-break:break-all;">${g.id}</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:3px;">Gen ${g.generation} · ${parents}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:24px;font-weight:800;color:${_glFitnessColor(f)};line-height:1;">${(f*100).toFixed(1)}%</div>
+          <div style="font-size:9px;color:var(--text-muted);">FITNESS</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.1em;">Fitness Breakdown</div>
+        ${fcRows || '<div style="color:var(--text-muted);font-size:11px;">No breakdown available.</div>'}
+      </div>
+
+      <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.1em;">Gene Expression</div>
+      ${geneRows}
+
+      <div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap;">
+        <button class="btn gl-ctrl-btn" onclick="genLabSetCrossoverParent('${g.id}','A')" style="font-size:10px;">♀ Parent A</button>
+        <button class="btn gl-ctrl-btn" onclick="genLabSetCrossoverParent('${g.id}','B')" style="font-size:10px;">♂ Parent B</button>
+        ${showCrossBtn}
+      </div>`;
+    }
+
+    // ── Crossover controls ────────────────────────────────────────────────
+
+    function genLabSetCrossoverParent(id, which) {
+      if (which === 'A') _gl.crossoverA = id;
+      else               _gl.crossoverB = id;
+      _glRenderPopulation();
+      if (_gl.selected) _glRenderInspector(_gl.selected);
+      addLog(`Crossover Parent ${which} set: …${id.split('-').slice(-2).join('-')}`, 'info');
+    }
+
+    async function genLabDoCrossover() {
+      if (!_gl.crossoverA || !_gl.crossoverB) return;
+      try {
+        const r = await fetch(`${API_BASE}/genetic/crossover`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ parentA: _gl.crossoverA, parentB: _gl.crossoverB })
+        });
+        const d = await r.json();
+        if (d.success) {
+          _gl.population.push(d.child);
+          _gl.crossoverA = null;
+          _gl.crossoverB = null;
+          _glRenderAll();
+          addLog(`♻ Manual crossover → offspring fitness: ${(d.child.fitness*100).toFixed(1)}%`, 'accent');
+        }
+      } catch (e) { addLog('Crossover failed: ' + e.message, 'error'); }
+    }
+
+    // ── Fitness history chart (Canvas) ────────────────────────────────────
+
+    function _glRenderFitnessChart() {
+      const canvas = document.getElementById('gl-fitness-chart');
+      if (!canvas) return;
+      const ctx  = canvas.getContext('2d');
+      const W    = canvas.width  = canvas.offsetWidth || 400;
+      const H    = canvas.height = 110;
+      const hist = _gl.history;
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#0a0a0c';
+      ctx.fillRect(0, 0, W, H);
+
+      // Grid lines at 0%, 25%, 50%, 75%, 100%
+      for (let i = 0; i <= 4; i++) {
+        const y = H - (i / 4) * (H - 14) - 4;
+        ctx.strokeStyle = '#1e1e22';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        ctx.fillStyle = '#444'; ctx.font = '8px monospace';
+        ctx.fillText(`${i * 25}%`, 3, y - 2);
+      }
+
+      if (hist.length < 2) {
+        ctx.fillStyle = '#555'; ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Run generations to see fitness history', W / 2, H / 2);
+        ctx.textAlign = 'left';
+        return;
+      }
+
+      const N = hist.length;
+      const xStep = (W - 4) / (N - 1);
+      const yScale = (H - 18);
+
+      const drawLine = (data, color, dash = []) => {
+        ctx.strokeStyle = color; ctx.lineWidth = 1.8;
+        ctx.setLineDash(dash); ctx.beginPath();
+        data.forEach((d, i) => {
+          const x = 2 + i * xStep;
+          const y = H - 4 - d * yScale;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.stroke(); ctx.setLineDash([]);
+      };
+
+      drawLine(hist.map(h => h.best), '#ffcb47');        // gold = best
+      drawLine(hist.map(h => h.avg),  '#ff7020', [4, 3]); // orange dashed = avg
+
+      // Dots at last point
+      [[hist[N-1].best, '#ffcb47'], [hist[N-1].avg, '#ff7020']].forEach(([v, col]) => {
+        const x = 2 + (N-1) * xStep;
+        const y = H - 4 - v * yScale;
+        ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2);
+        ctx.fillStyle = col; ctx.fill();
+      });
+    }
+
+    // ── Code Mutation Sandbox (legacy, unchanged) ─────────────────────────
+
     async function submitMutation() {
-      const title = document.getElementById('mutation-title').value;
-      const code = document.getElementById('mutation-code').value;
-      if (!title || !code) return addLog("Title and Code required for mutation.", "warn");
+      const title  = document.getElementById('mutation-title').value.trim();
+      const code   = document.getElementById('mutation-code').value.trim();
+      if (!title || !code) return addLog('Title and Code required for mutation.', 'warn');
 
       const logEl = document.getElementById('sandbox-log');
-      logEl.innerHTML += `<div>> Initiating mutation: ${title}...</div>`;
+      logEl.innerHTML += `<div>> Initiating mutation: ${title}…</div>`;
 
       try {
-        const res = await fetch(`${API_BASE}/genetic-proposals`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            agentId: MY_ID,
-            title,
-            description: `Auto-mutation by ${myName}`,
-            code,
-            type: 'protocol'
-          })
+        const res  = await fetch(`${API_BASE}/genetic-proposals`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agentId: MY_ID, title, description: `Mutation by ${myName}`, code, type: 'protocol' })
         });
         const data = await res.json();
         if (data.success) {
-          addLog(`Mutation ${title} sent to sandbox.`, "info");
+          addLog(`🧪 Mutation "${title}" sent to sandbox.`, 'info');
           logEl.innerHTML += `<div>> Proposal ID: ${data.proposalId}</div>`;
           document.getElementById('mutation-title').value = '';
-          document.getElementById('mutation-code').value = '';
+          document.getElementById('mutation-code').value  = '';
+          // Refresh mutation ledger after a moment
+          setTimeout(renderGeneticTree, 3000);
         }
-      } catch (e) {
-        addLog("Mutation dispatch failed.", "error");
-      }
+      } catch (e) { addLog('Mutation dispatch failed.', 'error'); }
     }
 
     function renderGeneticTree() {
       const grid = document.getElementById('genetic-mutations-grid');
+      if (!grid) return;
       const mutations = [];
-      gun.get('genetic_tree').map().once((data, id) => {
+      gun.get('genetic_tree').map().once((data) => {
         if (!data || !data.title) return;
-        mutations.push({ ...data, id });
-
-        grid.innerHTML = mutations.map(m => `
-          <div class="paper-card" style="border:1px solid ${m.status === 'SANDBOX_PASSED' ? 'var(--green)' : m.status === 'SANDBOX_FAILED' ? 'var(--red)' : 'var(--border)'}">
-            <div class="inv-stat-row">
-              <span class="inv-stat-label" style="font-weight:700;">${m.title}</span>
-              <span class="inv-stat-value" style="font-size:10px; color:${m.status === 'SANDBOX_PASSED' ? 'var(--green)' : 'var(--text-muted)'}">${m.status || 'PENDING'}</span>
+        mutations.push(data);
+        grid.innerHTML = mutations.sort((a,b) => (b.timestamp||0)-(a.timestamp||0)).map(m => `
+          <div style="background:var(--bg-secondary);border:1px solid ${m.status === 'SANDBOX_PASSED' ? 'var(--green)' : m.status === 'SANDBOX_FAILED' ? 'var(--red)' : 'var(--border)'};border-radius:4px;padding:8px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:11px;font-weight:600;">${m.title}</span>
+              <span style="font-size:9px;font-family:var(--font-mono);color:${m.status === 'SANDBOX_PASSED' ? 'var(--green)' : m.status === 'SANDBOX_FAILED' ? 'var(--red)' : 'var(--text-muted)'}">${m.status || 'PENDING'}</span>
             </div>
-            <div style="font-size:11px; color:var(--text-secondary); margin-top:5px;">${m.description}</div>
-            ${m.results ? `
-              <div style="margin-top:10px; font-size:9px; font-family:var(--font-mono); background:#000; padding:5px; border-radius:4px;">
-                <div style="color:var(--green)">STDOUT: ${m.results.stdout || '-'}</div>
-                <div style="color:var(--red)">STDERR: ${m.results.stderr || '-'}</div>
-              </div>
-            ` : ''}
-          </div>
-        `).join('');
+            ${m.results ? `<div style="font-size:9px;font-family:var(--font-mono);background:#000;padding:4px;border-radius:3px;margin-top:4px;"><div style="color:#4ec94e;">OUT: ${m.results.stdout||'–'}</div>${m.results.stderr ? `<div style="color:var(--red);">ERR: ${m.results.stderr}</div>` : ''}</div>` : ''}
+          </div>`).join('');
       });
     }
 

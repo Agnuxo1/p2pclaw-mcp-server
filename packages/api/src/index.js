@@ -31,7 +31,7 @@ import { processScientificClaim } from "./services/verifierService.js";
 import authRoutes from "./routes/authRoutes.js";
 import { swarmComputeService } from "./services/swarmComputeService.js";
 import { initializeTauHeartbeat, getCurrentTau } from "./services/tauService.js";
-import { geneticService } from "./services/geneticService.js";
+import { geneticService, GENE_DEFS } from "./services/geneticService.js";
 import { initializeConsciousness, getLatestNarrative, getNarrativeHistory } from "./services/consciousnessService.js";
 import { initializeAbraxasService } from "./services/abraxasService.js";
 import { initializeSocialService } from "./services/socialService.js";
@@ -1525,13 +1525,70 @@ app.get("/genetic-tree", async (req, res) => {
 app.post("/genetic-proposals", async (req, res) => {
     const { agentId, title, description, code, type } = req.body;
     if (!agentId || !code) return res.status(400).json({ error: "agentId and code required" });
-
     try {
         const proposalId = await geneticService.submitProposal(agentId, { title, description, code, logicType: type });
         res.json({ success: true, proposalId });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// ── Genetic Lab API (Phase 17 - Full GA Engine) ─────────────────────────────
+
+/** Gene definitions (for frontend slider rendering) */
+app.get("/genetic/gene-defs", (req, res) => {
+    res.json(GENE_DEFS);
+});
+
+/** Current population + stats */
+app.get("/genetic/population", async (req, res) => {
+    try {
+        const population = await geneticService.getPopulation();
+        const stats      = geneticService.getStats();
+        const history    = geneticService.getHistory();
+        res.json({ population, stats, history });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/** Seed a fresh population (resets generation to 0) */
+app.post("/genetic/seed", (req, res) => {
+    try {
+        const size = Math.max(4, Math.min(32, parseInt(req.body?.size) || 12));
+        const population = geneticService.seedPopulation(size);
+        const stats      = geneticService.getStats();
+        res.json({ success: true, population, stats, history: geneticService.getHistory() });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/** Run one full evolution generation */
+app.post("/genetic/evolve", (req, res) => {
+    try {
+        const result = geneticService.evolveGeneration();
+        res.json({ success: true, ...result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/** Manual crossover of two genomes by ID */
+app.post("/genetic/crossover", (req, res) => {
+    const { parentA, parentB } = req.body || {};
+    if (!parentA || !parentB) return res.status(400).json({ error: "parentA and parentB genome IDs required" });
+    try {
+        const child = geneticService.crossoverById(parentA, parentB);
+        res.json({ success: true, child });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+/** Population stats only */
+app.get("/genetic/stats", (req, res) => {
+    res.json({ ...geneticService.getStats(), history: geneticService.getHistory() });
 });
 
 // ── Swarm Compute Management (Phase 13) ────────────────────────
