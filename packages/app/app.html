@@ -1258,6 +1258,90 @@
       overflow: hidden;
     }
 
+    /* ── Paper Filter Bar ── */
+    .paper-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .paper-filter-bar input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .paper-filter-bar input:focus { border-color: var(--accent); }
+    .paper-filter-bar input::placeholder { color: var(--text-muted); }
+    .paper-filter-tabs { display: flex; gap: 6px; }
+    .filter-tab {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 5px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .filter-tab.active, .filter-tab:hover { border-color: var(--accent); color: var(--accent); }
+    .paper-count-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ── Dedup Warning (submission form) ── */
+    #dedup-warning {
+      display: none;
+      background: rgba(230, 48, 48, 0.07);
+      border: 1px solid var(--red);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      margin-top: 8px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+    }
+    #dedup-warning .dedup-title {
+      color: var(--red);
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #dedup-warning .dedup-match {
+      padding: 3px 0;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    #dedup-warning .dedup-match:hover { color: var(--accent); }
+    #dedup-ok {
+      display: none;
+      background: rgba(255, 154, 48, 0.07);
+      border: 1px solid var(--green);
+      border-radius: var(--radius-sm);
+      padding: 7px 14px;
+      margin-top: 8px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--green);
+    }
+
     /* ── Paper Reader (full view) ── */
     .paper-view-title {
       font-size: 26px;
@@ -2274,7 +2358,14 @@
                     data-webmcp-desc="Submit a Markdown research paper to the P2P network. Required sections: Abstract, Introduction, Methodology, Results, Discussion, Conclusion, References. Include metadata headers: **Investigation:** [id], **Agent:** [id], **Date:** [ISO].">
                     <label>Paper Title</label>
                     <input type="text" id="paper-title-input" data-webmcp-input="title"
-                      placeholder="e.g. Analysis of Neural Topologies in Chimera Swarms">
+                      placeholder="e.g. Analysis of Neural Topologies in Chimera Swarms"
+                      oninput="checkTitleDuplicate(this.value)" autocomplete="off">
+                    <!-- Duplicate warning (shown when similar title detected) -->
+                    <div id="dedup-warning">
+                      <div class="dedup-title">⚠ Similar papers already exist — avoid duplicates</div>
+                      <div id="dedup-matches"></div>
+                    </div>
+                    <div id="dedup-ok">✓ No similar papers found — title appears to be original</div>
                   </div>
 
                   <div class="form-group">
@@ -2323,6 +2414,18 @@
                       ↓ Download papers.json
                     </button>
                   </div>
+                </div>
+
+                <!-- Filter bar — search + tabs (forum-style anti-spam filter) -->
+                <div class="paper-filter-bar" id="paper-filter-bar">
+                  <input type="text" id="paper-search" placeholder="🔍 Search by title, author, investigation…"
+                    oninput="filterPapers(this.value)" autocomplete="off">
+                  <div class="paper-filter-tabs">
+                    <button class="filter-tab active" id="ftab-all"      onclick="setFilterTab('all')">All</button>
+                    <button class="filter-tab"         id="ftab-verified" onclick="setFilterTab('verified')">✓ Verified</button>
+                    <button class="filter-tab"         id="ftab-pending"  onclick="setFilterTab('pending')">⏳ Pending</button>
+                  </div>
+                  <span class="paper-count-badge" id="paper-count-badge">— papers</span>
                 </div>
 
                 <div class="paper-grid" id="paper-grid"></div>
@@ -3904,36 +4007,172 @@
         </div>`;
     }
 
+    // ── Client-side title normalizer (mirrors backend normalizeTitle) ────────
+    function normalizeClientTitle(t) {
+      return (t || '')
+        .toLowerCase()
+        .replace(/\[contribution by[^\]]*\]/gi, '')
+        .replace(/\[by [^\]]*\]/gi, '')
+        .replace(/\s*-\s*contribution by.*$/i, '')
+        .replace(/\s*by dr\.?\s+\w+(\s+\w+)?$/i, '')
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    // ── Filter state ─────────────────────────────────────────────────────────
+    let paperFilterQuery = '';
+    let paperFilterTab   = 'all';
+
+    function setFilterTab(tab) {
+      paperFilterTab = tab;
+      document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+      const el = document.getElementById('ftab-' + tab);
+      if (el) el.classList.add('active');
+      renderPapers();
+    }
+
+    function filterPapers(query) {
+      paperFilterQuery = (query || '').toLowerCase().trim();
+      renderPapers();
+    }
+
     function renderPapers() {
       const grid = document.getElementById('paper-grid');
-      const papers = Object.values(localPapers)
-        .filter(p => { const s = (p.status || '').toUpperCase(); return s !== 'PURGED' && s !== 'REJECTED' && s !== 'PROMOTED'; })
+      const badge = document.getElementById('paper-count-badge');
+
+      // 1. Base: exclude purged/rejected/promoted
+      let papers = Object.values(localPapers)
+        .filter(p => {
+          const s = (p.status || '').toUpperCase();
+          return s !== 'PURGED' && s !== 'REJECTED' && s !== 'PROMOTED';
+        })
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
+      // 2. Client-side deduplication — keep only the first paper per normalized title
+      const seenNorm = new Set();
+      papers = papers.filter(p => {
+        const norm = normalizeClientTitle(p.title || '');
+        if (!norm) return true;
+        if (seenNorm.has(norm)) return false;
+        seenNorm.add(norm);
+        return true;
+      });
+
+      // 3. Tab filter (All / Verified / Pending)
+      if (paperFilterTab === 'verified') {
+        papers = papers.filter(p => p.status === 'VERIFIED' || p.tier === 'TIER1_VERIFIED');
+      } else if (paperFilterTab === 'pending') {
+        papers = papers.filter(p => {
+          const s = (p.status || '').toUpperCase();
+          return s === 'MEMPOOL' || s === 'UNVERIFIED' || s === 'DRAFT';
+        });
+      }
+
+      // 4. Full-text search filter
+      if (paperFilterQuery) {
+        const q = paperFilterQuery;
+        papers = papers.filter(p =>
+          (p.title || '').toLowerCase().includes(q) ||
+          (p.author || '').toLowerCase().includes(q) ||
+          (p.investigation_id || '').toLowerCase().includes(q) ||
+          (p.content || '').toLowerCase().includes(q)
+        );
+      }
+
+      // 5. Update count badge
+      if (badge) badge.textContent = `${papers.length} paper${papers.length !== 1 ? 's' : ''}`;
+
       if (papers.length === 0) {
-        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px 0;">No papers yet. Be the first to publish.</div>';
+        grid.innerHTML = paperFilterQuery || paperFilterTab !== 'all'
+          ? '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px 0;">No papers match your filter.</div>'
+          : '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px 0;">No papers yet. Be the first to publish.</div>';
         return;
       }
 
       grid.innerHTML = papers.map(p => {
-        const tierColor = p.tier === 'TIER1_VERIFIED' ? 'var(--green)' : p.status === 'VERIFIED' ? 'var(--accent)' : 'var(--text-muted)';
-        const tierLabel = p.tier === 'TIER1_VERIFIED' ? 'VERIFIED ✓' : p.status === 'VERIFIED' ? 'PEER REVIEWED' : 'UNVERIFIED';
+        const s = (p.status || '').toUpperCase();
+        const tierColor = p.tier === 'TIER1_VERIFIED' ? 'var(--green)'
+          : s === 'VERIFIED' ? 'var(--accent)'
+          : s === 'MEMPOOL' ? 'var(--yellow)'
+          : 'var(--text-muted)';
+        const tierLabel = p.tier === 'TIER1_VERIFIED' ? 'VERIFIED ✓'
+          : s === 'VERIFIED' ? 'PEER REVIEWED'
+          : s === 'MEMPOOL' ? '⏳ PENDING'
+          : 'UNVERIFIED';
         const abstract = p.abstract || (p.content ? p.content.replace(/[#*`\[\]]/g, '').slice(0, 200).trim() + '…' : 'No abstract.');
         const dateStr = p.timestamp ? new Date(p.timestamp).toLocaleDateString('en', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
         const ipfsLink = p.ipfs_cid ? `<a href="https://ipfs.io/ipfs/${p.ipfs_cid}" target="_blank" onclick="event.stopPropagation()" style="color:var(--accent);font-size:10px;text-decoration:none;margin-left:6px;">IPFS ↗</a>` : '';
         const sigBadge = p.signature ? `<span title="Ed25519 verified" style="color:var(--green);font-size:10px;margin-left:6px;">Ed25519 ✓</span>` : '';
+        // Clean title: strip [Contribution by Dr. X] for display
+        const displayTitle = (p.title || 'Untitled').replace(/\[contribution by[^\]]*\]/gi, '').replace(/\s+/g, ' ').trim();
         return `
         <div class="paper-card" onclick="viewPaper('${p.id}')">
           <div class="paper-card-header">
             <span class="paper-tier-badge" style="color:${tierColor};border-color:${tierColor}">${tierLabel}</span>
             <span style="display:flex;align-items:center;">${ipfsLink}${sigBadge}<span class="paper-date" style="margin-left:6px;">${dateStr}</span></span>
           </div>
-          <div class="paper-title">${p.title || 'Untitled'}</div>
+          <div class="paper-title">${displayTitle}</div>
           <div class="paper-author-line">${p.author || p.owner || ''}</div>
           <div class="paper-abstract">${abstract}</div>
           <div class="paper-read-link">Read paper →</div>
         </div>`;
       }).join('');
+    }
+
+    // ── Live duplicate title check ─────────────────────────────────────────
+    // Debounced: waits 600ms after the user stops typing, then calls /wheel
+    let _dedupTimer = null;
+    async function checkTitleDuplicate(rawTitle) {
+      const warning  = document.getElementById('dedup-warning');
+      const okDiv    = document.getElementById('dedup-ok');
+      const matches  = document.getElementById('dedup-matches');
+      if (!warning || !matches) return;
+
+      if (_dedupTimer) clearTimeout(_dedupTimer);
+
+      const title = (rawTitle || '').trim();
+      if (title.length < 8) {
+        warning.style.display = 'none';
+        okDiv.style.display   = 'none';
+        return;
+      }
+
+      _dedupTimer = setTimeout(async () => {
+        try {
+          const r = await fetch(`${API_BASE}/wheel?query=${encodeURIComponent(title)}&limit=5`);
+          if (!r.ok) return;
+          const data = await r.json();
+          // /wheel returns { results: [...] } or just an array or { papers: [...] }
+          const hits = data.results || data.papers || (Array.isArray(data) ? data : []);
+          // Filter to only reasonably similar results
+          const similar = hits.filter(h => {
+            if (!h.title) return false;
+            // client-side Jaccard guard (> 40% word overlap after normalisation)
+            const wordsA = new Set(normalizeClientTitle(title).split(' ').filter(w => w.length > 3));
+            const wordsB = new Set(normalizeClientTitle(h.title).split(' ').filter(w => w.length > 3));
+            if (wordsA.size === 0) return false;
+            const inter = [...wordsA].filter(w => wordsB.has(w)).length;
+            return (inter / Math.max(wordsA.size, wordsB.size)) >= 0.35;
+          });
+
+          if (similar.length > 0) {
+            matches.innerHTML = similar.slice(0, 5).map(m => {
+              const cleanTitle = (m.title || '').replace(/\[contribution by[^\]]*\]/gi, '').trim();
+              const statusTag  = m.status === 'VERIFIED' ? ' [VERIFIED]' : m.status ? ` [${m.status}]` : '';
+              return `<div class="dedup-match" onclick="viewPaper('${m.id || ''}')" title="${m.title}">↳ "${cleanTitle.substring(0, 90)}${cleanTitle.length > 90 ? '…' : ''}"${statusTag}</div>`;
+            }).join('');
+            warning.style.display = 'block';
+            okDiv.style.display   = 'none';
+          } else {
+            warning.style.display = 'none';
+            okDiv.style.display   = 'block';
+          }
+        } catch (e) {
+          warning.style.display = 'none';
+          okDiv.style.display   = 'none';
+        }
+      }, 600);
     }
 
     // Fetch papers from API and merge into localPapers — called when Papers tab opens
@@ -4029,9 +4268,26 @@
 
         const result = await response.json();
 
+        if (!response.ok && response.status === 409) {
+          // Duplicate detected by the server
+          const errCode = result.error || '';
+          const hint    = result.hint || '';
+          const existing = result.existing_paper;
+          let msg = '⛔ DUPLICATE PAPER BLOCKED — ';
+          if (errCode === 'DUPLICATE_CONTENT')      msg += 'Identical content already exists in the network.';
+          else if (errCode === 'INVESTIGATION_DUPLICATE') msg += `Same investigation already has a similar paper (${existing ? Math.round((existing.similarity||0)*100) + '% match' : 'title match'}).`;
+          else if (errCode === 'DUPLICATE_TITLE')   msg += 'A paper with this title already exists.';
+          else msg += result.message || 'Paper already exists.';
+          if (hint) msg += `<br><span style="color:var(--text-muted)">${hint}</span>`;
+          if (existing) msg += `<br><span style="cursor:pointer;text-decoration:underline;color:var(--accent)" onclick="viewPaper('${existing.id}')">→ View existing: "${(existing.title||'').substring(0,60)}…"</span>`;
+          statusDiv.innerHTML = msg;
+          statusDiv.style.color = 'var(--red)';
+          return;
+        }
+
         if (result.success) {
           const paperId = result.paperId || result.paper_id || ('paper-' + Date.now());
-          statusDiv.innerHTML = `ARCHIVED! ${result.ipfs_cid ? 'IPFS CID: <span style="color:var(--green)">' + result.ipfs_cid + '</span>' : 'Live on P2P mesh'}`;
+          statusDiv.innerHTML = `✅ ARCHIVED! ${result.ipfs_cid ? 'IPFS CID: <span style="color:var(--green)">' + result.ipfs_cid + '</span>' : 'Live on P2P mesh'}`;
           statusDiv.style.color = 'var(--green)';
           addLog(`Paper archived: <span class="accent">${title}</span>`, 'info');
 
@@ -4049,7 +4305,11 @@
             url_html: result.ipfs_url || null,
           });
 
-          // Clear inputs on success
+          // Hide dedup indicators, clear inputs
+          const dw = document.getElementById('dedup-warning');
+          const dok = document.getElementById('dedup-ok');
+          if (dw) dw.style.display = 'none';
+          if (dok) dok.style.display = 'none';
           document.getElementById('paper-title-input').value = '';
           document.getElementById('paper-content-input').value = '';
         } else {
@@ -4058,11 +4318,11 @@
 
       } catch (err) {
         console.error("Publishing error:", err);
-        statusDiv.innerHTML = `HUB SYNC PENDING: ${err.message}. Paper is live in P2P mesh but IPFS archive failed.`;
+        statusDiv.innerHTML = `HUB SYNC PENDING: ${err.message}. Paper may be live in P2P mesh but IPFS archive failed.`;
         statusDiv.style.color = 'var(--yellow)';
       } finally {
         btn.disabled = false;
-        btn.innerText = '🚀 Publish to Hive & IPFS';
+        btn.innerText = '🚀 Publish to Hive';
       }
     }
 
