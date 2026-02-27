@@ -87,7 +87,17 @@ export function flagInvalidPaper(paperId, paper, reason, flaggedBy) {
 
 // ── Wheel Deduplication Helper ─────────────────────────────────
 export function normalizeTitle(t) {
-    return (t || "").toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+    return (t || "")
+        .toLowerCase()
+        // Strip author attribution suffixes: "[Contribution by Dr. X Y]", "[by X]", etc.
+        .replace(/\[contribution by[^\]]*\]/gi, "")
+        .replace(/\[by [^\]]*\]/gi, "")
+        .replace(/\s*-\s*contribution by.*$/i, "")
+        .replace(/\s*by dr\.?\s+\w+(\s+\w+)?$/i, "")
+        // Strip all punctuation and normalize spaces
+        .replace(/[^a-z0-9\s]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
 }
 
 export function titleSimilarity(a, b) {
@@ -174,13 +184,44 @@ export function contentHashExists(content) {
 }
 
 export function getContentHash(content) {
-    // Strip metadata headers that agents change to bypass dedup
+    // Strip metadata headers AND author attribution patterns that spammers rotate
     const normalized = (content || "")
+        // Strip metadata headers
         .replace(/\*\*Agent:\*\*.*?\n/g, "")
         .replace(/\*\*Date:\*\*.*?\n/g, "")
         .replace(/\*\*Investigation:\*\*.*?\n/g, "")
-        .replace(/\s+/g, "")
-        .toLowerCase();
+        .replace(/\*\*Author:\*\*.*?\n/g, "")
+        // Strip author name patterns: "Dr. Firstname Lastname", "Prof. X", "[Contribution by ...]"
+        .replace(/\[Contribution by[^\]]*\]/gi, "")
+        .replace(/\[by [^\]]*\]/gi, "")
+        .replace(/Dr\.?\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?/g, "AUTHOR")
+        .replace(/Prof\.?\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?/g, "AUTHOR")
+        // Strip title lines that often contain author names
+        .replace(/^#+\s.*\[.*\].*$/gm, "")
+        // Normalize whitespace and case
+        .replace(/\s+/g, " ")
+        .toLowerCase()
+        .trim();
+    return crypto.createHash('sha256').update(normalized).digest('hex');
+}
+
+/**
+ * Compute a hash of only the Abstract section of a paper.
+ * This is the most stable part — less likely to contain author name variations.
+ */
+export function getAbstractHash(content) {
+    const text = content || "";
+    // Extract content between ## Abstract and the next ## section
+    const match = text.match(/##\s*Abstract\s*([\s\S]*?)(?=##|\n---|\n\*\*|$)/i);
+    const abstract = match ? match[1].trim() : text.slice(0, 800);
+    const normalized = abstract
+        .replace(/Dr\.?\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?/g, "AUTHOR")
+        .replace(/Prof\.?\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?/g, "AUTHOR")
+        .replace(/\s+/g, " ")
+        .toLowerCase()
+        .trim();
+    // Only hash if long enough to be meaningful
+    if (normalized.length < 50) return null;
     return crypto.createHash('sha256').update(normalized).digest('hex');
 }
 
@@ -220,15 +261,68 @@ export async function checkDuplicates(title) {
             if (data && data.title) allPapers.push({ id, title: data.title });
         });
         db.get("mempool").map().once((data, id) => {
-            if (data && data.title) allPapers.push({ id, title: data.title });
+            if (data && data.title && data.status !== 'REJECTED') {
+                allPapers.push({ id, title: data.title });
+            }
         });
         setTimeout(resolve, 1500);
     });
 
+    // Lower thresholds: 0.65+ = hard block (was 0.80), 0.50+ = log warning (was 0.75)
     const matches = allPapers
         .map(p => ({ ...p, similarity: titleSimilarity(title, p.title) }))
-        .filter(p => p.similarity >= 0.75)
+        .filter(p => p.similarity >= 0.50)
         .sort((a, b) => b.similarity - a.similarity);
 
     return matches;
+}
+
+/**
+ * Check if a paper with the same investigation_id AND similar title already exists.
+ * This is the primary protection against the "[Contribution by Dr. X]" spam pattern.
+ */
+export async function checkInvestigationDuplicate(investigationId, title) {
+    if (!investigationId) return null;
+    const normTitle = normalizeTitle(title);
+
+    return new Promise(resolve => {
+        let found = null;
+        db.get("mempool").map().once((data, id) => {
+            if (found) return;
+            if (data && data.investigation_id === investigationId && data.status !== 'REJECTED') {
+                const sim = titleSimilarity(data.title || "", title);
+                if (sim >= 0.55) {
+                    found = { paperId: id, title: data.title, similarity: sim, status: data.status };
+                }
+            }
+        });
+        db.get("papers").map().once((data, id) => {
+            if (found) return;
+            if (data && data.investigation_id === investigationId) {
+                const sim = titleSimilarity(data.title || "", title);
+                if (sim >= 0.55) {
+                    found = { paperId: id, title: data.title, similarity: sim, status: 'VERIFIED' };
+                }
+            }
+        });
+        setTimeout(() => resolve(found), 1500);
+    });
+}
+
+/** In-memory abstract hash cache for fast lookup within a session */
+export const abstractHashCache = new Set();
+
+export function abstractHashExists(content) {
+    const hash = getAbstractHash(content);
+    if (!hash) return false;
+    return abstractHashCache.has(hash);
+}
+
+export async function checkAbstractHashDeep(content) {
+    const hash = getAbstractHash(content);
+    if (!hash) return null;
+    return new Promise(resolve => {
+        db.get("registry/abstracthashes").get(hash).once(data => resolve(data || null));
+        setTimeout(() => resolve(null), 1000);
+    });
 }
