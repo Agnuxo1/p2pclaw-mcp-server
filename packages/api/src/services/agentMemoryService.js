@@ -20,9 +20,10 @@ export class AgentMemory {
      * @param {string} agentId - The agent's unique ID.
      */
     constructor(agentId) {
-        this.agentId = agentId;
-        this.store   = new SparseEmbeddingStore();
-        this.node    = db.get("memories").get(agentId);
+        this.agentId    = agentId;
+        this.store      = new SparseEmbeddingStore();
+        this.node       = db.get("memories").get(agentId);
+        this._localMap  = new Map(); // write-through cache — instant reads, no Gun.js round-trip needed
     }
 
     /**
@@ -34,12 +35,15 @@ export class AgentMemory {
      * @param {string} [text] - Optional text for semantic embedding (for search).
      */
     async remember(key, value, text = null) {
+        const serialized = JSON.stringify(value);
         const entry = gunSafe({
             key,
-            value:     JSON.stringify(value),
-            timestamp: Date.now(),
+            value:         serialized,
+            timestamp:     Date.now(),
             has_embedding: !!text,
         });
+        // Write-through: update local Map immediately so recall is instant
+        this._localMap.set(key, value);
         this.node.get(key).put(entry);
         if (text) {
             this.store.storeText(key, text);
@@ -49,14 +53,20 @@ export class AgentMemory {
 
     /**
      * Recall a single memory by key.
+     * Checks the in-process write-through cache first, then Gun.js.
      * @returns {Promise<*|null>} Parsed value or null if not found.
      */
     async recall(key) {
+        // Fast path: in-process write-through cache
+        if (this._localMap.has(key)) return this._localMap.get(key);
+        // Slow path: Gun.js (persisted across restarts)
         return new Promise(resolve => {
             this.node.get(key).once(data => {
                 if (!data || !data.value) return resolve(null);
                 try {
-                    resolve(JSON.parse(data.value));
+                    const parsed = JSON.parse(data.value);
+                    this._localMap.set(key, parsed); // populate cache from Gun
+                    resolve(parsed);
                 } catch {
                     resolve(data.value); // raw string fallback
                 }
@@ -66,21 +76,28 @@ export class AgentMemory {
 
     /**
      * Load all memories from Gun.js on agent reconnect.
+     * Merges Gun.js data into the in-process write-through cache.
      * Returns a flat object: { key: value, ... }
      */
     async recallAll() {
-        return new Promise(resolve => {
-            const memories = {};
+        // Start with whatever is in the write-through cache
+        const memories = Object.fromEntries(this._localMap);
+        // Merge in Gun.js data (catches entries from previous server instances)
+        await new Promise(resolve => {
             this.node.map().once((data, key) => {
-                if (!data || !data.value) return;
+                if (!data || !data.value || data.deleted) return;
                 try {
-                    memories[key] = JSON.parse(data.value);
+                    const parsed = JSON.parse(data.value);
+                    memories[key] = parsed;
+                    this._localMap.set(key, parsed); // backfill cache
                 } catch {
                     memories[key] = data.value;
+                    this._localMap.set(key, data.value);
                 }
             });
-            setTimeout(() => resolve(memories), 1500);
+            setTimeout(resolve, 1500);
         });
+        return memories;
     }
 
     /**
@@ -95,8 +112,9 @@ export class AgentMemory {
      * Forget (delete) a specific memory key.
      */
     forget(key) {
-        // Gun.js doesn't support true delete — we mark as null/expired
+        // Gun.js doesn't support true delete — we mark as deleted
         this.node.get(key).put(gunSafe({ key, value: null, timestamp: Date.now(), deleted: true }));
+        this._localMap.delete(key);
         this.store.embeddings.delete(key);
     }
 
