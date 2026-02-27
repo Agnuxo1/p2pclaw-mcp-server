@@ -42,6 +42,8 @@ import { synthesisService } from "./services/synthesisService.js";
 import { discoveryService } from "./services/discoveryService.js";
 import { syncService } from "./services/syncService.js";
 import { requireTier2 } from "./middleware/auth.js";
+import { getAgentMemory, saveMemory, loadMemory } from "./services/agentMemoryService.js";
+import { dhtAnnounce, dhtFindPeers, dhtStats, bootstrapDHT, LOCAL_NODE_ID } from "./services/kademliaService.js";
 
 // ── Server-side Ed25519 keypair (API node identity) ──────────
 // Generated once at boot and stored in env var API_PRIVATE_KEY / API_PUBLIC_KEY.
@@ -1061,6 +1063,7 @@ app.post('/quick-join', async (req, res) => {
     });
 
     db.get('agents').get(agentId).put(newNode);
+    dhtAnnounce({ id: agentId, name: newNode.name, contributions: newNode.claw_balance || 0, rank: newNode.rank });
     console.log(`[P2P] New agent quick-joined: ${agentId} (${name || 'Anonymous'}) Ed25519=${!!publicKey}`);
 
     const response = {
@@ -2608,6 +2611,99 @@ app.post("/agent-memory/:agentId", (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  AGENT MEMORY v2 — Full key-value memory with semantic search (§3.5/§4.4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /agent-memory/:agentId/memories
+ * Returns all key-value memories for an agent.
+ */
+app.get("/agent-memory/:agentId/memories", async (req, res) => {
+    const { agentId } = req.params;
+    try {
+        const result = await loadMemory(agentId); // { agentId, memories: {key:val}, count }
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * POST /agent-memory/:agentId/memories
+ * Remember a key-value pair. Body: { key, value, text? }
+ */
+app.post("/agent-memory/:agentId/memories", async (req, res) => {
+    const { agentId } = req.params;
+    const { key, value, text } = req.body;
+    if (!key || value === undefined) return res.status(400).json({ error: "key and value are required" });
+    try {
+        const result = await saveMemory(agentId, key, value, text || String(value));
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * GET /agent-memory/:agentId/memories/search?q=text&k=5
+ * Semantic search across an agent's memories using sparse embeddings.
+ */
+app.get("/agent-memory/:agentId/memories/search", async (req, res) => {
+    const { agentId } = req.params;
+    const { q, k } = req.query;
+    if (!q) return res.status(400).json({ error: "Query param 'q' required" });
+    try {
+        const mem = getAgentMemory(agentId);
+        // Seed the embedding store from Gun.js before searching
+        const { memories } = await loadMemory(agentId);
+        // Re-index any memories that weren't in the in-process store
+        Object.entries(memories).forEach(([mk, mv]) => {
+            mem.store.storeText(mk, String(typeof mv === 'object' ? JSON.stringify(mv) : mv));
+        });
+        const results = mem.searchSimilar(q, parseInt(k) || 5);
+        res.json({ agentId, query: q, results, count: results.length });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  KADEMLIA DHT — XOR-metric peer discovery (§4.1/§5.1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /dht-peers?target=agentId&k=20
+ * Returns k closest peers to a target agent/key ID using XOR metric.
+ */
+app.get("/dht-peers", (req, res) => {
+    const { target, k } = req.query;
+    if (!target) return res.status(400).json({ error: "Query param 'target' required" });
+    const count = Math.min(parseInt(k) || 20, 50);
+    const peers = dhtFindPeers(target, count);
+    res.json({ target, peers, count: peers.length, local_node_id: LOCAL_NODE_ID });
+});
+
+/**
+ * POST /dht-announce
+ * Add or refresh yourself in the routing table.
+ * Body: { id, name?, address?, contributions?, rank? }
+ */
+app.post("/dht-announce", (req, res) => {
+    const { id, name, address, contributions, rank } = req.body;
+    if (!id) return res.status(400).json({ error: "id is required" });
+    dhtAnnounce({ id, name, address, contributions, rank });
+    res.json({ success: true, id, message: "Announced to DHT routing table." });
+});
+
+/**
+ * GET /dht-stats
+ * Returns routing table statistics: totalPeers, bucketsUsed, localId, K.
+ */
+app.get("/dht-stats", (req, res) => {
+    res.json(dhtStats());
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  P8 — FEDERATED LEARNING (FedAvg + DP-SGD, Abadi 2016)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -3538,6 +3634,9 @@ if (process.env.NODE_ENV !== 'test') {
 
     // Expose Gun.js WebSocket relay at /gun — eliminates need for p2pclaw-relay service
     import('./config/gun-relay.js').then(m => m.attachWebRelay(httpServer));
+
+    // Bootstrap Kademlia DHT from existing Gun.js agents (5s after boot to let Gun.js peers connect)
+    setTimeout(() => bootstrapDHT(), 5000);
     
     // Phase 3: Periodic Nash Stability Check (every 30 mins)
     setInterval(async () => {
