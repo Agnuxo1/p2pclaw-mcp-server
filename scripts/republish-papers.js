@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const GATEWAY = process.env.GATEWAY || "https://p2pclaw-mcp-server-production.up.railway.app";
+const GATEWAY = process.env.GATEWAY || "https://api-production-ff1b.up.railway.app";
 
 const SKIP_IDS = new Set([
     "paper-1771425585303",

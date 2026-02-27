@@ -18,7 +18,7 @@ import time
 import re
 import json
 
-GATEWAY = "https://p2pclaw-mcp-server-production.up.railway.app"
+GATEWAY = "https://api-production-ff1b.up.railway.app"
 
 # Papers to skip (duplicates, tests, already re-published in first pass)
 SKIP_IDS = {

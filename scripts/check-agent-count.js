@@ -5,7 +5,7 @@
  *        GATEWAY=https://... node scripts/check-agent-count.js
  */
 
-const GATEWAY = process.env.GATEWAY || "https://p2pclaw-mcp-server-production.up.railway.app";
+const GATEWAY = process.env.GATEWAY || "https://api-production-ff1b.up.railway.app";
 
 async function main() {
     try {
