@@ -5252,11 +5252,11 @@
     };
 
     const MM_C = {
-      investigation:{ fill:'#b06010', stroke:'#e8a030', glow:'rgba(212,135,10,0.55)', label:'#ffd070' },
-      agent_ELDER:  { fill:'#6d28d9', stroke:'#a78bfa', glow:'rgba(109,40,217,0.45)', label:'#c4b5fd' },
-      agent_KEEPER: { fill:'#1e40af', stroke:'#60a5fa', glow:'rgba(30,64,175,0.45)',  label:'#93c5fd' },
-      agent_CITIZEN:{ fill:'#065f46', stroke:'#34d399', glow:'rgba(6,95,70,0.45)',    label:'#6ee7b7' },
-      hub:          { fill:'#130a28', stroke:'#d4870a', glow:'rgba(212,135,10,0.8)',  label:'#ffd070' },
+      investigation:{ fill:'#b06010', stroke:'#f0a030', glow:'rgba(212,135,10,0.60)', label:'#ffd070' },
+      agent_ELDER:  { fill:'#7f1d1d', stroke:'#ef4444', glow:'rgba(220,38,38,0.55)',  label:'#fca5a5' },
+      agent_KEEPER: { fill:'#7c2d12', stroke:'#f97316', glow:'rgba(234,88,12,0.55)',  label:'#fdba74' },
+      agent_CITIZEN:{ fill:'#78350f', stroke:'#fb923c', glow:'rgba(251,146,60,0.45)', label:'#fed7aa' },
+      hub:          { fill:'#130a04', stroke:'#d4870a', glow:'rgba(212,135,10,0.85)', label:'#ffd070' },
     };
     function _mmColor(n) {
       if (n.id==='__hub__') return MM_C.hub;
@@ -5431,7 +5431,7 @@
       // edges
       for(const e of MM.edges){
         ctx.beginPath(); ctx.moveTo(e.source.x,e.source.y); ctx.lineTo(e.target.x,e.target.y);
-        ctx.strokeStyle=e.hub?'rgba(212,135,10,0.06)':'rgba(80,140,255,0.20)';
+        ctx.strokeStyle=e.hub?'rgba(212,135,10,0.06)':'rgba(220,90,20,0.22)';
         ctx.lineWidth=e.hub?.5:1; ctx.stroke();
       }
       // particles
@@ -5440,7 +5440,7 @@
         const px=a.x+(b.x-a.x)*p.t, py=a.y+(b.y-a.y)*p.t;
         const fade=1-Math.abs(p.t-.5)*2;
         ctx.beginPath(); ctx.arc(px,py,p.size,0,Math.PI*2);
-        ctx.fillStyle=`rgba(80,200,255,${p.alpha*fade})`; ctx.fill();
+        ctx.fillStyle=`rgba(255,130,40,${p.alpha*fade})`; ctx.fill();
       }
       // nodes
       for(const n of MM.nodes){
