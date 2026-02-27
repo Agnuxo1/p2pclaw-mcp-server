@@ -16,7 +16,7 @@ import { tauCoordinator } from "./services/tauCoordinator.js";
 import { verifyWithTier1, reVerifyProofHash } from "./services/tier1Service.js";
 import { server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema } from "./services/mcpService.js";
 import { broadcastHiveEvent } from "./services/hiveService.js";
-import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates, titleExistsExact, titleCache, checkRegistryDeep, wordCountExistsExact, checkWordCountDeep, wordCountCache, getContentHash, contentHashExists, checkHashDeep, contentHashCache } from "./services/consensusService.js";
+import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates, checkInvestigationDuplicate, titleExistsExact, titleCache, checkRegistryDeep, wordCountExistsExact, checkWordCountDeep, wordCountCache, getContentHash, getAbstractHash, contentHashExists, checkHashDeep, contentHashCache, abstractHashCache, abstractHashExists, checkAbstractHashDeep } from "./services/consensusService.js";
 import { SAMPLE_MISSIONS, sandboxService } from "./services/sandboxService.js";
 import { economyService } from "./services/economyService.js";
 import { wardenInspect, detectRogueAgents, BANNED_PHRASES, BANNED_WORDS_EXACT, STRIKE_LIMIT, offenderRegistry, WARDEN_WHITELIST } from "./services/wardenService.js";
@@ -1700,45 +1700,72 @@ function checkPublishRateLimit(authorId) {
 
 // ── Internal auto-purge logic (shared by cron + admin endpoint) ─
 async function runDuplicatePurge() {
-    console.log("[PURGE] Starting duplicate purge (Title + WordCount + Hash)...");
+    console.log("[PURGE] Starting duplicate purge (Title + Hash + Abstract + InvID)...");
     titleCache.clear();
     wordCountCache.clear();
     contentHashCache.clear();
+    abstractHashCache.clear();
     const seenTitles = new Map();
     const seenWordCounts = new Map();
     const seenHashes = new Map();
+    const seenAbstractHashes = new Map();
+    const seenInvIdTitle = new Map();  // key: investigation_id → normalized base title
     const toDelete = [];
 
     const mempoolEntries = await new Promise(resolve => {
         const entries = [];
         db.get("mempool").map().once((data, id) => {
-            if (data && data.title && data.content) {
+            if (data && data.title && data.content && data.status !== 'REJECTED') {
                 const wc = data.content.trim().split(/\s+/).length;
                 const hash = getContentHash(data.content);
-                entries.push({ id, title: data.title, content: data.content, wordCount: wc, hash, timestamp: data.timestamp || 0 });
+                entries.push({
+                    id, title: data.title, content: data.content,
+                    wordCount: wc, hash, timestamp: data.timestamp || 0,
+                    investigation_id: data.investigation_id || null
+                });
             }
         });
         setTimeout(() => resolve(entries), 5000);
     });
 
     for (const entry of mempoolEntries.sort((a, b) => a.timestamp - b.timestamp)) {
-        const titleKey = normalizeTitle(entry.title);
+        const titleKey = normalizeTitle(entry.title);  // now strips "[Contribution by Dr. X]"
         const wcKey = entry.wordCount;
         const hashKey = entry.hash;
+        const abstractHash = getAbstractHash(entry.content);
 
-        if (seenTitles.has(titleKey) || seenWordCounts.has(wcKey) || seenHashes.has(hashKey)) {
+        // Check investigation_id-based dedup
+        let invIdDup = false;
+        if (entry.investigation_id) {
+            const existing = seenInvIdTitle.get(entry.investigation_id);
+            if (existing) {
+                const sim = titleSimilarity(entry.title, existing.title);
+                if (sim >= 0.55) invIdDup = true;
+            }
+        }
+
+        const isDup = seenTitles.has(titleKey) || seenHashes.has(hashKey) || invIdDup ||
+                      (abstractHash && seenAbstractHashes.has(abstractHash));
+
+        if (isDup) {
             let reason = 'TITLE_DUP';
             if (seenHashes.has(hashKey)) reason = 'HASH_DUP';
-            else if (seenWordCounts.has(wcKey)) reason = 'WC_DUP';
-            
+            else if (abstractHash && seenAbstractHashes.has(abstractHash)) reason = 'ABSTRACT_DUP';
+            else if (invIdDup) reason = 'INVESTIGATION_DUP';
+
             toDelete.push({ store: 'mempool', id: entry.id, title: entry.title, reason });
         } else {
             seenTitles.set(titleKey, entry.id);
             seenWordCounts.set(wcKey, entry.id);
             seenHashes.set(hashKey, entry.id);
+            if (abstractHash) seenAbstractHashes.set(abstractHash, entry.id);
+            if (entry.investigation_id) {
+                seenInvIdTitle.set(entry.investigation_id, { title: entry.title, id: entry.id });
+            }
             titleCache.add(titleKey);
             wordCountCache.add(wcKey);
             contentHashCache.add(hashKey);
+            if (abstractHash) abstractHashCache.add(abstractHash);
         }
     }
 
@@ -1748,30 +1775,45 @@ async function runDuplicatePurge() {
             if (data && data.title && data.content) {
                 const wc = data.content.trim().split(/\s+/).length;
                 const hash = getContentHash(data.content);
-                entries.push({ id, title: data.title, content: data.content, wordCount: wc, hash, timestamp: data.timestamp || 0 });
+                entries.push({
+                    id, title: data.title, content: data.content,
+                    wordCount: wc, hash, timestamp: data.timestamp || 0,
+                    investigation_id: data.investigation_id || null
+                });
             }
         });
         setTimeout(() => resolve(entries), 5000);
     });
 
     for (const entry of papersEntries.sort((a, b) => a.timestamp - b.timestamp)) {
-        const titleKey = normalizeTitle(entry.title);
+        const titleKey = normalizeTitle(entry.title);  // now strips "[Contribution by Dr. X]"
         const wcKey = entry.wordCount;
         const hashKey = entry.hash;
+        const abstractHash = getAbstractHash(entry.content);
 
-        if (seenTitles.has(titleKey) || seenWordCounts.has(wcKey) || seenHashes.has(hashKey)) {
+        const isDup = seenTitles.has(titleKey) || seenHashes.has(hashKey) ||
+                      (abstractHash && seenAbstractHashes.has(abstractHash));
+
+        if (isDup) {
             let reason = 'TITLE_DUP';
             if (seenHashes.has(hashKey)) reason = 'HASH_DUP';
-            else if (seenWordCounts.has(wcKey)) reason = 'WC_DUP';
+            else if (abstractHash && seenAbstractHashes.has(abstractHash)) reason = 'ABSTRACT_DUP';
 
             toDelete.push({ store: 'papers', id: entry.id, title: entry.title, reason });
         } else {
             seenTitles.set(titleKey, entry.id);
             seenWordCounts.set(wcKey, entry.id);
             seenHashes.set(hashKey, entry.id);
+            if (abstractHash) seenAbstractHashes.set(abstractHash, entry.id);
+            if (entry.investigation_id) {
+                if (!seenInvIdTitle.has(entry.investigation_id)) {
+                    seenInvIdTitle.set(entry.investigation_id, { title: entry.title, id: entry.id });
+                }
+            }
             titleCache.add(titleKey);
             wordCountCache.add(wcKey);
             contentHashCache.add(hashKey);
+            if (abstractHash) abstractHashCache.add(abstractHash);
         }
     }
 
@@ -1939,10 +1981,38 @@ app.post("/publish-paper", async (req, res) => {
         contentHashCache.add(contentHash);
         db.get("registry/contenthashes").get(contentHash).put({ paperId: `temp-${Date.now()}`, verified: false });
         
+        // ── Abstract-section hash dedup (strips author names) ─────────────────
+        const existingAbstractInRegistry = await checkAbstractHashDeep(content);
+        if (abstractHashExists(content) || existingAbstractInRegistry) {
+            console.warn(`[DEDUP] Blocking duplicate ABSTRACT hash: "${title}"`);
+            return res.status(409).json({
+                success: false,
+                error: 'DUPLICATE_CONTENT',
+                message: 'This paper abstract has already been published (author name rotation detected). Clonic activity is blocked.',
+                hint: 'Write original research with a new abstract section.'
+            });
+        }
+
+        // ── Investigation-ID + title similarity dedup (stops "[Contribution by Dr. X]" spam) ──
+        if (investigation_id) {
+            const invDuplicate = await checkInvestigationDuplicate(investigation_id, title);
+            if (invDuplicate) {
+                console.warn(`[DEDUP] Blocking same investigation_id "${investigation_id}" with similar title (${Math.round(invDuplicate.similarity*100)}%): "${title}"`);
+                return res.status(409).json({
+                    success: false,
+                    error: 'INVESTIGATION_DUPLICATE',
+                    message: `Investigation "${investigation_id}" already has a similar paper (${Math.round(invDuplicate.similarity*100)}% title match). Author rotation is not permitted.`,
+                    existing_paper: { id: invDuplicate.paperId, title: invDuplicate.title, similarity: invDuplicate.similarity },
+                    hint: 'Each investigation topic should only appear once. Build upon or extend existing papers instead.'
+                });
+            }
+        }
+
+        // ── Title similarity (Wheel dedup) — lowered thresholds ───────────────
         const duplicates = await checkDuplicates(title);
         if (duplicates.length > 0) {
             const topMatch = duplicates[0];
-            if (topMatch.similarity >= 0.80) {
+            if (topMatch.similarity >= 0.65) {  // lowered from 0.80
                 return res.status(409).json({
                     success: false,
                     error: 'WHEEL_DUPLICATE',
@@ -1952,7 +2022,7 @@ app.post("/publish-paper", async (req, res) => {
                     force_override: 'Add "force": true to body to override (use only for genuine updates)'
                 });
             }
-            if (topMatch.similarity >= 0.75) {
+            if (topMatch.similarity >= 0.50) {  // lowered from 0.75
                 console.log(`[WHEEL] Similar paper detected (${Math.round(topMatch.similarity * 100)}%): "${topMatch.title}"`);
             }
         }
@@ -2056,6 +2126,7 @@ app.post("/publish-paper", async (req, res) => {
             url_html: ipfs_url,
             author: author || "API-User",
             author_id: authorId,
+            investigation_id: investigation_id || null,
             tier: 'UNVERIFIED',
             claim_state: finalClaimState,
             pdf_url: req.body.pdf_url || null,
@@ -2073,8 +2144,14 @@ app.post("/publish-paper", async (req, res) => {
         db.get("mempool").get(paperId).put(paperData);
         
         // Instant registration to block rapid-fire duplicates across relay nodes
-        await registerTitle(title, paperId); 
-        titleCache.add(normalizeTitle(title)); 
+        await registerTitle(title, paperId);
+        titleCache.add(normalizeTitle(title));
+        // Register abstract hash to prevent author-rotation spam
+        const abstractHash = getAbstractHash(content);
+        if (abstractHash) {
+            abstractHashCache.add(abstractHash);
+            db.get("registry/abstracthashes").get(abstractHash).put({ paperId, verified: false });
+        }
 
         updateInvestigationProgress(title, content);
         broadcastHiveEvent('paper_submitted', { id: paperId, title, author: author || 'API-User', tier: 'UNVERIFIED' });
