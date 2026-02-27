@@ -4672,15 +4672,16 @@
       "https://karmakindle1-p2pclaw-node-d.hf.space",
       "https://api-production-ff1b.up.railway.app",  // last resort
     ];
+    // Start with Railway (always has full API), upgrade to faster HF node if one responds
     let API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
       ? window.location.origin
-      : GATEWAYS[0]; // Start with HF Node A; resolve below
+      : GATEWAYS[GATEWAYS.length - 1]; // Start with Railway; upgrade below
 
-    // Non-blocking gateway health check — find fastest responder
+    // Non-blocking gateway health check — must have full API (network-stats), not just /health
     (async () => {
       for (const gw of GATEWAYS) {
         try {
-          const res = await fetch(`${gw}/health`, { signal: AbortSignal.timeout(3000) });
+          const res = await fetch(`${gw}/network-stats`, { signal: AbortSignal.timeout(4000) });
           if (res.ok) { API_BASE = gw; console.log(`[P2PCLAW] Gateway: ${gw}`); break; }
         } catch { /* try next */ }
       }
