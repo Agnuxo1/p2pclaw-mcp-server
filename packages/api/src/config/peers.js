@@ -27,5 +27,10 @@ const DEFAULT_PEERS = [
   ...EXTRA,
 ].filter((p, i, arr) => p && arr.indexOf(p) === i);
 
-export const ALL_PEERS = DEFAULT_PEERS;
+// GUN_PEERS env var overrides the peer list (comma-separated URLs).
+// Set GUN_PEERS=https://p2pclaw-relay-production.up.railway.app/gun in Railway
+// to use only the primary relay and avoid syncing the full mesh into RAM.
+const GUN_PEERS_ENV = (process.env.GUN_PEERS || "").split(",").map((p) => p.trim()).filter(Boolean);
+
+export const ALL_PEERS = GUN_PEERS_ENV.length > 0 ? GUN_PEERS_ENV : DEFAULT_PEERS;
 export const PRIMARY_RELAY = RELAY_NODE;

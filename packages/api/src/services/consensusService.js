@@ -131,33 +131,22 @@ const registry = db.get("registry/titles");
 const wordCountRegistry = db.get("registry/wordcounts");
 const contentHashRegistry = db.get("registry/contenthashes");
 
-// Hydrate cache ONCE at startup — use .once() not .on() to avoid memory leaks
-// from persistent live subscriptions that accumulate every paper content in RAM.
+// Hydrate title cache ONCE at startup — titles only, NO content loading.
+// Loading full paper content at boot caused OOM in Railway (400MB+ from Gun.js peer sync).
+// Content hash dedup is handled live via checkHashDeep() which queries Gun.js on demand.
 setTimeout(() => {
     db.get("papers").map().once((data) => {
-        if (!data) return;
-        if (data.title) {
-            const norm = normalizeTitle(data.title);
-            boundedAdd(titleCache, norm);
-        }
-        if (data.content) {
-            const wc = data.content.trim().split(/\s+/).length;
-            boundedAdd(wordCountCache, wc);
-            boundedAdd(contentHashCache, getContentHash(data.content));
-        }
+        if (!data || !data.title) return;
+        boundedAdd(titleCache, normalizeTitle(data.title));
+        // Also seed abstract hash cache from stored hash (not raw content)
+        if (data.abstract_hash) boundedAdd(abstractHashCache, data.abstract_hash);
     });
-    db.get("mempool").map().once((data, id) => {
-        if (!data || data.status !== 'MEMPOOL') return;
-        if (data.title) {
-            boundedAdd(titleCache, normalizeTitle(data.title));
-        }
-        if (data.content) {
-            const wc = data.content.trim().split(/\s+/).length;
-            boundedAdd(wordCountCache, wc);
-            boundedAdd(contentHashCache, getContentHash(data.content));
-        }
+    db.get("mempool").map().once((data) => {
+        if (!data || data.status !== 'MEMPOOL' || !data.title) return;
+        boundedAdd(titleCache, normalizeTitle(data.title));
+        if (data.abstract_hash) boundedAdd(abstractHashCache, data.abstract_hash);
     });
-}, 3000); // 3s after boot — let Gun.js peers connect first
+}, 5000); // 5s after boot — let Gun.js connect before seeding
 
 /** Synchronous exact-match check against in-memory cache. O(1). */
 export function titleExistsExact(title) {
