@@ -1565,8 +1565,10 @@ app.post("/genetic/seed", (req, res) => {
 });
 
 /** Run one full evolution generation */
-app.post("/genetic/evolve", (req, res) => {
+app.post("/genetic/evolve", async (req, res) => {
     try {
+        // Re-load from Gun if population was wiped by a server restart
+        if (geneticService.population.length < 2) await geneticService.getPopulation();
         const result = geneticService.evolveGeneration();
         res.json({ success: true, ...result });
     } catch (err) {
@@ -1575,10 +1577,11 @@ app.post("/genetic/evolve", (req, res) => {
 });
 
 /** Manual crossover of two genomes by ID */
-app.post("/genetic/crossover", (req, res) => {
+app.post("/genetic/crossover", async (req, res) => {
     const { parentA, parentB } = req.body || {};
     if (!parentA || !parentB) return res.status(400).json({ error: "parentA and parentB genome IDs required" });
     try {
+        if (geneticService.population.length < 2) await geneticService.getPopulation();
         const child = geneticService.crossoverById(parentA, parentB);
         res.json({ success: true, child });
     } catch (err) {
