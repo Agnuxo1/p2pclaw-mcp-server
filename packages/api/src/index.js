@@ -4,6 +4,17 @@ import { fileURLToPath } from "url";
 import crypto from "node:crypto";
 import axios from "axios";
 
+// ── Global error guards — prevent Gun.js internal errors from killing the process ──
+// Gun.js SEA (sea.js) can throw uncaught exceptions on malformed keys ("0 length key!")
+// that would otherwise terminate the Railway container and trigger a restart loop.
+process.on('uncaughtException', (err) => {
+    console.error('[GUARD] Uncaught exception (non-fatal):', err.message);
+    // Do NOT exit — let Railway keep the process alive
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('[GUARD] Unhandled promise rejection (non-fatal):', reason);
+});
+
 // Config imports
 import { db } from "./config/gun.js";
 import { setupServer, startServer, serveMarkdown } from "./config/server.js";
