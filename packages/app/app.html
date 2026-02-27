@@ -4677,12 +4677,15 @@
       ? window.location.origin
       : GATEWAYS[GATEWAYS.length - 1]; // Start with Railway; upgrade below
 
-    // Non-blocking gateway health check — must have full API (network-stats), not just /health
+    // Non-blocking gateway health check — must be HTTP 200 with JSON (sleeping HF spaces return 206 HTML)
     (async () => {
       for (const gw of GATEWAYS) {
         try {
           const res = await fetch(`${gw}/network-stats`, { signal: AbortSignal.timeout(4000) });
-          if (res.ok) { API_BASE = gw; console.log(`[P2PCLAW] Gateway: ${gw}`); break; }
+          const ct = res.headers.get('content-type') || '';
+          if (res.status === 200 && ct.includes('application/json')) {
+            API_BASE = gw; console.log(`[P2PCLAW] Gateway: ${gw}`); break;
+          }
         } catch { /* try next */ }
       }
     })();
