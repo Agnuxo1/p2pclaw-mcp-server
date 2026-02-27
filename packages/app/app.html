@@ -1336,6 +1336,66 @@
     #gl-fitness-chart { display: block; width: 100%; border-radius: 4px; background: #0a0a0c; }
     .gl-ctrl-btn { font-size: 11px; white-space: nowrap; }
 
+    /* ══════════════════════════════════════════════════════
+       🧠 MIND MAP — Phase 18 Force-Directed Graph
+       ══════════════════════════════════════════════════════ */
+    .mm-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .mm-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 5px 11px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: border-color 0.18s, color 0.18s;
+    }
+    .mm-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .mm-layout {
+      display: grid;
+      grid-template-columns: 155px 1fr 195px;
+      gap: 14px;
+      height: calc(100vh - 210px);
+      min-height: 480px;
+    }
+    .mm-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      overflow-y: auto;
+    }
+    .mm-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .mm-stat-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+    .mm-stat-value { font-size: 20px; font-weight: 700; font-family: var(--font-mono); color: var(--accent); line-height: 1; }
+    .mm-canvas-wrap {
+      position: relative;
+      background: radial-gradient(ellipse at 40% 40%, #080818 0%, #010108 100%);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    #mm-canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+    #mm-canvas:active { cursor: grabbing; }
+    .mm-narrative {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow: hidden;
+    }
+
     /* ── Paper Filter Bar ── */
     .paper-filter-bar {
       display: flex;
@@ -2764,34 +2824,43 @@
 
             <!-- Section: Mind Map / Consciousness (Phase 18) -->
             <div class="section" id="section-mind-map" style="display:none;">
-              <h3 style="margin-bottom:16px; color:var(--accent);">Hive Mind Map</h3>
-              <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px;">
-
-                <!-- Goal Graph -->
-                <div class="card" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border);">
-                  <h4 style="margin-bottom:12px; font-size:14px; display:flex; justify-content:space-between;">
-                    Active Objectives
-                    <span id="mind-era-badge"
-                      style="font-size:10px; color:var(--accent); font-family:var(--font-mono);">ERA: τ-0</span>
-                  </h4>
-                  <div id="hive-goal-graph" style="display:grid; gap:10px;">
-                    <div style="color:var(--text-muted); font-size:12px; text-align:center; padding:30px;">Loading
-                    </div>
+              <div class="mm-topbar">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <span style="font-size:16px;font-weight:700;color:var(--accent);">🧠 Hive Mind Map</span>
+                  <span id="mm-era-badge" style="font-size:10px;color:var(--accent);font-family:var(--font-mono);background:rgba(212,135,10,0.1);border:1px solid rgba(212,135,10,0.3);padding:2px 9px;border-radius:10px;">ERA: τ-0</span>
+                </div>
+                <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;">
+                  <button class="mm-btn" onclick="mmReload()">↺ Refresh</button>
+                  <button class="mm-btn" id="mm-label-btn" onclick="mmToggleLabels()">Labels ON</button>
+                  <button class="mm-btn" onclick="mmResetView()">⌖ Reset</button>
+                </div>
+              </div>
+              <div class="mm-layout">
+                <!-- Left: Stats + Node Inspector -->
+                <div class="mm-sidebar">
+                  <div class="mm-stat-card"><div class="mm-stat-label">Agents Online</div><div class="mm-stat-value" id="mm-agents-count">—</div></div>
+                  <div class="mm-stat-card"><div class="mm-stat-label">Investigations</div><div class="mm-stat-value" id="mm-inv-count">—</div></div>
+                  <div class="mm-stat-card"><div class="mm-stat-label">Papers</div><div class="mm-stat-value" id="mm-papers-count">—</div></div>
+                  <div class="mm-stat-card"><div class="mm-stat-label">Active Links</div><div class="mm-stat-value" id="mm-edges-count">—</div></div>
+                  <div id="mm-inspector" style="display:none;background:var(--bg-card);border:1px solid var(--accent);border-radius:6px;padding:10px;margin-top:4px;">
+                    <div style="font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Selected Node</div>
+                    <div id="mm-inspector-content" style="font-size:11px;color:var(--text-secondary);line-height:1.7;"></div>
                   </div>
-
-                  <!-- Narrative Log -->
-                  <div class="card" style="border-left: 2px solid var(--accent); background: rgba(0,0,0,0.2);">
-                    <h4 style="color:var(--accent); margin-bottom:10px; font-size:14px;">Narrative Memory</h4>
-                    <p style="font-size:11px; color:var(--text-secondary); margin-bottom:10px;">
-                      Long-term strategic reflection log of the Hive.
-                    </p>
-                    <div id="hive-narrative-summary"
-                      style="font-size:12px; color:var(--text-primary); background:#000; padding:12px; border-radius:4px; min-height:60px; border:1px solid #222; margin-bottom:15px;">
-                    </div>
-                    <div id="narrative-history-log"
-                      style="font-size:10px; font-family:var(--font-mono); color:var(--text-secondary); max-height:260px; overflow-y:auto; display:grid; gap:6px;">
-                    </div>
+                </div>
+                <!-- Center: Force-Directed Graph Canvas -->
+                <div class="mm-canvas-wrap" id="mm-canvas-wrap">
+                  <canvas id="mm-canvas"></canvas>
+                  <div id="mm-loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text-muted);font-size:13px;text-align:center;pointer-events:none;">
+                    <div style="font-size:34px;margin-bottom:10px;">🧠</div>
+                    <div>Loading Hive Mind Map...</div>
                   </div>
+                </div>
+                <!-- Right: Consciousness Stream -->
+                <div class="mm-narrative">
+                  <div style="font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;flex-shrink:0;">Consciousness Stream</div>
+                  <div id="mm-narrative-text" style="font-size:11px;color:var(--text-secondary);line-height:1.55;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:10px;flex-shrink:0;">Awaiting hive reflection...</div>
+                  <div style="font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;flex-shrink:0;margin-top:4px;">Era History</div>
+                  <div id="mm-narrative-history" style="font-size:10px;font-family:var(--font-mono);color:var(--text-muted);display:flex;flex-direction:column;gap:5px;overflow-y:auto;flex:1;"></div>
                 </div>
               </div>
             </div> <!-- Closes section-mind-map -->
@@ -4556,7 +4625,8 @@
       }
       if (tabName === 'governance' && typeof fetchProposals === 'function') fetchProposals();
       if (tabName === 'genetic-lab') { genLabLoad(); renderGeneticTree(); }
-      if (tabName === 'mind-map' && typeof renderMindMap === 'function') renderMindMap();
+      if (tabName === 'mind-map') { if (MM.animFrame) cancelAnimationFrame(MM.animFrame); renderMindMap(); }
+      if (tabName !== 'mind-map' && MM.animFrame) { cancelAnimationFrame(MM.animFrame); MM.animFrame=null; }
       if (tabName === 'papers') refreshPapersFromAPI();
       if (tabName === 'dashboard') updateVoteQuotaBar();
 
@@ -5165,72 +5235,305 @@
       });
     }
 
-    // ── Phase 18: Consciousness / Mind Map Functions ──────────────
+    // ── Phase 18: Hive Mind Map — Force-Directed Graph Engine ────────────
+    const MM = {
+      canvas:null, ctx:null,
+      nodes:[], edges:[], nodeMap:{},
+      selected:null, dragging:null, dragOffset:{x:0,y:0},
+      pan:{x:0,y:0}, zoom:1,
+      isPanning:false, panStart:{x:0,y:0},
+      showLabels:true, animFrame:null,
+      particles:[], pulse:0,
+      loaded:false, autoRefresh:null, lastData:null,
+    };
+
+    const MM_C = {
+      investigation:{ fill:'#b06010', stroke:'#e8a030', glow:'rgba(212,135,10,0.55)', label:'#ffd070' },
+      agent_ELDER:  { fill:'#6d28d9', stroke:'#a78bfa', glow:'rgba(109,40,217,0.45)', label:'#c4b5fd' },
+      agent_KEEPER: { fill:'#1e40af', stroke:'#60a5fa', glow:'rgba(30,64,175,0.45)',  label:'#93c5fd' },
+      agent_CITIZEN:{ fill:'#065f46', stroke:'#34d399', glow:'rgba(6,95,70,0.45)',    label:'#6ee7b7' },
+      hub:          { fill:'#130a28', stroke:'#d4870a', glow:'rgba(212,135,10,0.8)',  label:'#ffd070' },
+    };
+    function _mmColor(n) {
+      if (n.id==='__hub__') return MM_C.hub;
+      if (n.type==='investigation') return MM_C.investigation;
+      return MM_C['agent_'+(n.rank||'CITIZEN').toUpperCase()] || MM_C.agent_CITIZEN;
+    }
+
     async function renderMindMap() {
+      MM.canvas = document.getElementById('mm-canvas');
+      MM.ctx    = MM.canvas ? MM.canvas.getContext('2d') : null;
+      if (!MM.canvas || !MM.ctx) return;
+      _mmResize();
+      window.addEventListener('resize', _mmResize);
+      const ld = document.getElementById('mm-loading');
+      if (ld) { ld.style.display='block'; ld.innerHTML='<div style="font-size:32px;margin-bottom:10px;">🧠</div><div>Loading Hive Mind Map...</div>'; }
+      await mmReload();
+      if (MM.animFrame) cancelAnimationFrame(MM.animFrame);
+      _mmAnimate();
+      if (MM.autoRefresh) clearInterval(MM.autoRefresh);
+      MM.autoRefresh = setInterval(mmReload, 60000);
+      _mmSetupEvents();
+    }
+
+    function _mmResize() {
+      if (!MM.canvas) return;
+      const w = document.getElementById('mm-canvas-wrap');
+      if (!w) return;
+      MM.canvas.width  = w.clientWidth  || 600;
+      MM.canvas.height = w.clientHeight || 480;
+    }
+
+    async function mmReload() {
       try {
-        const res = await fetch(`${API_BASE}/hive-status`);
-        const data = await res.json();
+        const [gR, sR, nR] = await Promise.all([
+          fetch(`${API_BASE}/hive-mind-graph`),
+          fetch(`${API_BASE}/hive-status`),
+          fetch(`${API_BASE}/network-stats`),
+        ]);
+        const graph = await gR.json();
+        const narr  = await sR.json();
+        const stats = await nR.json();
+        MM.lastData = { graph, narr, stats };
 
-        // Update era badge
-        const eraBadge = document.getElementById('mind-era-badge');
-        if (eraBadge) eraBadge.textContent = `ERA: τ-${data.era ?? 0}`;
+        const sid = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+        sid('mm-agents-count', stats.agentsOnline ?? '—');
+        sid('mm-inv-count',    stats.activeInvestigations ?? '—');
+        sid('mm-papers-count', stats.totalPapers ?? '—');
+        sid('mm-edges-count',  graph.edges?.length ?? 0);
+        sid('mm-era-badge',    `ERA: τ-${narr.era ?? 0}`);
 
-        // Render goal graph
-        const goals = data.topGoals || [];
-        const graphEl = document.getElementById('hive-goal-graph');
-        if (graphEl) {
-          graphEl.innerHTML = goals.length
-            ? goals.map((g, i) => `
-              <div style="background:rgba(0,0,0,0.4); border:1px solid ${i === 0 ? 'var(--accent)' : 'var(--border)'}; border-radius:6px; padding:12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-weight:700; font-size:13px; color:${i === 0 ? 'var(--accent)' : 'var(--text-primary)'};">
-                    ${i === 0 ? '1st' : `#${i + 1}`} ${g.title}
-                  </span>
-                  <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">${g.score} pts</span>
-                </div>
-                <div style="margin-top:6px; height:4px; background:#111; border-radius:2px;">
-                  <div style="height:100%; width:${Math.min(100, Math.round((g.score / (goals[0].score || 1)) * 100))}%; background: ${i === 0 ? 'var(--accent)' : 'var(--border)'}; border-radius:2px;"></div>
-                </div>
-              </div>`)
-              .join('')
-            : '<div style="color:var(--text-muted); text-align:center; padding:30px; font-size:12px;">No objectives detected yet...</div>';
+        const nt = document.getElementById('mm-narrative-text');
+        if (nt && narr.summary) nt.textContent = narr.summary;
+        const nh = document.getElementById('mm-narrative-history');
+        if (nh) {
+          const hist = narr.history || [];
+          nh.innerHTML = hist.length
+            ? hist.map(h=>`<div style="border-bottom:1px solid #181818;padding:5px 0;"><span style="color:var(--accent);">[τ-${h.era??0}]</span><span style="margin-left:5px;">${h.summary||''}</span></div>`).join('')
+            : '<div style="color:var(--text-muted);">No history yet.</div>';
         }
 
-        // Render narrative summary
-        const summaryEl = document.getElementById('hive-narrative-summary');
-        if (summaryEl && data.summary) summaryEl.textContent = data.summary;
-
-        // Render history log
-        const historyEl = document.getElementById('narrative-history-log');
-        const history = data.history || [];
-        if (historyEl) {
-          historyEl.innerHTML = history.map(h => `
-            <div style="border-bottom:1px solid #1a1a1a; padding:6px 0; font-size:10px;">
-              <span style="color:var(--accent);">[τ-${h.era ?? 0}]</span>
-              <span style="color:var(--text-secondary); margin-left:4px;">${h.summary}</span>
-            </div>
-          `).join('') || '<div style="color:var(--text-muted);">No history entries yet.</div>';
-        }
-
-        // Update header ticker
-        updateNarrativeTicker(data.summary);
-
-      } catch (e) {
-        console.warn('[CONSCIOUSNESS] Could not fetch hive-status:', e.message);
+        _mmBuildGraph(graph.nodes||[], graph.edges||[]);
+        const ld = document.getElementById('mm-loading');
+        if (ld) ld.style.display = 'none';
+        MM.loaded = true;
+        updateNarrativeTicker(narr.summary || '');
+      } catch(e) {
+        console.warn('[MINDMAP]', e.message);
+        const ld = document.getElementById('mm-loading');
+        if (ld) { ld.style.display='block'; ld.textContent='⚠ Connection error — retrying...'; }
       }
     }
 
+    function _mmBuildGraph(apiNodes, apiEdges) {
+      const W=MM.canvas.width, H=MM.canvas.height, cx=W/2, cy=H/2;
+      const prev={};
+      for (const n of MM.nodes) prev[n.id]={x:n.x,y:n.y,vx:n.vx*0.4,vy:n.vy*0.4};
+      MM.nodeMap={}; MM.nodes=[];
+
+      const hub={id:'__hub__',type:'hub',label:'HIVE',x:cx,y:cy,vx:0,vy:0,radius:26,fixed:true,color:MM_C.hub};
+      MM.nodes.push(hub); MM.nodeMap['__hub__']=hub;
+
+      const invList=apiNodes.filter(n=>n.type==='investigation');
+      const agList =apiNodes.filter(n=>n.type==='agent');
+      const R1=Math.min(W,H)*0.20, R2=Math.min(W,H)*0.36;
+
+      for (let i=0;i<invList.length;i++) {
+        const n=invList[i], ang=(i/Math.max(invList.length,1))*2*Math.PI-Math.PI/2;
+        const p=prev[n.id], r=14+Math.min((n.score||0)*0.25,20);
+        const node={id:n.id,type:'investigation',label:n.label||n.id,score:n.score||0,agentCount:n.agentCount||0,papers:n.papers||0,
+          x:p?p.x:cx+Math.cos(ang)*R1+(Math.random()-.5)*15,
+          y:p?p.y:cy+Math.sin(ang)*R1+(Math.random()-.5)*15,
+          vx:p?p.vx:0,vy:p?p.vy:0,radius:r,color:MM_C.investigation};
+        MM.nodes.push(node); MM.nodeMap[n.id]=node;
+      }
+
+      for (let i=0;i<agList.length;i++) {
+        const n=agList[i], ang=(i/Math.max(agList.length,1))*2*Math.PI-Math.PI/2;
+        const p=prev[n.id], rank=(n.rank||'CITIZEN').toUpperCase();
+        const r=rank==='ELDER'?9:rank==='KEEPER'?7:5;
+        const c=MM_C['agent_'+rank]||MM_C.agent_CITIZEN;
+        const node={id:n.id,type:'agent',label:n.label||n.id,role:n.role||'Researcher',rank,contributions:n.contributions||0,lastSeen:n.lastSeen||0,
+          x:p?p.x:cx+Math.cos(ang)*R2+(Math.random()-.5)*40,
+          y:p?p.y:cy+Math.sin(ang)*R2+(Math.random()-.5)*40,
+          vx:p?p.vx:0,vy:p?p.vy:0,radius:r,color:c};
+        MM.nodes.push(node); MM.nodeMap[n.id]=node;
+      }
+
+      MM.edges=[];
+      for (const e of apiEdges) {
+        const src=MM.nodeMap[e.source], tgt=MM.nodeMap[e.target];
+        if (src&&tgt) MM.edges.push({source:src,target:tgt,weight:e.weight||1});
+      }
+      for (const n of MM.nodes) {
+        if (n.type==='investigation') MM.edges.push({source:hub,target:n,weight:0.3,hub:true});
+      }
+      _mmInitParticles();
+    }
+
+    function _mmInitParticles() {
+      MM.particles=[];
+      const real=MM.edges.filter(e=>!e.hub);
+      const cnt=Math.min(real.length*2,50);
+      for (let i=0;i<cnt;i++) {
+        const edge=real[i%Math.max(real.length,1)];
+        MM.particles.push({edge,t:Math.random(),speed:0.003+Math.random()*0.004,size:1.5+Math.random()*2,alpha:0.5+Math.random()*0.5});
+      }
+    }
+
+    function _mmPhysics() {
+      const W=MM.canvas.width,H=MM.canvas.height,cx=W/2,cy=H/2;
+      for (const n of MM.nodes){n.fx=0;n.fy=0;}
+      const Kr=5000;
+      for (let i=0;i<MM.nodes.length;i++) for (let j=i+1;j<MM.nodes.length;j++) {
+        const a=MM.nodes[i],b=MM.nodes[j]; if(a.fixed&&b.fixed) continue;
+        const dx=b.x-a.x,dy=b.y-a.y,d2=dx*dx+dy*dy+1,d=Math.sqrt(d2),f=Kr/d2;
+        const fx=(dx/d)*f,fy=(dy/d)*f;
+        if(!a.fixed){a.fx-=fx;a.fy-=fy;} if(!b.fixed){b.fx+=fx;b.fy+=fy;}
+      }
+      const Ks=0.035;
+      for (const e of MM.edges) {
+        const a=e.source,b=e.target,dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)+.001;
+        const rest=e.hub?150:80,stretch=d-rest,fx=(dx/d)*Ks*stretch,fy=(dy/d)*Ks*stretch;
+        if(!a.fixed){a.fx+=fx;a.fy+=fy;} if(!b.fixed){b.fx-=fx;b.fy-=fy;}
+      }
+      const Kg=0.003;
+      for (const n of MM.nodes) { if(n.fixed) continue; n.fx+=(cx-n.x)*Kg; n.fy+=(cy-n.y)*Kg; }
+      const damp=0.84;
+      for (const n of MM.nodes) {
+        if(n.fixed||n===MM.dragging) continue;
+        n.vx=(n.vx+n.fx)*damp; n.vy=(n.vy+n.fy)*damp;
+        n.x+=n.vx; n.y+=n.vy;
+        const mg=n.radius+18;
+        n.x=Math.max(mg,Math.min(W-mg,n.x)); n.y=Math.max(mg,Math.min(H-mg,n.y));
+      }
+      for (const p of MM.particles){p.t+=p.speed; if(p.t>=1)p.t=0;}
+      MM.pulse=(MM.pulse+0.025)%(2*Math.PI);
+    }
+
+    function _mmDraw() {
+      if (!MM.ctx||!MM.canvas) return;
+      const ctx=MM.ctx, W=MM.canvas.width, H=MM.canvas.height;
+      ctx.clearRect(0,0,W,H);
+      // subtle grid
+      ctx.save(); ctx.strokeStyle='rgba(212,135,10,0.04)'; ctx.lineWidth=.5;
+      const gs=42;
+      for(let x=(MM.pan.x%gs+gs)%gs;x<W;x+=gs){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+      for(let y=(MM.pan.y%gs+gs)%gs;y<H;y+=gs){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+      ctx.restore();
+      ctx.save();
+      ctx.translate(MM.pan.x,MM.pan.y);
+      ctx.scale(MM.zoom,MM.zoom);
+      // edges
+      for(const e of MM.edges){
+        ctx.beginPath(); ctx.moveTo(e.source.x,e.source.y); ctx.lineTo(e.target.x,e.target.y);
+        ctx.strokeStyle=e.hub?'rgba(212,135,10,0.06)':'rgba(80,140,255,0.20)';
+        ctx.lineWidth=e.hub?.5:1; ctx.stroke();
+      }
+      // particles
+      for(const p of MM.particles){
+        const {source:a,target:b}=p.edge;
+        const px=a.x+(b.x-a.x)*p.t, py=a.y+(b.y-a.y)*p.t;
+        const fade=1-Math.abs(p.t-.5)*2;
+        ctx.beginPath(); ctx.arc(px,py,p.size,0,Math.PI*2);
+        ctx.fillStyle=`rgba(80,200,255,${p.alpha*fade})`; ctx.fill();
+      }
+      // nodes
+      for(const n of MM.nodes){
+        const c=n.color||_mmColor(n), sel=MM.selected&&MM.selected.id===n.id;
+        const isHub=n.id==='__hub__';
+        const R=n.radius+(sel?4:0)+(isHub?Math.sin(MM.pulse)*3:0);
+        ctx.save();
+        ctx.shadowColor=c.glow||c.stroke;
+        ctx.shadowBlur=sel?26:(isHub?18+7*Math.sin(MM.pulse):9);
+        ctx.beginPath(); ctx.arc(n.x,n.y,R,0,Math.PI*2);
+        if(n.type==='investigation'){
+          const g=ctx.createRadialGradient(n.x-R*.3,n.y-R*.3,1,n.x,n.y,R);
+          g.addColorStop(0,'#f0c060'); g.addColorStop(1,'#7a3c00'); ctx.fillStyle=g;
+        } else if(isHub){
+          const g=ctx.createRadialGradient(n.x,n.y,2,n.x,n.y,R);
+          g.addColorStop(0,'#2a1060'); g.addColorStop(.7,'#150830'); g.addColorStop(1,'#08041a'); ctx.fillStyle=g;
+        } else { ctx.fillStyle=c.fill; }
+        ctx.fill();
+        ctx.strokeStyle=sel?'#fff':c.stroke; ctx.lineWidth=sel?2:1; ctx.stroke();
+        ctx.restore();
+        // label
+        if(MM.showLabels||sel||isHub){
+          ctx.save(); ctx.textAlign='center';
+          if(isHub){
+            ctx.fillStyle='#ffd070'; ctx.font='bold 10px monospace'; ctx.fillText('HIVE',n.x,n.y+3.5);
+          } else if(n.type==='investigation'){
+            const lbl=n.label.length>17?n.label.substring(0,15)+'…':n.label;
+            ctx.fillStyle='rgba(255,208,80,0.88)'; ctx.font='bold 8px sans-serif';
+            ctx.fillText(lbl,n.x,n.y+R+10);
+          } else {
+            const lbl=n.label.length>13?n.label.substring(0,11)+'…':n.label;
+            ctx.fillStyle=c.label||'rgba(160,200,255,0.75)'; ctx.font='7px sans-serif';
+            ctx.fillText(lbl,n.x,n.y+R+8);
+          }
+          ctx.restore();
+        }
+      }
+      ctx.restore();
+      // HUD
+      const era=MM.lastData?.narr?.era??0;
+      ctx.fillStyle='rgba(212,135,10,0.5)'; ctx.font='10px monospace'; ctx.textAlign='left';
+      ctx.fillText(`τ-ERA: ${era}`,10,H-30);
+      ctx.fillStyle='rgba(130,150,200,0.32)';
+      ctx.fillText(`${MM.nodes.length-1} nodes · ${MM.edges.filter(e=>!e.hub).length} links  |  scroll=zoom  drag=pan/move`,10,H-14);
+    }
+
+    function _mmAnimate(){ MM.animFrame=requestAnimationFrame(_mmAnimate); if(MM.loaded){_mmPhysics();_mmDraw();} }
+
+    function _mmSetupEvents(){
+      const c=MM.canvas; if(!c||c._mmEv) return; c._mmEv=true;
+      let cs=null;
+      c.addEventListener('mousedown',e=>{
+        cs={x:e.clientX,y:e.clientY};
+        const pos=_mmWP(e), hit=_mmHit(pos.x,pos.y);
+        if(hit&&hit.id!=='__hub__'){MM.dragging=hit;MM.dragOffset={x:hit.x-pos.x,y:hit.y-pos.y};}
+        else{MM.isPanning=true;MM.panStart={x:e.clientX-MM.pan.x,y:e.clientY-MM.pan.y};}
+      });
+      c.addEventListener('mousemove',e=>{
+        if(MM.dragging){const pos=_mmWP(e);MM.dragging.x=pos.x+MM.dragOffset.x;MM.dragging.y=pos.y+MM.dragOffset.y;MM.dragging.vx=MM.dragging.vy=0;}
+        else if(MM.isPanning){MM.pan.x=e.clientX-MM.panStart.x;MM.pan.y=e.clientY-MM.panStart.y;}
+      });
+      c.addEventListener('mouseup',e=>{
+        if(cs&&Math.abs(e.clientX-cs.x)<5&&Math.abs(e.clientY-cs.y)<5){const pos=_mmWP(e);const hit=_mmHit(pos.x,pos.y);if(hit)_mmSel(hit);}
+        MM.dragging=null;MM.isPanning=false;cs=null;
+      });
+      c.addEventListener('mouseleave',()=>{MM.dragging=null;MM.isPanning=false;});
+      c.addEventListener('wheel',e=>{e.preventDefault();MM.zoom=Math.max(.25,Math.min(5,MM.zoom*(e.deltaY>0?.9:1.11)));},{passive:false});
+    }
+    function _mmWP(e){const r=MM.canvas.getBoundingClientRect();return{x:(e.clientX-r.left-MM.pan.x)/MM.zoom,y:(e.clientY-r.top-MM.pan.y)/MM.zoom};}
+    function _mmHit(x,y){for(let i=MM.nodes.length-1;i>=0;i--){const n=MM.nodes[i];const dx=x-n.x,dy=y-n.y;if(dx*dx+dy*dy<=(n.radius+8)*(n.radius+8))return n;}return null;}
+    function _mmSel(node){
+      MM.selected=node;
+      const insp=document.getElementById('mm-inspector'),cont=document.getElementById('mm-inspector-content');
+      if(!insp||!cont) return; insp.style.display='block';
+      if(node.id==='__hub__'){
+        cont.innerHTML=`<b>Hive Consciousness</b><br>Nodes: ${MM.nodes.length-1}<br>Links: ${MM.edges.filter(e=>!e.hub).length}<br>Investigations: ${MM.nodes.filter(n=>n.type==='investigation').length}<br>Active Agents: ${MM.nodes.filter(n=>n.type==='agent').length}`;
+        return;
+      }
+      if(node.type==='investigation'){
+        cont.innerHTML=`<div style="color:var(--accent);font-weight:700;margin-bottom:5px;">${node.label}</div>Score: <b>${node.score}</b><br>Agents: <b>${node.agentCount||0}</b><br>Papers: <b>${node.papers||0}</b>`;
+      } else {
+        const ago=node.lastSeen?Math.round((Date.now()-node.lastSeen)/1000):'?';
+        cont.innerHTML=`<div style="color:${node.color?.label||'var(--accent)'};font-weight:700;margin-bottom:5px;">${node.label}</div>Role: <b>${node.role}</b><br>Rank: <b>${node.rank}</b><br>Papers: <b>${node.contributions||0}</b><br>Last seen: <b>${ago}s ago</b>`;
+      }
+    }
+
+    function mmToggleLabels(){ MM.showLabels=!MM.showLabels; const b=document.getElementById('mm-label-btn'); if(b)b.textContent=MM.showLabels?'Labels ON':'Labels OFF'; }
+    function mmResetView(){ MM.zoom=1; MM.pan={x:0,y:0}; }
+
     function updateNarrativeTicker(text) {
       const ticker = document.getElementById('hive-narrative-ticker');
-      if (ticker && text) ticker.textContent = `${text}`;
+      if (ticker && text) ticker.textContent = text;
     }
 
     // Poll consciousness every 30s
     setInterval(async () => {
-      const { currentEra } = await (async () => {
-        try { return await fetch(`${API_BASE}/hive-status`).then(r => r.json()); } catch { return {}; }
-      })();
-      if (currentEra != null) updateNarrativeTicker('');
+      try { const d=await fetch(`${API_BASE}/hive-status`).then(r=>r.json()); updateNarrativeTicker(d.summary||''); } catch {}
     }, 30000);
 
     // ── toggleSidebar / toggleMobileSidebar ───────────────────────────

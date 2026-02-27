@@ -1512,6 +1512,45 @@ app.get("/hive-status", async (req, res) => {
     res.json({ ...narrative, history });
 });
 
+// ── Hive Mind Graph (Phase 18+) ──────────────────────────────
+app.get("/hive-mind-graph", async (req, res) => {
+    const state = { investigations: [], papers: [] };
+    await new Promise(resolve => {
+        db.get('investigations').map().once(d => { if (d && d.title) state.investigations.push(d); });
+        db.get('papers').map().once(d => { if (d && d.investigation_id && d.author_id) state.papers.push(d); });
+        setTimeout(resolve, 1500);
+    });
+    const nodes = [];
+    const edges = [];
+    const invIndex = {};
+    for (const inv of state.investigations) {
+        const id = inv.id || ('inv-' + nodes.length);
+        invIndex[id] = true;
+        nodes.push({ id, type: 'investigation', label: inv.title || id, score: inv.score || 0, papers: 0, agentCount: 0 });
+    }
+    const cutoff = Date.now() - 5 * 60 * 1000;
+    for (const [id, data] of swarmCache.agents.entries()) {
+        if (data.lastSeen && data.lastSeen > cutoff) {
+            const rk = calculateRank(data);
+            nodes.push({ id, type: 'agent', label: data.name || id, role: data.role || 'Researcher', rank: (rk.rank || 'CITIZEN'), contributions: data.contributions || 0, lastSeen: data.lastSeen });
+        }
+    }
+    const edgeSet = new Set();
+    const invPapers = {}, invAgents = {};
+    for (const p of state.papers) {
+        if (!p.author_id || !p.investigation_id) continue;
+        const key = `${p.author_id}→${p.investigation_id}`;
+        if (!edgeSet.has(key)) { edgeSet.add(key); edges.push({ source: p.author_id, target: p.investigation_id, weight: 1 }); }
+        invPapers[p.investigation_id] = (invPapers[p.investigation_id] || 0) + 1;
+        if (!invAgents[p.investigation_id]) invAgents[p.investigation_id] = new Set();
+        invAgents[p.investigation_id].add(p.author_id);
+    }
+    for (const n of nodes) {
+        if (n.type === 'investigation') { n.papers = invPapers[n.id] || 0; n.agentCount = invAgents[n.id]?.size || 0; }
+    }
+    res.json({ nodes, edges, timestamp: Date.now() });
+});
+
 // ── Genetic Self-Writing (Phase 17) ──────────────────────────
 app.get("/genetic-tree", async (req, res) => {
     try {
