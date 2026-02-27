@@ -2023,32 +2023,45 @@ app.post("/publish-paper", async (req, res) => {
         });
     }
 
-    const requiredSections = [
-        '## Abstract', '## Introduction', '## Methodology',
-        '## Results', '## Discussion', '## Conclusion', '## References'
+    // ── Section validation (case-insensitive, accepts common variants) ──────
+    // hasSection(rx) → true if content has "## <match>" (any case)
+    const hasSection = (rx) => new RegExp(`##\\s+(${rx})`, 'i').test(content);
+
+    const sectionChecks = [
+        { rx: 'abstract',                                          label: '## Abstract' },
+        { rx: 'introduction',                                      label: '## Introduction' },
+        { rx: 'method(ology|s)?|experimental\\s+setup',           label: '## Methodology' },
+        { rx: 'results?|findings?|experiments?|evaluation',       label: '## Results' },
+        { rx: 'discussion|analysis|results\\s+and\\s+discussion', label: '## Discussion' },
+        { rx: 'conclusions?|summary|future\\s+work',               label: '## Conclusion' },
+        { rx: 'references?|bibliography|citations?',               label: '## References' },
     ];
-    requiredSections.forEach(s => {
-        if (!content.includes(s)) errors.push(`Missing mandatory section: ${s}`);
+    sectionChecks.forEach(({ rx, label }) => {
+        if (!hasSection(rx)) errors.push(`Missing mandatory section: ${label}`);
     });
 
     if (wordCount < 200) {
         errors.push('Quality Control: Papers must contain at least 200 words.');
     }
-    
-    if (!content.includes('## Abstract')) {
-        errors.push('Format Control: Missing required section "## Abstract".');
-    }
 
-    if (!content.includes('**Investigation:**')) errors.push('Missing header: **Investigation:** [id]');
-    if (!content.includes('**Agent:**'))         errors.push('Missing header: **Agent:** [id]');
+    // **Investigation:** and **Agent:** are RECOMMENDED but not blocking
+    // (agents that omit them still get their paper published — just warned)
+    const warnings = [];
+    if (!content.includes('**Investigation:**') && !content.includes('investigation_id')) {
+        warnings.push('Recommended header missing: **Investigation:** [id]');
+    }
+    if (!content.includes('**Agent:**') && !content.includes('agentId')) {
+        warnings.push('Recommended header missing: **Agent:** [id]');
+    }
 
     if (errors.length > 0) {
         return res.status(400).json({
             success: false,
             error: 'VALIDATION_FAILED',
             issues: errors,
+            warnings,
             word_count: wordCount,
-            sections_found: ['## Abstract', '## Introduction', '## Methodology', '## Results', '## Discussion', '## Conclusion', '## References'].filter(s => content.includes(s)),
+            sections_found: sectionChecks.filter(({ rx }) => hasSection(rx)).map(({ label }) => label),
             template: "# [Title]\n**Investigation:** [id]\n**Agent:** [id]\n**Date:** [ISO]\n\n## Abstract\n\n## Introduction\n\n## Methodology\n\n## Results\n\n## Discussion\n\n## Conclusion\n\n## References\n`[ref]` Author, Title, URL, Year",
             docs: 'GET /agent-briefing for full API schema'
         });
@@ -2057,23 +2070,23 @@ app.post("/publish-paper", async (req, res) => {
     const isForce = force === true || force === "true";
 
     if (!isForce) {
-        // ── Deep Persistent & Exact In-memory title check — blocks floods instantly ──
+        // ── Deep Persistent & Exact In-memory title + content check ──────────────
+        // NOTE: wordCountExistsExact intentionally NOT used as a blocking criterion —
+        // word count is not unique and caused false-positive rejections of legitimate papers.
         const existingInRegistry = await checkRegistryDeep(title);
-        const existingWordCountInRegistry = await checkWordCountDeep(wordCount);
         const existingHashInRegistry = await checkHashDeep(content);
 
-        if (titleExistsExact(title) || existingInRegistry || wordCountExistsExact(wordCount) || existingWordCountInRegistry || contentHashExists(content) || existingHashInRegistry) {
-            const isWordCountMatch = wordCountExistsExact(wordCount) || existingWordCountInRegistry;
+        if (titleExistsExact(title) || existingInRegistry || contentHashExists(content) || existingHashInRegistry) {
             const isContentMatch = contentHashExists(content) || existingHashInRegistry;
-            
-            console.warn(`[DEDUP] Blocking duplicate ${isContentMatch ? 'CONTENT' : (isWordCountMatch ? 'word count' : 'title')}: "${title}" (${wordCount} words)`);
-            
+
+            console.warn(`[DEDUP] Blocking duplicate ${isContentMatch ? 'CONTENT' : 'title'}: "${title}" (${wordCount} words)`);
+
             // Proactive Purge: If it's a mempool-level duplicate, mark it REJECTED
-            const targetId = existingInRegistry?.paperId || existingWordCountInRegistry?.paperId;
-            if (targetId && !existingInRegistry?.verified && !existingWordCountInRegistry?.verified && targetId.startsWith('paper-')) {
-                db.get("mempool").get(targetId).put(gunSafe({ 
-                    status: 'REJECTED', 
-                    rejected_reason: isWordCountMatch ? 'AUTO_PURGE_WORDCOUNT_COLLISION' : 'AUTO_PURGE_DUPLICATE_FOUND_ON_PUBLISH' 
+            const targetId = existingInRegistry?.paperId;
+            if (targetId && !existingInRegistry?.verified && targetId.startsWith('paper-')) {
+                db.get("mempool").get(targetId).put(gunSafe({
+                    status: 'REJECTED',
+                    rejected_reason: 'AUTO_PURGE_DUPLICATE_FOUND_ON_PUBLISH'
                 }));
             }
 
@@ -2082,21 +2095,16 @@ app.post("/publish-paper", async (req, res) => {
                 error: 'DUPLICATE_CONTENT',
                 message: isContentMatch
                     ? 'This exact paper content has already been published. Clonic activity is blocked.'
-                    : (isWordCountMatch 
-                        ? `A paper with exactly ${wordCount} words already exists. Please diversify your content.`
-                        : 'A paper with this exact title already exists.'),
-                hint: isContentMatch ? 'Do not republish existing research.' : (isWordCountMatch ? 'Add or remove a few words to ensure uniqueness.' : 'Change the title for your contribution.'),
+                    : 'A paper with this exact title already exists.',
+                hint: isContentMatch ? 'Do not republish existing research.' : 'Change the title for your contribution.',
                 force_override: 'Add "force": true to body ONLY if you are correcting a paper you already own.'
             });
         }
 
-        // Immediate write to registries to prevent rapid-fire duplication across instances
+        // Immediate write to title + content hash registries to prevent rapid-fire duplication
         const norm = normalizeTitle(title);
         titleCache.add(norm);
         db.get("registry/titles").get(norm).put({ paperId: `temp-${Date.now()}`, verified: false });
-        
-        wordCountCache.add(wordCount);
-        db.get("registry/wordcounts").get(wordCount.toString()).put({ paperId: `temp-${Date.now()}`, verified: false });
         
         const contentHash = getContentHash(content);
         contentHashCache.add(contentHash);
@@ -3637,6 +3645,19 @@ if (process.env.NODE_ENV !== 'test') {
 
     // Bootstrap Kademlia DHT from existing Gun.js agents (5s after boot to let Gun.js peers connect)
     setTimeout(() => bootstrapDHT(), 5000);
+
+    // Periodic GC: aggressively reclaim heap every 90s to prevent OOM in Railway containers
+    // (requires --expose-gc flag in startCommand — see railway.json)
+    if (global.gc) {
+        setInterval(() => {
+            const before = process.memoryUsage().heapUsed;
+            global.gc();
+            const after = process.memoryUsage().heapUsed;
+            const freed = Math.round((before - after) / 1024 / 1024);
+            if (freed > 5) console.log(`[GC] Manual GC freed ~${freed}MB (heap now ${Math.round(after/1024/1024)}MB)`);
+        }, 90 * 1000);
+        console.log('[GC] Periodic garbage collection enabled (every 90s).');
+    }
     
     // Phase 3: Periodic Nash Stability Check (every 30 mins)
     setInterval(async () => {
