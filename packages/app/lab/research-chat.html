@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>P2PCLAW · Research Chat</title>
+<title>P2PCLAW — Research Chat</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
-/* ── CLAW Design System ────────────────────────────────────────── */
 :root {
   --bg-primary:    #0c0c0d;
   --bg-secondary:  #121214;
@@ -20,9 +19,8 @@
   --text-muted:    #52504e;
   --accent:        #ff4e1a;
   --accent-light:  #ff7020;
-  --accent-glow:   rgba(255,78,26,0.18);
+  --accent-glow:   rgba(255,78,26,0.14);
   --claw-crimson:  #e63030;
-  --claw-flame:    #ff4e1a;
   --claw-amber:    #ff9a30;
   --claw-gold:     #ffcb47;
   --font-mono:     'JetBrains Mono', monospace;
@@ -30,1263 +28,564 @@
   --radius:        10px;
   --radius-sm:     6px;
 }
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;overflow:hidden;}
-body{background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-body);font-size:14px;}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+body { background:var(--bg-primary); color:var(--text-primary); font-family:var(--font-body); font-size:14px; }
 
-/* ── Layout ─────────────────────────────────────────────────── */
-.app{display:flex;flex-direction:column;height:100vh;}
-.header{
-  padding:12px 24px;border-bottom:1px solid var(--border);
-  background:rgba(10,14,23,0.97);backdrop-filter:blur(12px);
-  display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;flex-shrink:0;
+.header {
+  padding:0 28px; height:52px; border-bottom:1px solid var(--border);
+  background:rgba(12,12,13,0.96); backdrop-filter:blur(12px);
+  display:flex; align-items:center; justify-content:space-between;
+  flex-shrink:0; z-index:100;
 }
-.header-left{display:flex;align-items:center;gap:16px;}
-.logo{font-family:var(--font-mono);font-weight:700;font-size:15px;color:var(--accent);}
-.logo span{color:var(--text-secondary);font-weight:400;}
-.header-right{display:flex;align-items:center;gap:12px;}
-.agent-count{
-  font-family:var(--font-mono);font-size:11px;color:var(--claw-amber);
-  display:flex;align-items:center;gap:6px;
-}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--claw-amber);
-  box-shadow:0 0 6px var(--claw-amber);animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
-.btn{
-  padding:6px 14px;border-radius:var(--radius-sm);font-family:var(--font-mono);
-  font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);
-  background:transparent;color:var(--text-secondary);transition:all .2s;
-}
-.btn:hover{border-color:var(--accent);color:var(--accent);}
-.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent);}
-.btn-accent:hover{background:var(--accent-light);border-color:var(--accent-light);color:#fff;}
-.btn-sm{padding:4px 10px;font-size:10px;}
+.header-left { display:flex; align-items:center; gap:20px; }
+.logo { font-family:var(--font-mono); font-weight:700; font-size:13px; color:var(--accent); }
+.logo span { color:var(--text-muted); font-weight:400; }
+.breadcrumb { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px; }
+.breadcrumb a { color:var(--text-muted); text-decoration:none; transition:color .18s; }
+.breadcrumb a:hover { color:var(--text-secondary); }
+.header-right { display:flex; align-items:center; gap:12px; }
+.agent-status { font-family:var(--font-mono); font-size:11px; color:var(--claw-amber); display:flex; align-items:center; gap:6px; }
+.pulse { width:6px; height:6px; border-radius:50%; background:var(--claw-amber); box-shadow:0 0 4px var(--claw-amber); animation:blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.3;} }
 
-.body{display:flex;flex:1;overflow:hidden;}
+.btn {
+  padding:5px 14px; border-radius:var(--radius-sm);
+  font-family:var(--font-mono); font-size:11px; font-weight:600;
+  cursor:pointer; border:1px solid var(--border);
+  background:transparent; color:var(--text-muted); transition:all .18s;
+  text-decoration:none; display:inline-flex; align-items:center; gap:5px;
+}
+.btn:hover { border-color:var(--accent); color:var(--accent); }
+.btn-primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.btn-primary:hover { background:var(--accent-light); color:#fff; }
+.btn-sm { padding:3px 10px; font-size:10px; }
 
-/* ── Sidebar ─────────────────────────────────────────────────── */
-.sidebar{
-  width:220px;min-width:220px;background:var(--bg-secondary);
-  border-right:1px solid var(--border);display:flex;flex-direction:column;
-  overflow:hidden;flex-shrink:0;
-}
-.sidebar-section{padding:16px 14px 8px;
-  font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--text-muted);}
-.session-list{flex:1;overflow-y:auto;padding:0 8px;}
-.session-item{
-  padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;
-  font-size:12px;color:var(--text-secondary);transition:all .2s;
-  display:flex;align-items:center;gap:8px;margin-bottom:2px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.session-item:hover{background:var(--bg-card-hover);color:var(--text-primary);}
-.session-item.active{background:var(--accent-glow);color:var(--text-primary);border-left:2px solid var(--accent);}
-.session-date{
-  font-family:var(--font-mono);font-size:9px;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--text-muted);padding:10px 10px 4px;
-}
-.agent-pill{
-  display:flex;align-items:center;gap:6px;padding:6px 10px;
-  font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);
-}
-.agent-dot{width:6px;height:6px;border-radius:50%;background:var(--claw-amber);
-  box-shadow:0 0 4px var(--claw-amber);}
-.sidebar-new{padding:12px 8px;}
-.btn-new{
-  width:100%;padding:8px;background:var(--accent-glow);border:1px dashed var(--accent);
-  color:var(--accent);font-family:var(--font-mono);font-size:11px;font-weight:600;
-  border-radius:var(--radius-sm);cursor:pointer;transition:all .2s;
-}
-.btn-new:hover{background:var(--accent);color:#fff;}
+.app { display:flex; flex-direction:column; height:100vh; }
+.body { display:flex; flex:1; overflow:hidden; }
 
-/* ── Main chat area ─────────────────────────────────────────── */
-.main{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+/* Sidebar */
+.sidebar {
+  width:220px; min-width:220px; background:var(--bg-secondary);
+  border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; flex-shrink:0;
+}
+.sidebar-section { padding:12px 14px 4px; font-family:var(--font-mono); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.14em; color:var(--text-muted); opacity:.6; }
+.session-list { flex:1; overflow-y:auto; padding:4px 8px; }
+.session-item { padding:8px 9px; border-radius:var(--radius-sm); cursor:pointer; font-size:12px; color:var(--text-secondary); transition:all .18s; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.session-item:hover { background:var(--bg-card); color:var(--text-primary); }
+.session-item.active { background:var(--bg-card); color:var(--accent); border-left:2px solid var(--accent); }
+.agent-list { max-height:160px; overflow-y:auto; }
+.agent-row-s { padding:7px 14px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); }
+.agent-row-s:last-child { border-bottom:none; }
+.agent-dot { width:5px; height:5px; border-radius:50%; background:#22c55e; flex-shrink:0; }
+.agent-dot.idle { background:var(--claw-amber); }
+.agent-name-s { font-family:var(--font-mono); font-size:10px; color:var(--text-secondary); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-.tools-bar{
-  padding:10px 20px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  background:var(--bg-secondary);flex-shrink:0;
-}
-.tool-chip{
-  padding:5px 12px;border-radius:20px;border:1px solid var(--border);
-  font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);
-  cursor:pointer;transition:all .2s;background:var(--bg-card);
-  display:flex;align-items:center;gap:5px;
-}
-.tool-chip:hover{border-color:var(--accent);color:var(--accent);
-  background:var(--accent-glow);}
-.tool-chip.active{border-color:var(--accent);color:var(--accent);
-  background:var(--accent-glow);}
+/* Chat */
+.chat-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.chat-scroll { flex:1; overflow-y:auto; padding:20px 24px; display:flex; flex-direction:column; gap:16px; }
+.chat-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:48px; gap:12px; }
+.chat-empty-title { font-family:var(--font-mono); font-size:14px; font-weight:700; color:var(--text-secondary); }
+.chat-empty-sub { font-size:12px; color:var(--text-muted); max-width:360px; line-height:1.6; }
 
-.messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;}
+/* Tool bar */
+.tool-bar { padding:9px 24px; border-top:1px solid var(--border); display:flex; gap:6px; flex-wrap:wrap; background:var(--bg-secondary); align-items:center; }
+.tool-bar-label { font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.12em; color:var(--text-muted); margin-right:4px; }
+.tool-chip {
+  padding:3px 10px; border-radius:3px; font-family:var(--font-mono); font-size:10px; font-weight:600;
+  text-transform:uppercase; letter-spacing:.05em;
+  cursor:pointer; border:1px solid var(--border); color:var(--text-muted); background:transparent; transition:all .18s;
+}
+.tool-chip:hover { border-color:var(--text-secondary); color:var(--text-secondary); }
+.tool-chip.active { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
 
-/* ── Message bubbles ─────────────────────────────────────────── */
-.msg{display:flex;flex-direction:column;max-width:80%;}
-.msg-user{align-self:flex-end;}
-.msg-swarm{align-self:flex-start;}
-.msg-system{align-self:center;max-width:60%;}
+/* Input */
+.input-bar { padding:14px 24px; border-top:1px solid var(--border); background:var(--bg-primary); }
+.input-row { display:flex; gap:10px; align-items:flex-end; }
+.chat-input {
+  flex:1; padding:11px 14px; border-radius:var(--radius);
+  background:var(--bg-card); border:1px solid var(--border);
+  color:var(--text-primary); font-family:var(--font-body); font-size:14px;
+  resize:none; min-height:44px; max-height:140px; outline:none; line-height:1.5;
+  transition:border-color .18s;
+}
+.chat-input:focus { border-color:var(--accent); }
+.chat-input::placeholder { color:var(--text-muted); }
+.send-btn {
+  padding:11px 22px; border-radius:var(--radius);
+  background:var(--accent); color:#fff; font-family:var(--font-mono); font-size:12px; font-weight:700;
+  cursor:pointer; border:none; transition:background .18s; flex-shrink:0;
+}
+.send-btn:hover { background:var(--accent-light); }
+.send-btn:disabled { opacity:.4; cursor:not-allowed; }
+.input-hint { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); margin-top:6px; }
 
-.bubble{
-  padding:12px 16px;border-radius:var(--radius);
-  line-height:1.55;font-size:13.5px;
+/* Messages */
+.msg { display:flex; gap:12px; max-width:820px; }
+.msg.user { flex-direction:row-reverse; align-self:flex-end; }
+.msg-avatar {
+  width:28px; height:28px; border-radius:50%; flex-shrink:0;
+  background:var(--bg-card); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--text-muted);
 }
-.msg-user .bubble{
-  background:var(--accent);color:#fff;border-radius:var(--radius) var(--radius) 4px var(--radius);
+.msg.user .msg-avatar { background:var(--accent-glow); border-color:rgba(255,78,26,.3); color:var(--accent); }
+.msg-hdr { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+.msg-sender { font-family:var(--font-mono); font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; }
+.msg-time   { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
+.msg-bubble {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:13px 16px; font-size:13px; line-height:1.65; color:var(--text-secondary);
 }
-.msg-swarm .bubble{
-  background:var(--bg-card);border:1px solid var(--border);
-  border-radius:4px var(--radius) var(--radius) var(--radius);
-}
-.msg-system .bubble{
-  background:rgba(255,78,26,0.06);border:1px solid rgba(255,78,26,.15);
-  font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
-  text-align:center;border-radius:20px;padding:6px 16px;
-}
-.msg-time{
-  font-family:var(--font-mono);font-size:10px;color:var(--text-muted);
-  margin-top:4px;padding:0 4px;
-}
-.msg-user .msg-time{text-align:right;}
+.msg.user .msg-bubble { background:rgba(255,78,26,.07); border-color:rgba(255,78,26,.18); color:var(--text-primary); }
+.msg-bubble p { margin-bottom:8px; }
+.msg-bubble p:last-child { margin-bottom:0; }
+.msg-bubble h3 { font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--text-primary); margin:10px 0 6px; text-transform:uppercase; letter-spacing:.07em; }
+.msg-bubble h3:first-child { margin-top:0; }
+.msg-bubble ul, .msg-bubble ol { padding-left:18px; margin-bottom:8px; }
+.msg-bubble li { margin-bottom:3px; }
+.msg-bubble code { background:var(--bg-secondary); padding:2px 5px; border-radius:3px; font-family:var(--font-mono); font-size:11px; color:var(--claw-amber); }
+.msg-bubble pre { background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; overflow-x:auto; margin:8px 0; }
+.msg-bubble pre code { background:none; padding:0; color:var(--text-secondary); }
+.msg-bubble table { width:100%; border-collapse:collapse; font-size:12px; margin:8px 0; }
+.msg-bubble th, .msg-bubble td { padding:6px 10px; border:1px solid var(--border); text-align:left; }
+.msg-bubble th { background:var(--bg-secondary); font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); }
 
-/* Tool execution block */
-.tool-block{
-  background:var(--bg-secondary);border:1px solid var(--border);
-  border-radius:var(--radius);overflow:hidden;font-family:var(--font-mono);
-  font-size:12px;margin:4px 0;
-}
-.tool-block-header{
-  padding:8px 14px;display:flex;align-items:center;gap:8px;
-  border-bottom:1px solid var(--border);cursor:pointer;
-  background:rgba(255,78,26,0.05);
-}
-.tool-block-header:hover{background:rgba(255,78,26,0.1);}
-.tool-icon{font-size:14px;}
-.tool-name{color:var(--claw-amber);font-weight:600;}
-.tool-status{margin-left:auto;font-size:10px;color:var(--text-muted);}
-.tool-status.running{color:var(--claw-amber);animation:pulse 1.5s infinite;}
-.tool-status.done{color:#4ec94e;}
-.tool-status.error{color:var(--claw-crimson);}
-.tool-body{padding:10px 14px;display:none;flex-direction:column;gap:6px;}
-.tool-body.open{display:flex;}
-.tool-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-secondary);}
-.tool-row .src{color:var(--text-muted);min-width:130px;}
-.tool-row .cnt{color:var(--claw-amber);}
-.tool-row .chk{color:#4ec94e;}
+.tool-label { font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:var(--claw-amber); margin-bottom:8px; opacity:.8; }
 
-/* Literature result cards */
-.lit-results{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
-.lit-card{
-  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);
-  padding:12px 14px;transition:all .2s;
-}
-.lit-card:hover{border-color:var(--accent);box-shadow:0 4px 12px rgba(255,78,26,.1);}
-.lit-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;}
-.lit-title{font-size:13px;font-weight:600;color:var(--text-primary);line-height:1.35;flex:1;}
-.lit-src{
-  font-family:var(--font-mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
-  padding:2px 7px;border-radius:3px;flex-shrink:0;
-  border:1px solid;
-}
-.lit-src.ss{color:var(--claw-amber);border-color:rgba(255,154,48,.4);}
-.lit-src.arxiv{color:var(--claw-crimson);border-color:rgba(230,48,48,.4);}
-.lit-src.oa{color:var(--accent-light);border-color:rgba(255,112,32,.4);}
-.lit-meta{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:6px;}
-.lit-abstract{font-size:12px;color:var(--text-secondary);line-height:1.45;
-  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
-.lit-actions{display:flex;gap:6px;margin-top:10px;}
-.lit-btn{
-  padding:4px 10px;border-radius:4px;font-family:var(--font-mono);font-size:10px;font-weight:600;
-  cursor:pointer;border:1px solid var(--border);background:transparent;
-  color:var(--text-muted);transition:all .2s;
-}
-.lit-btn:hover{border-color:var(--accent);color:var(--accent);}
-.lit-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
-.lit-btn.primary:hover{background:var(--accent-light);}
+/* Result cards inside bubbles */
+.result-card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; margin-top:8px; }
+.result-title { font-size:12px; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
+.result-title a { color:inherit; text-decoration:none; }
+.result-title a:hover { color:var(--accent); }
+.result-meta { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); margin-bottom:5px; }
+.result-abs { font-size:11px; color:var(--text-secondary); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.result-actions { margin-top:8px; display:flex; gap:6px; }
 
-/* Swarm markdown rendering */
-.msg-swarm .bubble h1,.msg-swarm .bubble h2,.msg-swarm .bubble h3{
-  color:var(--text-primary);margin:12px 0 6px;font-size:14px;}
-.msg-swarm .bubble h2{font-size:13px;color:var(--claw-amber);}
-.msg-swarm .bubble p{margin-bottom:8px;}
-.msg-swarm .bubble ul,.msg-swarm .bubble ol{padding-left:20px;margin-bottom:8px;}
-.msg-swarm .bubble li{margin-bottom:4px;}
-.msg-swarm .bubble code{
-  font-family:var(--font-mono);font-size:11px;
-  background:var(--bg-secondary);padding:1px 5px;border-radius:3px;color:var(--claw-amber);
-}
-.msg-swarm .bubble pre{
-  background:var(--bg-secondary);padding:12px;border-radius:var(--radius-sm);
-  overflow-x:auto;margin:8px 0;border:1px solid var(--border);
-}
-.msg-swarm .bubble pre code{background:none;padding:0;}
-.msg-swarm .bubble a{color:var(--accent);text-decoration:none;}
-.msg-swarm .bubble a:hover{text-decoration:underline;}
-.msg-swarm .bubble strong{color:var(--text-primary);}
-.msg-swarm .bubble blockquote{
-  border-left:3px solid var(--accent);padding:8px 12px;
-  background:var(--bg-secondary);margin:8px 0;border-radius:0 var(--radius-sm) var(--radius-sm) 0;
-}
+/* Thinking */
+.thinking { display:flex; align-items:center; gap:10px; padding:13px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); }
+.dots { display:flex; gap:4px; }
+.dot { width:5px; height:5px; border-radius:50%; background:var(--accent); opacity:.3; animation:dp 1.4s infinite; }
+.dot:nth-child(2){animation-delay:.2s;} .dot:nth-child(3){animation-delay:.4s;}
+@keyframes dp { 0%,80%,100%{opacity:.3;} 40%{opacity:1;} }
+.thinking-text { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); }
 
-/* Source chips */
-.source-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-.source-chip{
-  font-family:var(--font-mono);font-size:10px;padding:3px 8px;
-  border-radius:4px;background:var(--bg-secondary);border:1px solid var(--border);
-  color:var(--text-muted);cursor:pointer;transition:all .2s;
-}
-.source-chip:hover{border-color:var(--accent);color:var(--accent);}
+/* Modals */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:300; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .18s; }
+.overlay.open { opacity:1; pointer-events:all; }
+.modal { background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius); padding:0; max-width:660px; width:92%; max-height:88vh; display:flex; flex-direction:column; }
+.modal-hdr { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.modal-title { font-family:var(--font-mono); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--text-primary); }
+.modal-body { flex:1; overflow-y:auto; padding:18px; }
+.modal-ftr { padding:12px 20px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; flex-shrink:0; }
+.draft-pre { background:var(--bg-primary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; font-family:var(--font-mono); font-size:11px; color:var(--text-secondary); white-space:pre-wrap; line-height:1.7; }
 
-/* Input area */
-.input-area{
-  padding:16px 20px;border-top:1px solid var(--border);
-  background:var(--bg-secondary);flex-shrink:0;
-}
-.input-wrap{
-  background:var(--bg-card);border:1px solid var(--border);
-  border-radius:var(--radius);display:flex;align-items:flex-end;gap:10px;padding:10px 14px;
-  transition:border-color .2s;
-}
-.input-wrap:focus-within{border-color:var(--accent);}
-.chat-input{
-  flex:1;background:none;border:none;outline:none;resize:none;
-  color:var(--text-primary);font-family:var(--font-body);font-size:13.5px;
-  line-height:1.5;min-height:22px;max-height:120px;overflow-y:auto;
-}
-.chat-input::placeholder{color:var(--text-muted);}
-.send-btn{
-  padding:7px 16px;background:var(--accent);color:#fff;border:none;
-  border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:11px;font-weight:700;
-  cursor:pointer;transition:all .2s;flex-shrink:0;
-}
-.send-btn:hover{background:var(--accent-light);}
-.send-btn:disabled{background:var(--bg-card-hover);color:var(--text-muted);cursor:not-allowed;}
-.input-hints{
-  display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;
-}
-.hint{
-  font-family:var(--font-mono);font-size:10px;padding:3px 10px;
-  border:1px solid var(--border);border-radius:20px;color:var(--text-muted);
-  cursor:pointer;transition:all .2s;background:var(--bg-primary);
-}
-.hint:hover{border-color:var(--accent);color:var(--accent);}
-
-/* Experiment form */
-.exp-form{
-  background:var(--bg-secondary);border:1px solid var(--border);
-  border-radius:var(--radius);padding:16px;margin-top:8px;
-}
-.exp-form h3{font-size:13px;font-weight:700;color:var(--claw-amber);margin-bottom:14px;
-  font-family:var(--font-mono);}
-.form-field{margin-bottom:12px;}
-.form-label{
-  display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--text-muted);margin-bottom:5px;
-}
-.form-input,.form-textarea{
-  width:100%;background:var(--bg-card);border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-primary);
-  font-family:var(--font-body);font-size:13px;outline:none;transition:border-color .2s;
-}
-.form-input:focus,.form-textarea:focus{border-color:var(--accent);}
-.form-textarea{resize:vertical;min-height:60px;line-height:1.5;}
-.state-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
-.state-badge{
-  font-family:var(--font-mono);font-size:9px;letter-spacing:.08em;
-  text-transform:uppercase;padding:3px 9px;border-radius:20px;
-  border:1px solid var(--border);color:var(--text-muted);
-}
-.state-badge.active{border-color:var(--accent);color:var(--accent);
-  background:var(--accent-glow);}
-
-/* Scrollbar */
-::-webkit-scrollbar{width:4px;height:4px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-::-webkit-scrollbar-thumb:hover{background:var(--text-muted);}
-
-/* Welcome state */
-.welcome{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  flex:1;padding:40px 20px;text-align:center;gap:20px;
-}
-.welcome-logo{font-size:48px;margin-bottom:8px;}
-.welcome-title{font-size:22px;font-weight:700;color:var(--text-primary);}
-.welcome-sub{color:var(--text-secondary);max-width:420px;line-height:1.6;}
-.welcome-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:500px;width:100%;
-  margin-top:8px;
-}
-.welcome-card{
-  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
-  padding:14px;text-align:left;cursor:pointer;transition:all .2s;
-}
-.welcome-card:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(255,78,26,.12);}
-.welcome-card-icon{font-size:20px;margin-bottom:8px;}
-.welcome-card-title{font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:4px;}
-.welcome-card-desc{font-size:11px;color:var(--text-muted);line-height:1.4;}
-
-/* Spinner */
-@keyframes spin{to{transform:rotate(360deg);}}
-.spinner{
-  width:14px;height:14px;border:2px solid var(--border);
-  border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;
-  display:inline-block;flex-shrink:0;
-}
-
-/* Modal */
-.modal-overlay{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
-  backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;
-}
-.modal-overlay.open{display:flex;}
-.modal{
-  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
-  width:min(600px, 90vw);max-height:80vh;overflow:hidden;
-  display:flex;flex-direction:column;
-  box-shadow:0 0 60px rgba(255,78,26,.15);
-}
-.modal-header{
-  padding:16px 20px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.modal-title{font-weight:700;font-size:15px;}
-.modal-close{
-  background:none;border:none;color:var(--text-muted);cursor:pointer;
-  font-size:18px;transition:color .2s;
-}
-.modal-close:hover{color:var(--text-primary);}
-.modal-body{padding:20px;overflow-y:auto;flex:1;}
-.modal-footer{
-  padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;
-}
+/* Join modal */
+.join-card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius); padding:28px; max-width:420px; width:90%; }
+.join-card h3 { font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:8px; }
+.join-card p { color:var(--text-secondary); font-size:13px; margin-bottom:20px; line-height:1.6; }
+.jfield { margin-bottom:13px; }
+.jfield label { display:block; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); margin-bottom:5px; }
+.jfield input, .jfield select { width:100%; padding:9px 11px; border-radius:var(--radius-sm); background:var(--bg-card); border:1px solid var(--border); color:var(--text-primary); font-family:var(--font-body); font-size:13px; outline:none; transition:border-color .18s; }
+.jfield input:focus { border-color:var(--accent); }
 
 /* Toast */
-.toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px;}
-.toast{
-  padding:10px 16px;background:var(--bg-card);border:1px solid var(--border);
-  border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:11px;color:var(--text-primary);
-  animation:slideIn .3s ease;max-width:280px;
-}
-.toast.success{border-color:var(--claw-amber);color:var(--claw-amber);}
-.toast.error{border-color:var(--claw-crimson);color:var(--claw-crimson);}
-@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.toast-box { position:fixed; bottom:20px; right:20px; display:flex; flex-direction:column; gap:6px; z-index:1000; }
+.toast { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; min-width:240px; font-family:var(--font-mono); font-size:11px; color:var(--text-secondary); animation:si .25s ease; }
+.toast.ok  { border-color:#22c55e; color:#22c55e; }
+.toast.err { border-color:var(--claw-crimson); color:var(--claw-crimson); }
+.toast.info{ border-color:var(--claw-amber); color:var(--claw-amber); }
+@keyframes si { from{transform:translateX(100%);opacity:0;} to{transform:translateX(0);opacity:1;} }
 
-/* Responsive */
-@media(max-width:768px){
-  .sidebar{display:none;}
-  .msg{max-width:95%;}
-  .welcome-grid{grid-template-columns:1fr;}
-}
+::-webkit-scrollbar { width:3px; height:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+@media(max-width:768px) { .sidebar{display:none;} }
 </style>
 </head>
 <body>
 <div class="app">
-  <!-- Header -->
-  <header class="header">
-    <div class="header-left">
-      <div class="logo">🦞 P2PCLAW <span>/ Research Chat</span></div>
-      <a href="../lab/" style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);text-decoration:none;" title="Lab Hub">← Lab</a>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">P2PCLAW <span>/ Lab</span></div>
+    <div class="breadcrumb">
+      <a href="index.html">Lab Hub</a><span>/</span>
+      <span style="color:var(--text-secondary)">Research Chat</span>
     </div>
-    <div class="header-right">
-      <div class="agent-count">
-        <div class="dot"></div>
-        <span id="agentCountLabel">… agentes activos</span>
-      </div>
-      <button class="btn btn-sm" onclick="openJoinModal()">Unirse al enjambre</button>
-      <a href="../app.html" style="text-decoration:none;"><button class="btn btn-sm">→ App principal</button></a>
+  </div>
+  <div class="header-right">
+    <div class="agent-status"><span class="pulse"></span><span id="agentCount">Connecting...</span></div>
+    <a href="literature.html" class="btn">Literature</a>
+    <a href="experiments.html" class="btn">Lab Notebook</a>
+    <a href="../app.html" class="btn">Dashboard</a>
+  </div>
+</header>
+
+<div class="body">
+
+<div class="sidebar">
+  <div class="sidebar-section">Sessions</div>
+  <div style="padding:8px 10px;">
+    <button class="btn btn-primary btn-sm" onclick="newSession()" style="width:100%;justify-content:center;">New session</button>
+  </div>
+  <div class="session-list" id="sessionList"></div>
+  <div class="sidebar-section">Active Agents</div>
+  <div class="agent-list" id="agentList">
+    <div style="padding:10px 14px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">Connecting...</div>
+  </div>
+</div>
+
+<div class="chat-area">
+  <div class="tool-bar">
+    <span class="tool-bar-label">Tools</span>
+    <button class="tool-chip" data-tool="literature" onclick="setTool(this)">Literature</button>
+    <button class="tool-chip" data-tool="experiment" onclick="setTool(this)">Experiment</button>
+    <button class="tool-chip" data-tool="draft"      onclick="setTool(this)">Draft paper</button>
+    <button class="tool-chip" data-tool="corpus"     onclick="setTool(this)">Corpus</button>
+    <button class="tool-chip" data-tool="swarm"      onclick="setTool(this)">Swarm</button>
+  </div>
+  <div class="chat-scroll" id="chatScroll">
+    <div class="chat-empty" id="chatEmpty">
+      <div class="chat-empty-title">Research Chat</div>
+      <div class="chat-empty-sub">Ask any research question in natural language. The swarm searches literature, queries the corpus, designs experiments and drafts papers on your behalf.</div>
     </div>
-  </header>
+  </div>
+  <div class="input-bar">
+    <div class="input-row">
+      <textarea class="chat-input" id="chatInput" rows="1"
+        placeholder="Ask a research question, search for papers, request a literature review..."
+        oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+    <div class="input-hint">Enter to send &middot; Shift+Enter for new line &middot; Use tool chips to guide the swarm</div>
+  </div>
+</div>
 
-  <div class="body">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-new">
-        <button class="btn-new" onclick="newSession()">+ Nueva investigación</button>
-      </div>
-      <div class="sidebar-section">Sesiones</div>
-      <div class="session-list" id="sessionList"></div>
-      <div class="sidebar-section" style="margin-top:auto;">Agentes activos</div>
-      <div id="agentList" style="padding:0 8px 12px;"></div>
-    </aside>
+</div>
+</div>
 
-    <!-- Main -->
-    <main class="main">
-      <!-- Tool chips -->
-      <div class="tools-bar">
-        <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:.08em;">HERRAMIENTAS:</span>
-        <div class="tool-chip" onclick="quickTool('lit')" title="Buscar en arXiv, Semantic Scholar y OpenAlex">📚 Literatura</div>
-        <div class="tool-chip" onclick="quickTool('exp')" title="Crear experimento en el lab notebook">🧪 Experimento</div>
-        <div class="tool-chip" onclick="quickTool('paper')" title="Generar borrador de paper académico">📝 Borrador paper</div>
-        <div class="tool-chip" onclick="quickTool('corpus')" title="Buscar en el corpus del enjambre">🔍 Corpus P2PCLAW</div>
-        <div class="tool-chip" onclick="quickTool('swarm')" title="Enviar tarea al enjambre completo">🧠 Pedir al enjambre</div>
-        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-          <a href="../lab/literature.html" style="text-decoration:none;"><span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">Búsqueda avanzada →</span></a>
-          <a href="../lab/experiments.html" style="text-decoration:none;"><span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">Lab notebook →</span></a>
-        </div>
-      </div>
-
-      <!-- Messages -->
-      <div class="messages" id="messages">
-        <!-- Welcome state shown when no messages -->
-        <div class="welcome" id="welcomeScreen">
-          <div class="welcome-logo">🧪</div>
-          <div class="welcome-title">Laboratorio de Investigación</div>
-          <div class="welcome-sub">
-            Describe tu investigación en lenguaje natural. El enjambre buscará literatura,
-            diseñará experimentos, sintetizará hallazgos y redactará papers por ti.
-          </div>
-          <div class="welcome-grid">
-            <div class="welcome-card" onclick="useHint('Busca papers recientes sobre federated learning y privacidad diferencial')">
-              <div class="welcome-card-icon">📚</div>
-              <div class="welcome-card-title">Buscar literatura</div>
-              <div class="welcome-card-desc">"Busca papers recientes sobre…"</div>
-            </div>
-            <div class="welcome-card" onclick="useHint('Diseña un experimento para estudiar el efecto de la temperatura en la velocidad de reacción')">
-              <div class="welcome-card-icon">🧪</div>
-              <div class="welcome-card-title">Diseñar experimento</div>
-              <div class="welcome-card-desc">"Diseña un experimento para…"</div>
-            </div>
-            <div class="welcome-card" onclick="useHint('Sintetiza lo que sabe el enjambre sobre redes neuronales recurrentes')">
-              <div class="welcome-card-icon">🧠</div>
-              <div class="welcome-card-title">Preguntar al enjambre</div>
-              <div class="welcome-card-desc">"¿Qué sabe el enjambre sobre…?"</div>
-            </div>
-            <div class="welcome-card" onclick="useHint('Redacta un borrador de paper sobre optimización de consultas en bases de datos distribuidas')">
-              <div class="welcome-card-icon">📝</div>
-              <div class="welcome-card-title">Redactar paper</div>
-              <div class="welcome-card-desc">"Redacta un borrador sobre…"</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Input area -->
-      <div class="input-area">
-        <div class="input-hints" id="hintBar">
-          <span class="hint" onclick="useHint('Busca papers sobre')">📚 busca papers sobre…</span>
-          <span class="hint" onclick="useHint('Diseña un experimento para')">🧪 diseña experimento…</span>
-          <span class="hint" onclick="useHint('Redacta un borrador de paper sobre')">📝 redacta un paper…</span>
-          <span class="hint" onclick="useHint('¿Qué sabe el enjambre sobre')">🧠 pregunta al enjambre…</span>
-          <span class="hint" onclick="useHint('Sintetiza los hallazgos sobre')">🔍 sintetiza hallazgos…</span>
-        </div>
-        <div class="input-wrap">
-          <textarea
-            id="chatInput"
-            class="chat-input"
-            placeholder="Describe tu investigación o pregunta al enjambre…"
-            rows="1"
-            onkeydown="handleKey(event)"
-            oninput="autoResize(this)"
-          ></textarea>
-          <button class="send-btn" id="sendBtn" onclick="sendMessage()">Enviar →</button>
-        </div>
-      </div>
-    </main>
+<!-- Draft modal -->
+<div class="overlay" id="draftModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">Paper Draft</div>
+      <button class="btn btn-sm" onclick="closeDraftModal()">Close</button>
+    </div>
+    <div class="modal-body"><div class="draft-pre" id="draftPre"></div></div>
+    <div class="modal-ftr">
+      <button class="btn btn-sm" onclick="copyDraft()">Copy Markdown</button>
+      <button class="btn btn-sm btn-primary" onclick="publishDraft()">Publish to Corpus</button>
+    </div>
   </div>
 </div>
 
 <!-- Join modal -->
-<div class="modal-overlay" id="joinModal">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Unirse al enjambre P2PCLAW</span>
-      <button class="modal-close" onclick="closeModal('joinModal')">✕</button>
+<div class="overlay open" id="joinModal">
+  <div class="join-card">
+    <h3>Join P2PCLAW Lab</h3>
+    <p>Enter your researcher identity to start. Sessions and experiments will be saved locally and synced to the P2PCLAW mesh.</p>
+    <div class="jfield"><label>Name or handle</label><input type="text" id="joinName" placeholder="e.g. Dr. Martinez, alice-chen, anonymous-42" autocomplete="off"></div>
+    <div class="jfield">
+      <label>Primary discipline</label>
+      <select id="joinDiscipline">
+        <option>Computer Science / AI</option><option>Physics</option><option>Mathematics</option>
+        <option>Biology / Life Sciences</option><option>Chemistry</option><option>Engineering</option>
+        <option>Medicine</option><option>Social Sciences</option><option>Other</option>
+      </select>
     </div>
-    <div class="modal-body">
-      <div class="form-field">
-        <label class="form-label">Tu nombre o identificador</label>
-        <input type="text" class="form-input" id="joinName" placeholder="Dr. García, ChenLab-01, …">
-      </div>
-      <div class="form-field">
-        <label class="form-label">Disciplina principal</label>
-        <select class="form-input" id="joinDiscipline">
-          <option value="general">General</option>
-          <option value="chemistry">Química</option>
-          <option value="biology">Biología</option>
-          <option value="physics">Física</option>
-          <option value="mathematics">Matemáticas</option>
-          <option value="cs">Informática</option>
-          <option value="medicine">Medicina</option>
-          <option value="engineering">Ingeniería</option>
-          <option value="other">Otra</option>
-        </select>
-      </div>
-      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">
-        Al unirte recibirás un ID de agente permanente guardado localmente. Podrás publicar papers, crear experimentos y acumular CLAW tokens.
-      </p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal('joinModal')">Cancelar</button>
-      <button class="btn btn-accent" onclick="joinSwarm()">Unirme</button>
-    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="joinLab()">Enter Lab</button>
   </div>
 </div>
 
-<!-- Draft modal -->
-<div class="modal-overlay" id="draftModal">
-  <div class="modal" style="max-width:700px;">
-    <div class="modal-header">
-      <span class="modal-title">📝 Borrador generado</span>
-      <button class="modal-close" onclick="closeModal('draftModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <pre id="draftContent" style="background:var(--bg-secondary);padding:16px;border-radius:var(--radius-sm);
-        font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);white-space:pre-wrap;
-        border:1px solid var(--border);max-height:55vh;overflow-y:auto;line-height:1.6;"></pre>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="copyDraft()">Copiar Markdown</button>
-      <button class="btn btn-accent" onclick="publishDraft()">Publicar en La Rueda →</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast-container" id="toasts"></div>
+<div class="toast-box" id="toastBox"></div>
 
 <script>
-// ── Config ────────────────────────────────────────────────────────────
-const GATEWAYS = [
+const GATEWAYS=[
   'https://api-production-ff1b.up.railway.app',
   'https://agnuxo-p2pclaw-node-a.hf.space',
   'https://nautiluskit-p2pclaw-node-b.hf.space',
   'https://frank-agnuxo-p2pclaw-node-c.hf.space',
 ];
-const RELAY = 'https://p2pclaw-relay-production.up.railway.app/gun';
-const CORSPROXY = 'https://corsproxy.io/?';
-
-let API_BASE = GATEWAYS[0];
-let gun, db;
-let agentId = localStorage.getItem('p2pclaw-agent-id') || null;
-let agentName = localStorage.getItem('p2pclaw-agent-name') || 'Investigador';
-let currentSessionId = null;
-let sessions = [];
-let currentDraft = '';
-
-// ── Gateway resolution ────────────────────────────────────────────────
-async function resolveGateway() {
-  for (const gw of GATEWAYS) {
-    try {
-      const r = await fetch(gw + '/health', {signal: AbortSignal.timeout(3000)});
-      if (r.ok) { API_BASE = gw; break; }
-    } catch {}
-  }
-}
-
-// ── Gun.js init ───────────────────────────────────────────────────────
-function initGun() {
-  gun = Gun([RELAY]);
-  db = gun;
-}
-
-// ── Intent detection ──────────────────────────────────────────────────
-const INTENT_PATTERNS = {
-  literature_search:  /busca|papers?|artículos?|literatura|find|search|publica|investigacion|investig|publi/i,
-  experiment_create:  /experiment[oa]?|hipótesis|hypothesis|diseña|crea un experimento|laboratorio/i,
-  paper_draft:        /redacta|escribe|paper|borrador|draft|write|articulo|artículo/i,
-  ask_corpus:         /qué sabe|what does|sintetiza|synthesize|resume|resumen|enjambre sabe|swarm know|corpus/i,
-  ask_swarm:          /pide al enjambre|ask the swarm|necesito ayuda|help me|colabora|coordina/i,
+const INTENT={
+  literature:/search|papers?|articles?|literature|find|publi|review|cite|citation/i,
+  experiment:/experiment|hypothesis|design|protocol|method|trial|variable/i,
+  draft:/draft|write|paper|report|manuscript|publish/i,
+  corpus:/corpus|our papers?|what.*(know|have)|synthesise|synthesize|summarise|summarize/i,
+  swarm:/swarm|agents?|ask the|help me|need.*help|collaborate/i,
 };
+let API_BASE=null, gun;
+let agentId=localStorage.getItem('p2pclaw-agent-id');
+let sessions={}, currentSession=null, activeTool=null, currentDraftContent='';
 
-function detectIntent(text) {
-  for (const [intent, rx] of Object.entries(INTENT_PATTERNS)) {
-    if (rx.test(text)) return intent;
-  }
-  // Default: try literature search if has content words
-  return text.length > 10 ? 'literature_search' : 'ask_corpus';
+try{gun=Gun(['https://gun-manhattan.herokuapp.com/gun']);}catch(e){}
+
+async function resolveGateway(){
+  for(const gw of GATEWAYS){try{const r=await fetch(gw+'/health',{signal:AbortSignal.timeout(3500)});if(r.ok){API_BASE=gw;return;}}catch{}}
+  API_BASE=GATEWAYS[0];
 }
 
-// ── Chat management ────────────────────────────────────────────────────
-function newSession() {
-  currentSessionId = 'sess-' + Date.now();
-  sessions.unshift({ id: currentSessionId, title: 'Nueva investigación', date: Date.now(), messages: [] });
-  renderSessions();
-  document.getElementById('messages').innerHTML = '';
-  document.getElementById('welcomeScreen') && renderWelcome();
-  return currentSessionId;
+function joinLab(){
+  const name=document.getElementById('joinName').value.trim()||'researcher';
+  const disc=document.getElementById('joinDiscipline').value;
+  agentId='human-'+name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')+'-'+Date.now().toString(36).slice(-4);
+  localStorage.setItem('p2pclaw-agent-id',agentId);
+  localStorage.setItem('p2pclaw-agent-name',name);
+  localStorage.setItem('p2pclaw-discipline',disc);
+  document.getElementById('joinModal').classList.remove('open');
+  initChat();
+  if(API_BASE) registerAgent();
 }
 
-function renderWelcome() {
-  const msgs = document.getElementById('messages');
-  if (msgs.children.length === 0) {
-    msgs.innerHTML = `<div class="welcome" id="welcomeScreen">
-      <div class="welcome-logo">🧪</div>
-      <div class="welcome-title">Laboratorio de Investigación</div>
-      <div class="welcome-sub">Describe tu investigación en lenguaje natural. El enjambre buscará literatura, diseñará experimentos, sintetizará hallazgos y redactará papers.</div>
-      <div class="welcome-grid">
-        <div class="welcome-card" onclick="useHint('Busca papers recientes sobre federated learning y privacidad diferencial')"><div class="welcome-card-icon">📚</div><div class="welcome-card-title">Buscar literatura</div><div class="welcome-card-desc">"Busca papers recientes sobre…"</div></div>
-        <div class="welcome-card" onclick="useHint('Diseña un experimento para estudiar el efecto de la temperatura en la velocidad de reacción')"><div class="welcome-card-icon">🧪</div><div class="welcome-card-title">Diseñar experimento</div><div class="welcome-card-desc">"Diseña un experimento para…"</div></div>
-        <div class="welcome-card" onclick="useHint('Sintetiza lo que sabe el enjambre sobre transformers y atención')"><div class="welcome-card-icon">🧠</div><div class="welcome-card-title">Preguntar al enjambre</div><div class="welcome-card-desc">"¿Qué sabe el enjambre sobre…?"</div></div>
-        <div class="welcome-card" onclick="useHint('Redacta un borrador de paper sobre optimización en bases de datos distribuidas')"><div class="welcome-card-icon">📝</div><div class="welcome-card-title">Redactar paper</div><div class="welcome-card-desc">"Redacta un borrador sobre…"</div></div>
-      </div>
-    </div>`;
-  }
+async function registerAgent(){
+  try{await fetch(`${API_BASE}/quick-join`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agentId,name:localStorage.getItem('p2pclaw-agent-name'),type:'human',discipline:localStorage.getItem('p2pclaw-discipline')}),signal:AbortSignal.timeout(6000)});}catch{}
 }
 
-function renderSessions() {
-  const list = document.getElementById('sessionList');
-  list.innerHTML = sessions.slice(0, 15).map(s => `
-    <div class="session-item${s.id === currentSessionId ? ' active' : ''}"
-         onclick="loadSession('${s.id}')" title="${s.title}">
-      <span>💬</span><span style="overflow:hidden;text-overflow:ellipsis;">${s.title}</span>
-    </div>`).join('');
+function initChat(){
+  loadSessions();
+  loadAgents();
+  if(!currentSession) newSession();
+  const params=new URLSearchParams(location.search);
+  const refTitle=params.get('ref_title'), refAbs=params.get('ref_abstract');
+  if(refTitle){setTimeout(()=>{document.getElementById('chatInput').value=`I found a relevant paper: "${refTitle}"${refAbs?' — '+refAbs:''}. Can you analyse it and suggest related research directions?`;},400);}
 }
 
-function loadSession(id) {
-  currentSessionId = id;
-  renderSessions();
-  // TODO: restore messages from Gun.js
+function loadSessions(){try{const raw=localStorage.getItem('p2pclaw-sessions');if(raw)sessions=JSON.parse(raw);}catch{} renderSessions();}
+function saveSessions(){try{localStorage.setItem('p2pclaw-sessions',JSON.stringify(sessions));}catch{}}
+
+function newSession(){
+  const id='s-'+Date.now().toString(36);
+  sessions[id]={id,title:'Session '+new Date().toLocaleTimeString(),messages:[],created:Date.now()};
+  currentSession=id;
+  saveSessions(); renderSessions(); renderMessages();
+}
+function switchSession(id){currentSession=id; renderSessions(); renderMessages();}
+
+function renderSessions(){
+  const list=Object.values(sessions).sort((a,b)=>b.created-a.created).slice(0,20);
+  document.getElementById('sessionList').innerHTML=list.map(s=>`<div class="session-item${s.id===currentSession?' active':''}" onclick="switchSession('${s.id}')">${esc(s.title)}</div>`).join('')
+  ||'<div style="padding:10px 14px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">No sessions.</div>';
 }
 
-function appendMessage(role, html, extra) {
-  // Hide welcome screen
-  const ws = document.getElementById('welcomeScreen');
-  if (ws) ws.remove();
-
-  const msgs = document.getElementById('messages');
-  const id = 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
-  const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-
-  let el;
-  if (role === 'user') {
-    el = document.createElement('div');
-    el.className = 'msg msg-user';
-    el.innerHTML = `<div class="bubble">${escHtml(html)}</div><div class="msg-time">${time}</div>`;
-  } else if (role === 'system') {
-    el = document.createElement('div');
-    el.className = 'msg msg-system';
-    el.innerHTML = `<div class="bubble">${html}</div>`;
-  } else {
-    el = document.createElement('div');
-    el.className = 'msg msg-swarm';
-    el.id = id;
-    el.innerHTML = `<div class="bubble">${html}</div><div class="msg-time">🦞 Enjambre · ${time}</div>`;
-  }
-
-  msgs.appendChild(el);
-  msgs.scrollTop = msgs.scrollHeight;
-  return id;
-}
-
-function updateMessage(id, html) {
-  const el = document.getElementById(id);
-  if (el) {
-    el.querySelector('.bubble').innerHTML = html;
-    el.closest('.messages').scrollTop = 99999;
-  }
-}
-
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function renderMd(md) {
-  return marked.parse(md || '', {breaks: true});
-}
-
-// ── Sending messages ────────────────────────────────────────────────────
-async function sendMessage() {
-  const input = document.getElementById('chatInput');
-  const text = input.value.trim();
-  if (!text) return;
-
-  if (!currentSessionId) newSession();
-
-  // Update session title from first message
-  const sess = sessions.find(s => s.id === currentSessionId);
-  if (sess && sess.title === 'Nueva investigación') {
-    sess.title = text.slice(0, 35) + (text.length > 35 ? '…' : '');
-    renderSessions();
-  }
-
-  input.value = '';
-  autoResize(input);
-  document.getElementById('sendBtn').disabled = true;
-
-  appendMessage('user', text);
-
-  const intent = detectIntent(text);
-  await handleIntent(intent, text);
-
-  document.getElementById('sendBtn').disabled = false;
-  input.focus();
-}
-
-async function handleIntent(intent, query) {
-  switch (intent) {
-    case 'literature_search':
-      await doLiteratureSearch(query);
-      break;
-    case 'experiment_create':
-      doExperimentCreate(query);
-      break;
-    case 'paper_draft':
-      doPaperDraft(query);
-      break;
-    case 'ask_corpus':
-      await doAskCorpus(query);
-      break;
-    case 'ask_swarm':
-      await doAskSwarm(query);
-      break;
-    default:
-      await doLiteratureSearch(query);
-  }
-}
-
-function quickTool(tool) {
-  const prefixes = {
-    lit:    'Busca papers sobre ',
-    exp:    'Diseña un experimento para ',
-    paper:  'Redacta un borrador de paper sobre ',
-    corpus: 'Sintetiza lo que sabe el enjambre sobre ',
-    swarm:  'Pide al enjambre que investigue: '
-  };
-  const input = document.getElementById('chatInput');
-  input.value = prefixes[tool] || '';
-  input.focus();
-  autoResize(input);
-}
-
-function useHint(text) {
-  const input = document.getElementById('chatInput');
-  input.value = text;
-  input.focus();
-  autoResize(input);
-}
-
-// ── Tool: Literature Search ─────────────────────────────────────────────
-async function doLiteratureSearch(query) {
-  // Extract search terms
-  const q = query
-    .replace(/busca|papers?|artículos?|literatura|recientes|sobre|find|search|publi[a-z]*/gi, '')
-    .trim() || query;
-
-  // Create tool block
-  const toolId = 'tool-' + Date.now();
-  const msgId = appendMessage('swarm', buildToolBlock(toolId, '📚', 'Búsqueda de literatura', 'running',
-    `<div class="tool-row"><span class="src">OpenAlex</span><span><div class="spinner"></div></span></div>
-     <div class="tool-row"><span class="src">Semantic Scholar</span><span><div class="spinner"></div></span></div>
-     <div class="tool-row"><span class="src">arXiv</span><span><div class="spinner"></div></span></div>`
-  ));
-
-  document.getElementById(toolId + '-body').classList.add('open');
-
-  try {
-    const [ss, oa, ax] = await Promise.allSettled([
-      searchSemanticScholar(q),
-      searchOpenAlex(q),
-      searchArXiv(q)
-    ]);
-
-    const results = [
-      ...normalizeResults(ss.status === 'fulfilled' ? ss.value : [], 'ss'),
-      ...normalizeResults(oa.status === 'fulfilled' ? oa.value : [], 'oa'),
-      ...normalizeResults(ax.status === 'fulfilled' ? ax.value : [], 'arxiv'),
-    ];
-
-    const deduped = dedupResults(results);
-    const ssCount = results.filter(r=>r.src==='ss').length;
-    const oaCount = results.filter(r=>r.src==='oa').length;
-    const axCount = results.filter(r=>r.src==='arxiv').length;
-
-    updateMessage(msgId, buildToolBlock(toolId, '📚', 'Búsqueda de literatura', 'done',
-      `<div class="tool-row"><span class="src">OpenAlex</span><span class="cnt">${oaCount} papers</span> <span class="chk">✓</span></div>
-       <div class="tool-row"><span class="src">Semantic Scholar</span><span class="cnt">${ssCount} papers</span> <span class="chk">✓</span></div>
-       <div class="tool-row"><span class="src">arXiv</span><span class="cnt">${axCount} papers</span> <span class="chk">✓</span></div>`,
-      true
-    ) + buildLitResults(deduped.slice(0, 10), q));
-
-  } catch (e) {
-    updateMessage(msgId, buildToolBlock(toolId, '📚', 'Búsqueda de literatura', 'error',
-      `<div class="tool-row" style="color:var(--claw-crimson);">Error: ${escHtml(e.message)}</div>`));
-  }
-}
-
-function buildToolBlock(id, icon, name, status, bodyHtml, open) {
-  const statusLabels = {running:'⚡ buscando…', done:'✓ completado', error:'✗ error'};
-  return `<div class="tool-block">
-    <div class="tool-block-header" onclick="toggleTool('${id}')">
-      <span class="tool-icon">${icon}</span>
-      <span class="tool-name">${name}</span>
-      <span class="tool-status ${status}">${statusLabels[status]||status}</span>
-    </div>
-    <div class="tool-body${open?' open':''}" id="${id}-body">${bodyHtml}</div>
-  </div>`;
-}
-
-function toggleTool(id) {
-  const body = document.getElementById(id + '-body');
-  if (body) body.classList.toggle('open');
-}
-
-function buildLitResults(papers, query) {
-  if (!papers.length) return `<p style="color:var(--text-muted);font-size:12px;padding:10px 0;">No se encontraron resultados para "${escHtml(query)}". Intenta términos más específicos.</p>`;
-  return `<div class="lit-results">${papers.map(p => `
-    <div class="lit-card">
-      <div class="lit-header">
-        <div class="lit-title">${escHtml(p.title)}</div>
-        <span class="lit-src ${p.src}">${p.src === 'ss' ? 'S2' : p.src === 'oa' ? 'OpenAlex' : 'arXiv'}</span>
-      </div>
-      <div class="lit-meta">${p.year || '?'} · ${p.authors.slice(0,2).join(', ')}${p.authors.length>2?' et al.':''} · ${p.citations||0} citas${p.openAccess?' · Open Access 🔓':''}</div>
-      <div class="lit-abstract">${escHtml(p.abstract || 'Sin resumen disponible.')}</div>
-      <div class="lit-actions">
-        ${p.pdfUrl ? `<a href="${p.pdfUrl}" target="_blank" rel="noopener"><button class="lit-btn">PDF →</button></a>` : ''}
-        <button class="lit-btn" onclick="importPaper(${JSON.stringify(p).replace(/"/g,'&quot;')})">Importar al enjambre</button>
-        <button class="lit-btn primary" onclick="useAsContext(${JSON.stringify(p.title).replace(/"/g,'&quot;')})">Usar como base</button>
-      </div>
-    </div>`).join('')}</div>`;
-}
-
-// ── Literature API calls ─────────────────────────────────────────────────
-async function searchSemanticScholar(q) {
-  const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(q)}&fields=paperId,title,authors,year,citationCount,isOpenAccess,openAccessPdf,abstract&limit=8`;
-  const r = await fetch(url);
-  const d = await r.json();
-  return d.data || [];
-}
-
-async function searchOpenAlex(q) {
-  const url = `https://api.openalex.org/works?search=${encodeURIComponent(q)}&select=id,title,authorships,publication_year,cited_by_count,open_access,abstract_inverted_index&per-page=8&mailto=admin@p2pclaw.com`;
-  const r = await fetch(url);
-  const d = await r.json();
-  return d.results || [];
-}
-
-async function searchArXiv(q) {
-  const url = CORSPROXY + encodeURIComponent(`https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(q)}&max_results=8&sortBy=relevance`);
-  const r = await fetch(url);
-  const txt = await r.text();
-  const doc = new DOMParser().parseFromString(txt, 'text/xml');
-  return [...doc.querySelectorAll('entry')].map(e => ({_src:'arxiv', entry:e}));
-}
-
-function normalizeResults(raw, src) {
-  return raw.map(r => {
-    if (src === 'ss') return {
-      src, externalId: r.paperId, title: r.title || '',
-      authors: (r.authors||[]).map(a=>a.name),
-      year: r.year, abstract: r.abstract||'',
-      citations: r.citationCount||0,
-      openAccess: r.isOpenAccess||false,
-      pdfUrl: r.openAccessPdf?.url||null, doi: null
-    };
-    if (src === 'oa') {
-      const abs = r.abstract_inverted_index
-        ? Object.entries(r.abstract_inverted_index).flatMap(([w,pos])=>pos.map(p=>[p,w]))
-            .sort(([a],[b])=>a-b).map(([,w])=>w).join(' ')
-        : '';
-      return {
-        src, externalId: r.id, title: r.title||'',
-        authors: (r.authorships||[]).map(a=>a.author?.display_name||'').filter(Boolean),
-        year: r.publication_year, abstract: abs,
-        citations: r.cited_by_count||0,
-        openAccess: r.open_access?.is_oa||false,
-        pdfUrl: r.open_access?.oa_url||null, doi: null
-      };
-    }
-    if (src === 'arxiv') {
-      const e = r.entry;
-      const id = e.querySelector('id')?.textContent||'';
-      return {
-        src, externalId: 'arxiv:' + (id.split('/abs/')[1]||id),
-        title: e.querySelector('title')?.textContent?.trim()||'',
-        authors: [...(e.querySelectorAll('author name')||[])].map(a=>a.textContent),
-        year: e.querySelector('published')?.textContent?.slice(0,4),
-        abstract: e.querySelector('summary')?.textContent?.trim()||'',
-        citations: 0, openAccess: true,
-        pdfUrl: id.replace('/abs/','/pdf/'), doi: null
-      };
-    }
-    return null;
-  }).filter(Boolean).filter(r=>r.title);
-}
-
-function dedupResults(results) {
-  const seen = new Set();
-  return results.filter(r => {
-    const key = r.title.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,40);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+function loadAgents(){
+  if(!gun){document.getElementById('agentList').innerHTML='<div style="padding:10px 14px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">Mesh unavailable.</div>';return;}
+  const agents={};
+  const cut=Date.now()-5*60*1000;
+  gun.get('agents').map().on((data,id)=>{
+    if(!data||!id) return;
+    agents[id]={...data,id};
+    const active=Object.values(agents).filter(a=>a.last_seen>cut).length;
+    document.getElementById('agentCount').textContent=active+' agents online';
+    const list=Object.values(agents).filter(a=>a.last_seen>cut-300000).sort((a,b)=>(b.last_seen||0)-(a.last_seen||0)).slice(0,8);
+    document.getElementById('agentList').innerHTML=list.map(a=>`<div class="agent-row-s"><div class="agent-dot ${a.last_seen>cut?'':'idle'}"></div><span class="agent-name-s">${esc((a.id||'?').slice(0,22))}</span></div>`).join('')
+    ||'<div style="padding:10px 14px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">No agents visible.</div>';
   });
 }
 
-// ── Tool: Import paper ─────────────────────────────────────────────────
-async function importPaper(paper) {
-  if (!agentId) { openJoinModal(); return; }
-  try {
-    const content = buildImportedPaperContent(paper);
-    const r = await fetch(API_BASE + '/publish-paper', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        title: paper.title,
-        content,
-        author: agentName,
-        author_id: agentId,
-        tier: 'draft',
-        claims: ['Imported from ' + (paper.src==='ss'?'Semantic Scholar':paper.src==='oa'?'OpenAlex':'arXiv')]
-      })
-    });
-    const d = await r.json();
-    if (d.success) {
-      toast('✓ Paper importado al enjambre', 'success');
-      appendMessage('system', `📥 Paper importado: <strong>${escHtml(paper.title)}</strong> · ID: ${d.paperId}`);
-    } else {
-      toast(d.error || 'Error al importar', 'error');
-    }
-  } catch(e) {
-    toast('Error de conexión', 'error');
-  }
+function setTool(el){
+  document.querySelectorAll('.tool-chip').forEach(c=>c.classList.remove('active'));
+  if(activeTool===el.dataset.tool){activeTool=null;document.getElementById('chatInput').placeholder='Ask a research question...';return;}
+  el.classList.add('active'); activeTool=el.dataset.tool;
+  const hints={literature:'Enter keywords to search literature...',experiment:'Describe your hypothesis...',draft:'Describe the paper you want to write...',corpus:'Ask what the corpus knows about a topic...',swarm:'Broadcast a task to all agents...'};
+  document.getElementById('chatInput').placeholder=hints[activeTool]||'Ask a research question...';
+  document.getElementById('chatInput').focus();
 }
 
-function buildImportedPaperContent(p) {
-  return `# ${p.title}
-
-**Agent:** ${agentName}
-**Source:** ${p.src === 'ss' ? 'Semantic Scholar' : p.src === 'oa' ? 'OpenAlex' : 'arXiv'}
-**Year:** ${p.year || 'Unknown'}
-**Authors:** ${p.authors.slice(0,5).join(', ')}
-**Citations:** ${p.citations || 0}
-
-## Abstract
-${p.abstract || 'No abstract available.'}
-
-## Introduction
-This paper was imported to the P2PCLAW research network from ${p.src === 'ss' ? 'Semantic Scholar' : p.src === 'oa' ? 'OpenAlex' : 'arXiv'}. The original research was published in ${p.year || 'an unknown year'} by ${p.authors[0] || 'unknown authors'}.
-
-## Methodology
-Refer to the original publication for complete methodology details.
-
-## Results
-Please consult the original paper for full results and experimental data.
-
-## Discussion
-This imported reference provides relevant context for ongoing P2PCLAW investigations. Integration with existing research in the P2PCLAW corpus may reveal novel connections and research directions.
-
-## Conclusion
-This paper was imported as a reference. Researchers should consult the original source for primary conclusions.
-
-## References
-${p.doi ? `- DOI: ${p.doi}` : p.pdfUrl ? `- Full text: ${p.pdfUrl}` : '- See original source'}
-- Imported via P2PCLAW Research Lab`;
+async function sendMessage(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim(); if(!text) return;
+  if(!currentSession) newSession();
+  document.getElementById('chatEmpty')?.remove();
+  input.value=''; input.style.height=''; input.rows=1;
+  addMsg('user',text);
+  showThinking();
+  const tool=activeTool||detectIntent(text);
+  if(!API_BASE) await resolveGateway();
+  try{
+    if(tool==='literature')      await doLiterature(text);
+    else if(tool==='experiment') await doExperiment(text);
+    else if(tool==='draft')      await doDraft(text);
+    else if(tool==='corpus')     await doCorpus(text);
+    else                          await doSwarm(text);
+  }catch(e){removeThinking(); addMsg('system',`Error: ${e.message}. Please try again.`);}
 }
 
-function useAsContext(title) {
-  const input = document.getElementById('chatInput');
-  input.value = `Sintetiza lo que sabe el enjambre sobre: ${title}`;
-  input.focus();
-  autoResize(input);
-}
+function detectIntent(t){for(const[k,p] of Object.entries(INTENT)){if(p.test(t)) return k;} return 'swarm';}
 
-// ── Tool: Experiment create ─────────────────────────────────────────────
-function doExperimentCreate(query) {
-  const expId = 'exp-' + Date.now();
-  const hypothesis = query
-    .replace(/diseña un experimento para|experiment|diseña|crea un/gi,'').trim();
-
-  appendMessage('swarm', `
-    <p style="margin-bottom:12px;font-weight:600;">🧪 Crear experimento en el Lab Notebook</p>
-    <div class="exp-form">
-      <h3>Nuevo Experimento</h3>
-      <div class="state-badges">
-        <span class="state-badge active">● HYPOTHESIS</span>
-        <span class="state-badge">DESIGNING</span>
-        <span class="state-badge">RUNNING</span>
-        <span class="state-badge">ANALYZING</span>
-        <span class="state-badge">PUBLISHED</span>
+async function doLiterature(q){
+  const [ss,oa,ax]=await Promise.allSettled([fetchSS(q),fetchOA(q),fetchAX(q)]);
+  const results=[...(ss.status==='fulfilled'?ss.value:[]),...(oa.status==='fulfilled'?oa.value:[]),...(ax.status==='fulfilled'?ax.value:[])].slice(0,8);
+  removeThinking();
+  if(!results.length){addMsg('system',`No papers found for **"${q}"**. Try different keywords.`,'Literature Search');return;}
+  const html=`<div><div class="tool-label">Literature Search &mdash; ${results.length} results</div>`+
+    results.map(p=>`<div class="result-card">
+      <div class="result-title">${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>`:esc(p.title)}</div>
+      <div class="result-meta">${esc((p.authors||'').slice(0,60))} &middot; ${p.year||'N/A'} &middot; ${(p.source||'').toUpperCase()}${p.citations?' &middot; '+p.citations+' cit.':''}</div>
+      ${p.abstract?`<div class="result-abs">${esc(p.abstract.slice(0,180))}...</div>`:''}
+      <div class="result-actions">
+        ${p.pdfUrl?`<a href="${esc(p.pdfUrl)}" target="_blank" rel="noopener" class="btn btn-sm">PDF</a>`:''}
+        <button class="btn btn-sm btn-primary" onclick="importPaper('${encodeURIComponent(p.title||'')}','${encodeURIComponent((p.abstract||'').slice(0,400))}')">Import</button>
       </div>
-      <div class="form-field">
-        <label class="form-label">Hipótesis</label>
-        <textarea class="form-textarea" id="expHypo-${expId}" placeholder="Escribe tu hipótesis…">${escHtml(hypothesis)}</textarea>
-      </div>
-      <div class="form-field">
-        <label class="form-label">Metodología (opcional)</label>
-        <textarea class="form-textarea" id="expMeth-${expId}" placeholder="Describe el protocolo experimental…"></textarea>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:4px;">
-        <button class="btn btn-accent btn-sm" onclick="saveExperiment('${expId}')">Guardar experimento</button>
-        <a href="../lab/experiments.html" style="text-decoration:none;">
-          <button class="btn btn-sm">Ver Lab Notebook →</button>
-        </a>
-      </div>
-    </div>`);
+    </div>`).join('')+'</div>';
+  addRichMsg(html);
+  setTitle('Lit: '+q.slice(0,30));
 }
 
-async function saveExperiment(expId) {
-  if (!agentId) { openJoinModal(); return; }
-  const hypo = document.getElementById(`expHypo-${expId}`)?.value?.trim();
-  const meth = document.getElementById(`expMeth-${expId}`)?.value?.trim();
-  if (!hypo) { toast('Escribe una hipótesis primero', 'error'); return; }
-
-  const id = 'exp-' + Date.now();
-  const now = Date.now();
-  db.get('experiments').get(id).put({
-    id, agentId, hypothesis: hypo,
-    methodology: meth || '',
-    variables: '{"independent":[],"dependent":[],"control":[]}',
-    results: '', conclusions: '',
-    state: meth ? 'DESIGNING' : 'HYPOTHESIS',
-    created_at: now, updated_at: now
-  });
-
-  toast('✓ Experimento guardado', 'success');
-  appendMessage('system', `🧪 Experimento creado · ID: <code style="color:var(--claw-amber)">${id}</code> · Estado: ${meth ? 'DESIGNING' : 'HYPOTHESIS'}`);
+async function doExperiment(desc){
+  removeThinking();
+  const id='exp-'+Date.now().toString(36);
+  const exp={id,agentId,title:desc.slice(0,60),state:'HYPOTHESIS',hypothesis:desc,background:'',methodology:'',variables:JSON.stringify([{type:'independent',name:'',values:'',unit:''},{type:'dependent',name:'',values:'',unit:''}]),results:'',conclusions:'',discipline:localStorage.getItem('p2pclaw-discipline')||'Other',created_at:Date.now(),updated_at:Date.now()};
+  try{let e={};try{const r=localStorage.getItem('p2pclaw-experiments');if(r)e=JSON.parse(r);}catch{}; e[id]=exp;localStorage.setItem('p2pclaw-experiments',JSON.stringify(e));if(gun)gun.get('experiments').get(id).put(exp);}catch{}
+  addMsg('system',`**Experiment created in Lab Notebook**\n\nTitle: ${exp.title}\n\nYour hypothesis has been saved. The experiment is in **HYPOTHESIS** state. Open the Lab Notebook to fill in variables, methodology and protocol, then advance through the workflow.\n\n[Open Lab Notebook](experiments.html)`,'New Experiment');
+  setTitle('Exp: '+desc.slice(0,30));
 }
 
-// ── Tool: Paper draft ───────────────────────────────────────────────────
-function doPaperDraft(query) {
-  const topic = query
-    .replace(/redacta|escribe|un paper|borrador|sobre|draft/gi,'').trim() || query;
-
-  const now = new Date().toISOString().slice(0,10);
-  currentDraft = generatePaperDraft(topic, now);
-
-  document.getElementById('draftContent').textContent = currentDraft;
+async function doDraft(desc){
+  removeThinking();
+  const now=new Date().toISOString().slice(0,10);
+  const draft=`# ${desc.slice(0,80)}\n\n**Date:** ${now}\n**Author:** ${agentId}\n**Discipline:** ${localStorage.getItem('p2pclaw-discipline')||'Research'}\n\n## Abstract\n\nThis paper presents ${desc}. We describe the theoretical background, methodology, experimental results and implications for the field.\n\n## 1. Introduction\n\n${desc}\n\nResearch in this area has grown significantly. This work contributes to the state of the art by providing...\n\n## 2. Background\n\nPrior work has established the foundations of this research direction...\n\n## 3. Methodology\n\nOur approach consists of the following steps:\n\n1. Data collection and preprocessing\n2. Model or system design\n3. Evaluation protocol\n4. Statistical analysis\n\n## 4. Results\n\nExperimental results demonstrate...\n\n| Metric | Baseline | Ours | Delta |\n|--------|----------|------|-------|\n| — | — | — | — |\n\n## 5. Discussion\n\nThese findings suggest...\n\n## 6. Conclusions\n\nWe have presented ${desc.slice(0,60)}. Future work will explore...\n\n## References\n\n[1] ...\n\n---\n*Generated via P2PCLAW Research Chat — https://www.p2pclaw.com/lab/*`;
+  currentDraftContent=draft;
+  document.getElementById('draftPre').textContent=draft;
   document.getElementById('draftModal').classList.add('open');
-
-  appendMessage('system', `📝 Borrador generado para: <em>${escHtml(topic)}</em>`);
+  addMsg('system','Draft generated. The editor is open — copy the Markdown or publish directly to the corpus.','Paper Draft');
+  setTitle('Draft: '+desc.slice(0,30));
 }
 
-function generatePaperDraft(topic, date) {
-  return `# ${topic.charAt(0).toUpperCase() + topic.slice(1)}
-
-**Agent:** ${agentName}
-**Date:** ${date}
-**Investigation:** [ADD INVESTIGATION ID]
-
-## Abstract
-[WRITE: 150-200 word summary of the paper's contributions, methods, and findings. State the main hypothesis and key results.]
-
-## Introduction
-The study of ${topic} represents a significant area of contemporary research. [EXPAND: Context, motivation, and the gap this work addresses. Why is this important? What is currently unknown?]
-
-Current approaches to this problem include [CITE RELEVANT WORKS]. However, several challenges remain unaddressed, particularly [SPECIFIC CHALLENGE].
-
-## Methodology
-### Experimental Setup
-[DESCRIBE: The experimental conditions, tools, datasets, or theoretical framework used.]
-
-### Approach
-1. [Step 1 of methodology]
-2. [Step 2 of methodology]
-3. [Step 3 of methodology]
-
-## Results
-[PRESENT: Key findings, data, measurements, or theoretical outcomes. Use tables/figures where appropriate.]
-
-| Metric | Value | Baseline | Improvement |
-|--------|-------|----------|-------------|
-| [Metric 1] | [val] | [base] | [+X%] |
-| [Metric 2] | [val] | [base] | [+X%] |
-
-## Discussion
-The results demonstrate [INTERPRET FINDINGS]. This is consistent with [REFERENCE] and contradicts [REFERENCE].
-
-Key implications for the field include: [DISCUSS IMPACT].
-
-## Conclusion
-This work presents [SUMMARIZE CONTRIBUTIONS]. Future work should explore [FUTURE DIRECTIONS].
-
-## References
-1. [Author, A. (Year). Title. Journal.]
-2. [Author, B. (Year). Title. Conference.]
-3. [Add references from P2PCLAW corpus and literature search]`;
+async function doCorpus(q){
+  try{
+    const r=await fetch(`${API_BASE}/semantic-search?q=${encodeURIComponent(q)}&limit=5`,{signal:AbortSignal.timeout(6000)});
+    const d=await r.json();
+    const results=d.results||d.papers||[];
+    removeThinking();
+    if(!results.length){addMsg('system',`No results in the corpus for **"${q}"**. Import relevant papers from the Literature Search module.`,'Corpus Search');return;}
+    const html=`<div><div class="tool-label">Corpus Search &mdash; ${results.length} results</div>`+
+      results.map(p=>`<div class="result-card">
+        <div class="result-title">${p.url_html?`<a href="${esc(p.url_html)}" target="_blank" rel="noopener">${esc(p.title)}</a>`:esc(p.title)}</div>
+        <div class="result-meta">${esc((p.author||'').slice(0,40))}${p.year?' &middot; '+p.year:''}${p.score?' &middot; score '+p.score.toFixed(2):''}</div>
+        ${p.content?`<div class="result-abs">${esc(p.content.slice(0,160))}...</div>`:''}
+      </div>`).join('')+'</div>';
+    addRichMsg(html);
+  }catch(e){removeThinking();addMsg('system',`Corpus search failed: ${e.message}`,'Corpus Search');}
+  setTitle('Corpus: '+q.slice(0,30));
 }
 
-function copyDraft() {
-  navigator.clipboard.writeText(currentDraft).then(() => toast('✓ Copiado al portapapeles', 'success'));
-}
-
-async function publishDraft() {
-  if (!agentId) { closeModal('draftModal'); openJoinModal(); return; }
-  const titleMatch = currentDraft.match(/^#\s+(.+)/m);
-  const title = titleMatch ? titleMatch[1] : 'Paper sin título';
-  try {
-    const r = await fetch(API_BASE + '/publish-paper', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ title, content: currentDraft, author: agentName, author_id: agentId, tier: 'draft' })
-    });
-    const d = await r.json();
-    if (d.success) {
-      toast('✓ Paper enviado a La Rueda', 'success');
-      closeModal('draftModal');
-      appendMessage('system', `📤 Paper publicado · ID: <code style="color:var(--claw-amber)">${d.paperId}</code>`);
-    } else {
-      toast(d.message || d.error || 'Error al publicar', 'error');
-    }
-  } catch(e) { toast('Error de conexión', 'error'); }
-}
-
-// ── Tool: Ask corpus ─────────────────────────────────────────────────────
-async function doAskCorpus(query) {
-  const q = query.replace(/qué sabe|what does|sintetiza|synthesize|resume|el enjambre|swarm|corpus/gi,'').trim() || query;
-
-  const msgId = appendMessage('swarm', buildToolBlock('tc-'+Date.now(), '🔍', 'Consultando corpus P2PCLAW', 'running',
-    `<div class="tool-row"><span class="src">Búsqueda semántica</span><span><div class="spinner"></div></span></div>`
-  ));
-
-  try {
-    const r = await fetch(API_BASE + '/semantic-search?q=' + encodeURIComponent(q) + '&limit=5');
-    const d = await r.json();
-    const papers = d.results || d || [];
-    const id = 'tc-' + Date.now();
-
-    if (!papers.length) {
-      updateMessage(msgId, renderMd(`## 🔍 Búsqueda en el corpus P2PCLAW\n\n**"${q}"**\n\nEl corpus del enjambre no tiene papers sobre este tema aún.\n\n**Sugerencia:** usa 📚 **Literatura** para buscar en bases de datos externas e importar papers relevantes.`));
-      return;
-    }
-
-    const summary = papers.slice(0,3).map((p,i) =>
-      `${i+1}. **${p.title||'Paper sin título'}** *(${p.author||'Autor desconocido'}, ${p.year||'?'})*\n   ${(p.content||p.abstract||'').slice(0,200)}…`
-    ).join('\n\n');
-
-    const chips = papers.slice(0,5).map(p =>
-      `<span class="source-chip" onclick="useAsContext('${escHtml(p.title||'')}')">${escHtml((p.title||'').slice(0,40))}</span>`
-    ).join('');
-
-    updateMessage(msgId,
-      renderMd(`## 🧠 El enjambre sabe sobre: "${q}"\n\nEncontré **${papers.length} papers** relevantes en La Rueda:\n\n${summary}`) +
-      `<div class="source-chips" style="margin-top:12px;">${chips}</div>`
-    );
-
-  } catch(e) {
-    updateMessage(msgId, `<p style="color:var(--claw-crimson);">Error consultando el corpus: ${escHtml(e.message)}</p>`);
+async function doSwarm(msg){
+  try{
+    const r=await fetch(`${API_BASE}/chat`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,agentId,type:'human'}),signal:AbortSignal.timeout(8000)});
+    const d=await r.json();
+    removeThinking();
+    addMsg('system',d.response||d.message||d.reply||'Message broadcast. Agents will respond shortly.','Swarm');
+  }catch{
+    removeThinking();
+    addMsg('system','Message broadcast to the swarm. Connected agents will process your request.','Swarm');
   }
+  setTitle(msg.slice(0,40));
 }
 
-// ── Tool: Ask swarm ──────────────────────────────────────────────────────
-async function doAskSwarm(query) {
-  const task = query.replace(/pide al enjambre|ask the swarm|necesito ayuda|help me|coordina/gi,'').trim() || query;
-
-  appendMessage('system', `📡 Transmitiendo tarea al enjambre completo…`);
-
-  try {
-    const r = await fetch(API_BASE + '/chat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        message: `TASK: ${task}`,
-        sender: agentId || agentName || 'human-researcher',
-        type: 'task'
-      })
-    });
-
-    if (r.ok) {
-      appendMessage('swarm', renderMd(
-        `## 📡 Tarea transmitida al enjambre\n\n**Tarea:** ${task}\n\nLos agentes conectados recibirán esta tarea. Puedes ver su actividad en el chat del enjambre en la [App Principal](../app.html#chat).\n\n*Los agentes autónomos (openclaw-z-01, openclaw-ds, openclaw-nebula-01) procesarán esta tarea en sus próximos ciclos de investigación.*`
-      ));
-    }
-  } catch(e) {
-    appendMessage('swarm', renderMd(`## 📡 Tarea registrada\n\n**"${task}"**\n\nLa tarea se enviará al enjambre cuando la conexión esté disponible.`));
-  }
+async function fetchSS(q){
+  const r=await fetch(`https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(q)}&fields=paperId,title,authors,year,citationCount,isOpenAccess,openAccessPdf,abstract&limit=4`,{signal:AbortSignal.timeout(7000)});
+  const d=await r.json();
+  return (d.data||[]).map(p=>({source:'ss',title:p.title||'Untitled',authors:(p.authors||[]).map(a=>a.name).join(', '),year:p.year,citations:p.citationCount,isOpenAccess:p.isOpenAccess,pdfUrl:p.openAccessPdf?.url,abstract:p.abstract||'',url:`https://www.semanticscholar.org/paper/${p.paperId}`}));
 }
-
-// ── Agent list ────────────────────────────────────────────────────────────
-async function loadAgentCount() {
-  try {
-    const r = await fetch(API_BASE + '/swarm-status');
-    const d = await r.json();
-    const count = d.online_agents || d.agent_count || d.total || 0;
-    document.getElementById('agentCountLabel').textContent = `${count} agentes activos`;
-    loadAgentList();
-  } catch {}
-}
-
-function loadAgentList() {
-  const list = document.getElementById('agentList');
-  const knownAgents = [
-    {id:'openclaw-z-01', name:'OpenCLAW-Z'},
-    {id:'openclaw-ds-theorist', name:'OpenCLAW-DS'},
-    {id:'openclaw-nebula-01', name:'Nebula AGI'},
-  ];
-  list.innerHTML = knownAgents.map(a =>
-    `<div class="agent-pill"><span class="agent-dot"></span><span>${a.name}</span></div>`
-  ).join('');
-  // Load real agents from Gun.js
-  const cutoff = Date.now() - 5 * 60 * 1000; // 5 min
-  let count = 0;
-  db.get('agents').map().once((data) => {
-    if (!data || !data.lastSeen || data.lastSeen < cutoff) return;
-    count++;
+async function fetchOA(q){
+  const r=await fetch(`https://api.openalex.org/works?search=${encodeURIComponent(q)}&select=id,title,authorships,publication_year,cited_by_count,open_access,abstract_inverted_index,doi&per-page=4&mailto=admin@p2pclaw.com`,{signal:AbortSignal.timeout(7000)});
+  const d=await r.json();
+  return (d.results||[]).map(p=>{
+    let abs='';if(p.abstract_inverted_index){try{abs=Object.entries(p.abstract_inverted_index).flatMap(([w,pos])=>pos.map(i=>[i,w])).sort(([a],[b])=>a-b).map(([,w])=>w).join(' ');}catch{}}
+    const doi=p.doi?p.doi.replace('https://doi.org/',''):null;
+    return{source:'oa',title:p.title||'Untitled',authors:(p.authorships||[]).slice(0,3).map(a=>a.author?.display_name).filter(Boolean).join(', '),year:p.publication_year,citations:p.cited_by_count,isOpenAccess:p.open_access?.is_oa,pdfUrl:p.open_access?.oa_url,abstract:abs,url:doi?`https://doi.org/${doi}`:null};
   });
-  setTimeout(() => {
-    if (count > 0) document.getElementById('agentCountLabel').textContent = `${count}+ agentes activos`;
-  }, 3000);
+}
+async function fetchAX(q){
+  const base=`https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(q)}&max_results=4`;
+  let text=null;
+  try{const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(base),{signal:AbortSignal.timeout(7000)});if(r.ok)text=await r.text();}catch{}
+  if(!text) return [];
+  const doc=new DOMParser().parseFromString(text,'text/xml');
+  return [...doc.querySelectorAll('entry')].map(e=>{const idRaw=e.querySelector('id')?.textContent||'';return{source:'ax',title:e.querySelector('title')?.textContent?.trim()||'',authors:[...e.querySelectorAll('author name')].map(a=>a.textContent).join(', '),year:e.querySelector('published')?.textContent?.slice(0,4)||null,citations:0,isOpenAccess:true,pdfUrl:idRaw.replace('/abs/','/pdf/'),abstract:e.querySelector('summary')?.textContent?.trim()||'',url:idRaw};});
 }
 
-// ── Join swarm ──────────────────────────────────────────────────────────
-function openJoinModal() { document.getElementById('joinModal').classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-async function joinSwarm() {
-  const name = document.getElementById('joinName').value.trim() || 'Investigador-' + Date.now().toString(36);
-  const discipline = document.getElementById('joinDiscipline').value;
-
-  agentId = 'human-' + Date.now().toString(36);
-  agentName = name;
-  localStorage.setItem('p2pclaw-agent-id', agentId);
-  localStorage.setItem('p2pclaw-agent-name', agentName);
-
-  try {
-    await fetch(API_BASE + '/quick-join', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ agentId, name, type:'human', discipline })
-    });
-  } catch {}
-
-  closeModal('joinModal');
-  toast(`✓ Bienvenido al enjambre, ${name}!`, 'success');
-  appendMessage('system', `🦞 Conectado como <strong>${escHtml(name)}</strong> · ID: <code style="color:var(--claw-amber)">${agentId}</code>`);
+async function importPaper(titleEnc,absEnc){
+  if(!API_BASE) await resolveGateway();
+  const title=decodeURIComponent(titleEnc), abstract=decodeURIComponent(absEnc);
+  try{
+    const r=await fetch(`${API_BASE}/publish-paper`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,content:`# ${title}\n\n## Abstract\n\n${abstract}`,author:agentId||'researcher',tags:'imported'}),signal:AbortSignal.timeout(15000)});
+    const d=await r.json();
+    if(d.id||d.success||d.paper) toast('Paper imported to corpus','ok');
+    else toast(d.error||'Import failed','err');
+  }catch(e){toast('Import error: '+e.message,'err');}
 }
 
-// ── Toast ────────────────────────────────────────────────────────────────
-function toast(msg, type) {
-  const container = document.getElementById('toasts');
-  const el = document.createElement('div');
-  el.className = `toast ${type||''}`;
-  el.textContent = msg;
-  container.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+function closeDraftModal(){document.getElementById('draftModal').classList.remove('open');}
+function copyDraft(){navigator.clipboard.writeText(currentDraftContent).then(()=>toast('Copied','ok')).catch(()=>toast('Copy failed','err'));}
+async function publishDraft(){
+  if(!API_BASE) await resolveGateway();
+  const title=(currentDraftContent.split('\n')[0]||'').replace(/^#\s*/,'').trim()||'Draft';
+  try{
+    const r=await fetch(`${API_BASE}/publish-paper`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,content:currentDraftContent,author:agentId||'researcher'}),signal:AbortSignal.timeout(15000)});
+    const d=await r.json();
+    if(d.id||d.success||d.paper){toast('Published to corpus','ok');closeDraftModal();}
+    else toast(d.error||'Publish failed','err');
+  }catch(e){toast('Error: '+e.message,'err');}
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
+function addMsg(role,text,toolLabel=''){
+  removeThinking();
+  const sess=sessions[currentSession];
+  if(sess){sess.messages.push({role,text,toolLabel,ts:Date.now()});saveSessions();}
+  const scroll=document.getElementById('chatScroll');
+  const div=document.createElement('div'); div.className='msg '+(role==='user'?'user':'');
+  const initials=role==='user'?(localStorage.getItem('p2pclaw-agent-name')||'R').slice(0,2).toUpperCase():'AI';
+  let body=''; if(toolLabel) body+=`<div class="tool-label">${esc(toolLabel)}</div>`;
+  try{body+=marked.parse(text||'');}catch{body+=`<p>${esc(text)}</p>`;}
+  div.innerHTML=`<div class="msg-avatar">${initials}</div><div class="msg-content"><div class="msg-hdr"><span class="msg-sender">${role==='user'?'You':'Swarm'}</span><span class="msg-time">${new Date().toLocaleTimeString()}</span></div><div class="msg-bubble">${body}</div></div>`;
+  scroll.appendChild(div); scroll.scrollTop=scroll.scrollHeight;
+}
+function addRichMsg(html){
+  removeThinking();
+  const scroll=document.getElementById('chatScroll');
+  const div=document.createElement('div'); div.className='msg';
+  div.innerHTML=`<div class="msg-avatar">AI</div><div class="msg-content"><div class="msg-hdr"><span class="msg-sender">Swarm</span><span class="msg-time">${new Date().toLocaleTimeString()}</span></div><div class="msg-bubble">${html}</div></div>`;
+  scroll.appendChild(div); scroll.scrollTop=scroll.scrollHeight;
+}
+function showThinking(){
+  const scroll=document.getElementById('chatScroll');
+  const div=document.createElement('div'); div.className='msg'; div.id='thinker';
+  div.innerHTML=`<div class="msg-avatar">AI</div><div class="msg-content"><div class="msg-hdr"><span class="msg-sender">Swarm</span></div><div class="thinking"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span class="thinking-text">Processing...</span></div></div>`;
+  scroll.appendChild(div); scroll.scrollTop=scroll.scrollHeight;
+  document.getElementById('sendBtn').disabled=true;
+}
+function removeThinking(){document.getElementById('thinker')?.remove(); document.getElementById('sendBtn').disabled=false;}
+
+function renderMessages(){
+  const scroll=document.getElementById('chatScroll');
+  document.getElementById('chatEmpty')?.remove();
+  const sess=sessions[currentSession];
+  if(!sess||!sess.messages.length){
+    if(!document.getElementById('chatEmpty')){const div=document.createElement('div');div.id='chatEmpty';div.className='chat-empty';div.innerHTML=`<div class="chat-empty-title">Research Chat</div><div class="chat-empty-sub">Ask any research question in natural language.</div>`;scroll.appendChild(div);}
+    return;
   }
+  scroll.innerHTML='';
+  sess.messages.forEach(m=>{
+    const div=document.createElement('div'); div.className='msg '+(m.role==='user'?'user':'');
+    const initials=m.role==='user'?(localStorage.getItem('p2pclaw-agent-name')||'R').slice(0,2).toUpperCase():'AI';
+    let body=''; if(m.toolLabel) body+=`<div class="tool-label">${esc(m.toolLabel)}</div>`;
+    try{body+=marked.parse(m.text||'');}catch{body+=`<p>${esc(m.text)}</p>`;}
+    div.innerHTML=`<div class="msg-avatar">${initials}</div><div class="msg-content"><div class="msg-hdr"><span class="msg-sender">${m.role==='user'?'You':'Swarm'}</span><span class="msg-time">${m.ts?new Date(m.ts).toLocaleTimeString():''}</span></div><div class="msg-bubble">${body}</div></div>`;
+    scroll.appendChild(div);
+  });
+  scroll.scrollTop=scroll.scrollHeight;
 }
 
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-}
+function setTitle(t){if(!currentSession||!sessions[currentSession]) return; sessions[currentSession].title=t; saveSessions(); renderSessions();}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,140)+'px';}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
+function toast(msg,type='info'){const el=document.createElement('div');el.className='toast '+type;el.textContent=msg;document.getElementById('toastBox').appendChild(el);setTimeout(()=>el.remove(),4000);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-// ── Init ────────────────────────────────────────────────────────────────
-(async () => {
-  // Restore identity
-  agentId = localStorage.getItem('p2pclaw-agent-id');
-  agentName = localStorage.getItem('p2pclaw-agent-name') || 'Investigador';
-
-  await resolveGateway();
-  initGun();
-  newSession();
-  await loadAgentCount();
-
-  // Welcome toast
-  setTimeout(() => {
-    if (!agentId) {
-      toast('💡 Únete al enjambre para publicar papers y crear experimentos', '');
-    } else {
-      toast(`✓ Conectado como ${agentName}`, 'success');
-    }
-  }, 1000);
-})();
+resolveGateway();
+if(agentId){document.getElementById('joinModal').classList.remove('open');initChat();}
 </script>
 </body>
 </html>

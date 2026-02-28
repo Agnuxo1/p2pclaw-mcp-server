@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>P2PCLAW · Literature Search</title>
+<title>P2PCLAW — Literature Search</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ── CLAW Design System ────────────────────────────────────────── */
 :root {
   --bg-primary:    #0c0c0d;
   --bg-secondary:  #121214;
@@ -18,460 +17,342 @@
   --text-muted:    #52504e;
   --accent:        #ff4e1a;
   --accent-light:  #ff7020;
-  --accent-glow:   rgba(255,78,26,0.18);
+  --accent-glow:   rgba(255,78,26,0.14);
   --claw-crimson:  #e63030;
-  --claw-flame:    #ff4e1a;
   --claw-amber:    #ff9a30;
-  --claw-gold:     #ffcb47;
   --font-mono:     'JetBrains Mono', monospace;
   --font-body:     'Space Grotesk', system-ui, sans-serif;
   --radius:        10px;
   --radius-sm:     6px;
 }
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;}
-body{background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-body);font-size:14px;min-height:100vh;}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body { background:var(--bg-primary); color:var(--text-primary); font-family:var(--font-body); font-size:14px; min-height:100vh; }
 
-/* ── Header ─────────────────────────────────────────────────── */
-.header{
-  padding:12px 24px;border-bottom:1px solid var(--border);
-  background:rgba(10,14,23,0.97);backdrop-filter:blur(12px);
-  display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;
+/* ── Header ── */
+.header {
+  padding:0 28px; height:52px;
+  border-bottom:1px solid var(--border);
+  background:rgba(12,12,13,0.96); backdrop-filter:blur(12px);
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
 }
-.header-left{display:flex;align-items:center;gap:16px;}
-.logo{font-family:var(--font-mono);font-weight:700;font-size:15px;color:var(--accent);}
-.logo span{color:var(--text-secondary);font-weight:400;}
-.breadcrumb{
-  display:flex;align-items:center;gap:8px;
-  font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
-}
-.breadcrumb a{color:var(--text-muted);text-decoration:none;transition:color .2s;}
-.breadcrumb a:hover{color:var(--text-secondary);}
-.breadcrumb-sep{color:var(--text-muted);}
-.header-right{display:flex;align-items:center;gap:12px;}
-.btn{
-  padding:6px 14px;border-radius:var(--radius-sm);font-family:var(--font-mono);
-  font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);
-  background:transparent;color:var(--text-secondary);transition:all .2s;
-  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
-}
-.btn:hover{border-color:var(--accent);color:var(--accent);}
-.btn-accent{background:var(--accent);color:#fff !important;border-color:var(--accent);}
-.btn-accent:hover{background:var(--accent-light);border-color:var(--accent-light);}
-.btn-sm{padding:4px 10px;font-size:10px;}
-.btn-ghost{border-color:transparent;color:var(--text-muted);}
-.btn-ghost:hover{border-color:var(--border);color:var(--text-secondary);}
+.header-left { display:flex; align-items:center; gap:20px; }
+.logo { font-family:var(--font-mono); font-weight:700; font-size:13px; color:var(--accent); }
+.logo span { color:var(--text-muted); font-weight:400; }
+.breadcrumb { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px; }
+.breadcrumb a { color:var(--text-muted); text-decoration:none; transition:color .18s; }
+.breadcrumb a:hover { color:var(--text-secondary); }
+.header-right { display:flex; gap:8px; }
 
-/* ── Layout ─────────────────────────────────────────────────── */
-.content{max-width:1200px;margin:0 auto;padding:32px 24px;}
+/* ── Buttons ── */
+.btn {
+  padding:5px 14px; border-radius:var(--radius-sm);
+  font-family:var(--font-mono); font-size:11px; font-weight:600;
+  cursor:pointer; border:1px solid var(--border);
+  background:transparent; color:var(--text-muted); transition:all .18s;
+  text-decoration:none; display:inline-flex; align-items:center; gap:6px;
+}
+.btn:hover { border-color:var(--accent); color:var(--accent); }
+.btn-primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.btn-primary:hover { background:var(--accent-light); border-color:var(--accent-light); color:#fff; }
+.btn-sm { padding:3px 10px; font-size:10px; }
 
-/* ── Hero search ─────────────────────────────────────────────── */
-.search-hero{
-  background:linear-gradient(135deg,rgba(255,78,26,0.06) 0%,rgba(255,154,48,0.04) 100%);
-  border:1px solid var(--border);border-radius:var(--radius);
-  padding:32px;margin-bottom:32px;
-}
-.search-hero h1{
-  font-family:var(--font-mono);font-size:20px;font-weight:600;
-  color:var(--text-primary);margin-bottom:6px;
-}
-.search-hero p{color:var(--text-secondary);font-size:13px;margin-bottom:24px;}
+/* ── Page ── */
+.page { max-width:1000px; margin:0 auto; padding:32px 28px 60px; }
 
-.search-row{display:flex;gap:10px;margin-bottom:16px;}
-.search-input{
-  flex:1;padding:12px 16px;border-radius:var(--radius);
-  background:var(--bg-secondary);border:1px solid var(--border);
-  color:var(--text-primary);font-family:var(--font-body);font-size:14px;
-  transition:border-color .2s;outline:none;
+/* ── Search panel ── */
+.search-panel {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:28px 28px 24px; margin-bottom:24px;
 }
-.search-input:focus{border-color:var(--accent);}
-.search-input::placeholder{color:var(--text-muted);}
-.search-btn{
-  padding:12px 28px;border-radius:var(--radius);
-  background:var(--accent);color:#fff;
-  font-family:var(--font-mono);font-size:13px;font-weight:700;
-  cursor:pointer;border:none;transition:all .2s;white-space:nowrap;
-  display:flex;align-items:center;gap:8px;
-}
-.search-btn:hover{background:var(--accent-light);}
-.search-btn:disabled{opacity:.5;cursor:not-allowed;}
+.search-panel h1 { font-family:var(--font-mono); font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:4px; }
+.search-panel p  { font-size:12px; color:var(--text-muted); margin-bottom:20px; }
 
-/* ── Filters ─────────────────────────────────────────────────── */
-.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
-.filter-group{display:flex;align-items:center;gap:8px;}
-.filter-label{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;}
-.filter-chips{display:flex;gap:6px;flex-wrap:wrap;}
-.filter-chip{
-  padding:4px 12px;border-radius:20px;font-family:var(--font-mono);font-size:11px;
-  cursor:pointer;border:1px solid var(--border);color:var(--text-secondary);
-  background:transparent;transition:all .2s;
+.search-row { display:flex; gap:8px; margin-bottom:16px; }
+.search-input {
+  flex:1; padding:10px 14px; border-radius:var(--radius-sm);
+  background:var(--bg-secondary); border:1px solid var(--border);
+  color:var(--text-primary); font-family:var(--font-body); font-size:14px;
+  outline:none; transition:border-color .18s;
 }
-.filter-chip:hover{border-color:var(--accent);color:var(--accent);}
-.filter-chip.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow);}
-.filter-sep{width:1px;height:20px;background:var(--border);}
+.search-input:focus { border-color:var(--accent); }
+.search-input::placeholder { color:var(--text-muted); }
+.search-btn {
+  padding:10px 26px; border-radius:var(--radius-sm);
+  background:var(--accent); color:#fff; font-family:var(--font-mono); font-size:12px; font-weight:700;
+  cursor:pointer; border:none; transition:background .18s; white-space:nowrap;
+}
+.search-btn:hover { background:var(--accent-light); }
+.search-btn:disabled { opacity:.45; cursor:not-allowed; }
 
-/* Source toggles */
-.source-toggles{display:flex;gap:8px;flex-wrap:wrap;}
-.source-toggle{
-  padding:4px 12px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:11px;
-  cursor:pointer;border:1px solid var(--border);color:var(--text-secondary);
-  background:transparent;transition:all .2s;display:flex;align-items:center;gap:6px;
+/* ── Filters ── */
+.filters { display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
+.filter-group { display:flex; align-items:center; gap:8px; }
+.filter-label { font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.12em; color:var(--text-muted); }
+.chip-row { display:flex; gap:5px; flex-wrap:wrap; }
+.chip {
+  padding:3px 10px; border-radius:3px;
+  font-family:var(--font-mono); font-size:10px; font-weight:600; letter-spacing:.04em;
+  cursor:pointer; border:1px solid var(--border); color:var(--text-muted);
+  background:transparent; transition:all .18s;
 }
-.source-toggle.active-ss{border-color:#5b8dee;color:#5b8dee;background:rgba(91,141,238,0.1);}
-.source-toggle.active-oa{border-color:#22c55e;color:#22c55e;background:rgba(34,197,94,0.1);}
-.source-toggle.active-ax{border-color:#a855f7;color:#a855f7;background:rgba(168,85,247,0.1);}
-.source-toggle.active-corpus{border-color:var(--accent);color:var(--accent);background:var(--accent-glow);}
+.chip:hover { border-color:var(--text-secondary); color:var(--text-secondary); }
+.chip.active { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
 
-/* ── Stats bar ─────────────────────────────────────────────────── */
-.stats-bar{
-  display:flex;gap:24px;margin-bottom:20px;padding:12px 16px;
-  background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);
-  font-family:var(--font-mono);font-size:11px;
-}
-.stat-item{display:flex;align-items:center;gap:8px;}
-.stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.stat-dot.ss{background:#5b8dee;}
-.stat-dot.oa{background:#22c55e;}
-.stat-dot.ax{background:#a855f7;}
-.stat-dot.corpus{background:var(--accent);}
-.stat-label{color:var(--text-muted);}
-.stat-count{color:var(--text-primary);font-weight:600;}
+/* Source chips */
+.src-chip { padding:3px 10px; border-radius:3px; font-family:var(--font-mono); font-size:10px; font-weight:600; cursor:pointer; border:1px solid var(--border); color:var(--text-muted); background:transparent; transition:all .18s; }
+.src-chip.on-ss     { border-color:rgba(91,141,238,.6); color:#5b8dee; background:rgba(91,141,238,.08); }
+.src-chip.on-oa     { border-color:rgba(255,154,48,.5); color:var(--claw-amber); background:rgba(255,154,48,.07); }
+.src-chip.on-ax     { border-color:rgba(255,78,26,.4); color:var(--accent); background:var(--accent-glow); }
+.src-chip.on-corpus { border-color:rgba(255,203,71,.4); color:#ffcb47; background:rgba(255,203,71,.07); }
 
-/* ── Results ─────────────────────────────────────────────────── */
-.results-header{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:16px;
+/* ── Stats bar ── */
+.stats-bar {
+  display:flex; gap:20px; margin-bottom:16px;
+  padding:10px 16px;
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm);
+  font-family:var(--font-mono); font-size:11px;
 }
-.results-title{font-family:var(--font-mono);font-size:13px;color:var(--text-secondary);}
-.results-title strong{color:var(--text-primary);}
-.sort-row{display:flex;gap:8px;align-items:center;}
-.sort-label{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);}
-select.sort-select{
-  background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);
-  color:var(--text-secondary);font-family:var(--font-mono);font-size:11px;
-  padding:4px 8px;cursor:pointer;outline:none;
-}
-select.sort-select:focus{border-color:var(--accent);}
+.stat-item { display:flex; align-items:center; gap:7px; }
+.stat-dot  { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.stat-dot.ss     { background:#5b8dee; }
+.stat-dot.oa     { background:var(--claw-amber); }
+.stat-dot.ax     { background:var(--accent); }
+.stat-dot.corpus { background:#ffcb47; }
+.stat-lbl { color:var(--text-muted); }
+.stat-n   { color:var(--text-primary); font-weight:700; }
 
-/* ── Paper card ─────────────────────────────────────────────── */
-.results-grid{display:flex;flex-direction:column;gap:12px;}
-.paper-card{
-  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
-  padding:20px;transition:all .2s;cursor:default;
+/* ── Results header ── */
+.results-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
 }
-.paper-card:hover{border-color:rgba(255,78,26,.3);background:var(--bg-card-hover);}
-.paper-card.selected{border-color:var(--accent);background:rgba(255,78,26,.04);}
-.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:10px;}
-.card-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
-.source-badge{
-  padding:2px 8px;border-radius:12px;font-family:var(--font-mono);font-size:10px;font-weight:600;
+.results-summary { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); }
+.results-summary strong { color:var(--text-secondary); }
+.sort-row { display:flex; align-items:center; gap:8px; }
+.sort-label { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
+select.sort-select {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm);
+  color:var(--text-secondary); font-family:var(--font-mono); font-size:11px;
+  padding:4px 8px; cursor:pointer; outline:none;
 }
-.source-badge.ss{background:rgba(91,141,238,.15);color:#5b8dee;border:1px solid rgba(91,141,238,.3);}
-.source-badge.oa{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.3);}
-.source-badge.ax{background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3);}
-.source-badge.corpus{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(255,78,26,.3);}
-.oa-badge{
-  padding:2px 8px;border-radius:12px;font-family:var(--font-mono);font-size:10px;
-  background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.25);
-}
-.year-badge{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);}
-.card-title{
-  font-size:14px;font-weight:600;color:var(--text-primary);line-height:1.5;
-  margin-bottom:8px;
-}
-.card-title a{color:inherit;text-decoration:none;}
-.card-title a:hover{color:var(--accent);}
-.card-authors{font-size:12px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;}
-.card-abstract{
-  font-size:12px;color:var(--text-secondary);line-height:1.6;
-  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
-  margin-bottom:12px;
-}
-.card-abstract.expanded{-webkit-line-clamp:unset;display:block;}
-.card-stats{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
-.stat-pill{
-  font-family:var(--font-mono);font-size:10px;color:var(--text-muted);
-  display:flex;align-items:center;gap:4px;
-}
-.stat-pill svg{opacity:.6;}
-.card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
-.expand-link{
-  font-family:var(--font-mono);font-size:10px;color:var(--text-muted);
-  cursor:pointer;background:none;border:none;padding:0;transition:color .2s;
-}
-.expand-link:hover{color:var(--accent);}
+select.sort-select:focus { border-color:var(--accent); }
 
-/* ── Loading & empty ─────────────────────────────────────────── */
-.loading-box{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:80px 24px;gap:20px;
+/* ── Paper card ── */
+.results-list { display:flex; flex-direction:column; gap:10px; }
+.paper-card {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:18px 20px; transition:border-color .18s;
 }
-.spinner{
-  width:36px;height:36px;border:3px solid var(--border);
-  border-top-color:var(--accent);border-radius:50%;
-  animation:spin .8s linear infinite;
+.paper-card:hover { border-color:rgba(255,78,26,.3); }
+.card-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.src-badge {
+  padding:2px 7px; border-radius:3px; font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
 }
-@keyframes spin{to{transform:rotate(360deg);}}
-.loading-text{font-family:var(--font-mono);font-size:12px;color:var(--text-muted);}
-.progress-sources{display:flex;gap:16px;margin-top:8px;}
-.progress-src{
-  font-family:var(--font-mono);font-size:10px;
-  display:flex;align-items:center;gap:6px;
-}
-.progress-src .dot-sm{width:6px;height:6px;border-radius:50%;}
-.progress-src.pending{color:var(--text-muted);}
-.progress-src.searching{color:var(--claw-amber);}
-.progress-src.done{color:#22c55e;}
-.progress-src.error{color:var(--claw-crimson);}
+.src-badge.ss     { background:rgba(91,141,238,.12); color:#5b8dee; border:1px solid rgba(91,141,238,.3); }
+.src-badge.oa     { background:rgba(255,154,48,.1); color:var(--claw-amber); border:1px solid rgba(255,154,48,.3); }
+.src-badge.ax     { background:var(--accent-glow); color:var(--accent); border:1px solid rgba(255,78,26,.3); }
+.src-badge.corpus { background:rgba(255,203,71,.08); color:#ffcb47; border:1px solid rgba(255,203,71,.3); }
+.oa-badge { padding:2px 7px; border-radius:3px; font-family:var(--font-mono); font-size:9px; background:rgba(34,197,94,.1); color:#22c55e; border:1px solid rgba(34,197,94,.25); }
+.year-tag { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
 
-.empty-state{
-  text-align:center;padding:80px 24px;
-  font-family:var(--font-mono);font-size:13px;color:var(--text-muted);
+.card-title { font-size:14px; font-weight:600; color:var(--text-primary); line-height:1.45; margin-bottom:6px; }
+.card-title a { color:inherit; text-decoration:none; }
+.card-title a:hover { color:var(--accent); }
+.card-authors { font-size:12px; color:var(--text-secondary); margin-bottom:8px; }
+.card-abstract {
+  font-size:12px; color:var(--text-secondary); line-height:1.6;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+  margin-bottom:10px;
 }
-.empty-icon{font-size:40px;margin-bottom:16px;opacity:.5;}
-.empty-hint{font-size:11px;margin-top:8px;color:var(--text-muted);}
+.card-abstract.expanded { -webkit-line-clamp:unset; display:block; }
+.expand-btn { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); background:none; border:none; cursor:pointer; padding:0; transition:color .18s; }
+.expand-btn:hover { color:var(--accent); }
 
-/* ── Import panel ─────────────────────────────────────────────── */
-.import-panel{
-  position:fixed;right:0;top:0;bottom:0;width:360px;
-  background:var(--bg-secondary);border-left:1px solid var(--border);
-  display:flex;flex-direction:column;z-index:200;
-  transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
-}
-.import-panel.open{transform:translateX(0);}
-.import-header{
-  padding:16px 20px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.import-title{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-primary);}
-.import-body{flex:1;overflow-y:auto;padding:20px;}
-.import-field{margin-bottom:16px;}
-.import-field label{
-  display:block;font-family:var(--font-mono);font-size:10px;
-  color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;
-}
-.import-field input,.import-field textarea,.import-field select{
-  width:100%;padding:10px 12px;border-radius:var(--radius-sm);
-  background:var(--bg-card);border:1px solid var(--border);
-  color:var(--text-primary);font-family:var(--font-body);font-size:13px;
-  outline:none;transition:border-color .2s;
-}
-.import-field input:focus,.import-field textarea:focus{border-color:var(--accent);}
-.import-field textarea{resize:vertical;min-height:100px;}
-.import-footer{padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:10px;}
+.card-footer { display:flex; align-items:center; justify-content:space-between; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); flex-wrap:wrap; gap:8px; }
+.card-stats  { display:flex; gap:16px; }
+.stat-tag { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
+.card-actions { display:flex; gap:6px; flex-wrap:wrap; }
 
-/* ── Toast ─────────────────────────────────────────────────── */
-.toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:1000;}
-.toast{
-  background:var(--bg-card);border:1px solid var(--border);
-  border-radius:var(--radius);padding:12px 16px;min-width:280px;
-  font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);
-  display:flex;align-items:center;gap:10px;
-  animation:slideIn .3s ease;
-}
-.toast.success{border-color:#22c55e;color:#22c55e;}
-.toast.error{border-color:var(--claw-crimson);color:var(--claw-crimson);}
-@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+/* ── Loading / empty ── */
+.loading-box { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:72px 24px; gap:16px; }
+.spinner { width:32px; height:32px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-text { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); }
+.empty-state { text-align:center; padding:72px 24px; font-family:var(--font-mono); font-size:12px; color:var(--text-muted); }
+.empty-hint { font-size:10px; margin-top:8px; }
 
-/* ── Scrollbar ─────────────────────────────────────────────── */
-::-webkit-scrollbar{width:4px;height:4px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-::-webkit-scrollbar-thumb:hover{background:var(--text-muted);}
-
-/* ── Responsive ─────────────────────────────────────────────── */
-@media(max-width:768px){
-  .filters{gap:8px;}
-  .import-panel{width:100%;}
-  .content{padding:20px 16px;}
-  .search-hero{padding:20px 16px;}
-  .stats-bar{flex-wrap:wrap;gap:12px;}
+/* ── Import panel (slide-in) ── */
+.import-panel {
+  position:fixed; right:0; top:0; bottom:0; width:340px;
+  background:var(--bg-secondary); border-left:1px solid var(--border);
+  display:flex; flex-direction:column; z-index:200;
+  transform:translateX(100%); transition:transform .28s cubic-bezier(.4,0,.2,1);
 }
+.import-panel.open { transform:translateX(0); }
+.import-hdr { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.import-title { font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--text-primary); text-transform:uppercase; letter-spacing:.1em; }
+.import-body { flex:1; overflow-y:auto; padding:18px; }
+.field { margin-bottom:14px; }
+.field label { display:block; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); margin-bottom:5px; }
+.field input, .field textarea, .field select {
+  width:100%; padding:9px 11px; border-radius:var(--radius-sm);
+  background:var(--bg-card); border:1px solid var(--border);
+  color:var(--text-primary); font-family:var(--font-body); font-size:13px;
+  outline:none; transition:border-color .18s;
+}
+.field input:focus, .field textarea:focus { border-color:var(--accent); }
+.field textarea { resize:vertical; min-height:90px; }
+.import-ftr { padding:14px 18px; border-top:1px solid var(--border); display:flex; gap:8px; }
+
+/* ── Toast ── */
+.toast-box { position:fixed; bottom:20px; right:20px; display:flex; flex-direction:column; gap:6px; z-index:1000; }
+.toast {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:10px 14px; min-width:260px; font-family:var(--font-mono); font-size:11px; color:var(--text-secondary);
+  animation:slideIn .25s ease;
+}
+.toast.ok  { border-color:#22c55e; color:#22c55e; }
+.toast.err { border-color:var(--claw-crimson); color:var(--claw-crimson); }
+@keyframes slideIn { from{transform:translateX(100%);opacity:0;} to{transform:translateX(0);opacity:1;} }
+
+::-webkit-scrollbar { width:3px; height:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 </style>
 </head>
 <body>
 
-<!-- ── Header ─────────────────────────────────────────────────── -->
 <header class="header">
   <div class="header-left">
-    <div class="logo">🦞 P2PCLAW <span>/ Lab</span></div>
+    <div class="logo">P2PCLAW <span>/ Lab</span></div>
     <div class="breadcrumb">
       <a href="index.html">Lab Hub</a>
-      <span class="breadcrumb-sep">/</span>
+      <span>/</span>
       <span style="color:var(--text-secondary)">Literature Search</span>
     </div>
   </div>
   <div class="header-right">
-    <a href="research-chat.html" class="btn">🤖 Research Chat</a>
-    <a href="experiments.html" class="btn">🧪 Lab Notebook</a>
-    <a href="../app.html" class="btn btn-ghost">← Dashboard</a>
+    <a href="research-chat.html" class="btn">Research Chat</a>
+    <a href="experiments.html" class="btn">Lab Notebook</a>
+    <a href="../app.html" class="btn">Dashboard</a>
   </div>
 </header>
 
-<!-- ── Main ─────────────────────────────────────────────────── -->
-<main class="content">
+<main class="page">
 
-  <!-- Search Hero -->
-  <div class="search-hero">
-    <h1>📚 Literature Search</h1>
-    <p>Search across Semantic Scholar, OpenAlex and arXiv simultaneously. Import any paper into the P2PCLAW corpus.</p>
+  <!-- Search panel -->
+  <div class="search-panel">
+    <h1>Literature Search</h1>
+    <p>Search across Semantic Scholar, OpenAlex and arXiv simultaneously. Import any paper to the P2PCLAW corpus.</p>
 
     <div class="search-row">
       <input type="text" class="search-input" id="searchInput"
-        placeholder="e.g. transformer attention neural networks, quantum computing error correction..."
+        placeholder="e.g. transformer attention mechanisms, quantum error correction, CRISPR gene editing..."
         autocomplete="off">
-      <button class="search-btn" id="searchBtn" onclick="runSearch()">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        Search
-      </button>
+      <button class="search-btn" id="searchBtn" onclick="runSearch()">Search</button>
     </div>
 
-    <!-- Filters -->
     <div class="filters">
-      <!-- Sources -->
       <div class="filter-group">
-        <span class="filter-label">Sources:</span>
-        <div class="source-toggles" id="sourceToggles">
-          <button class="source-toggle active-ss" data-source="ss" onclick="toggleSource(this)">📘 Semantic Scholar</button>
-          <button class="source-toggle active-oa" data-source="oa" onclick="toggleSource(this)">🌱 OpenAlex</button>
-          <button class="source-toggle active-ax" data-source="ax" onclick="toggleSource(this)">🔬 arXiv</button>
-          <button class="source-toggle active-corpus" data-source="corpus" onclick="toggleSource(this)">🦞 Corpus</button>
+        <span class="filter-label">Sources</span>
+        <div class="chip-row" id="srcChips">
+          <button class="src-chip on-ss"     data-src="ss"     onclick="toggleSrc(this)">Semantic Scholar</button>
+          <button class="src-chip on-oa"     data-src="oa"     onclick="toggleSrc(this)">OpenAlex</button>
+          <button class="src-chip on-ax"     data-src="ax"     onclick="toggleSrc(this)">arXiv</button>
+          <button class="src-chip on-corpus" data-src="corpus" onclick="toggleSrc(this)">Corpus</button>
         </div>
       </div>
-      <div class="filter-sep"></div>
-      <!-- Year filter -->
       <div class="filter-group">
-        <span class="filter-label">Year:</span>
-        <div class="filter-chips" id="yearChips">
-          <button class="filter-chip active" data-year="all" onclick="selectYear(this)">All</button>
-          <button class="filter-chip" data-year="2024" onclick="selectYear(this)">2024+</button>
-          <button class="filter-chip" data-year="2022" onclick="selectYear(this)">2022+</button>
-          <button class="filter-chip" data-year="2020" onclick="selectYear(this)">2020+</button>
+        <span class="filter-label">Year</span>
+        <div class="chip-row" id="yearChips">
+          <button class="chip active" data-year="all"  onclick="setYear(this)">All</button>
+          <button class="chip"        data-year="2024" onclick="setYear(this)">2024+</button>
+          <button class="chip"        data-year="2022" onclick="setYear(this)">2022+</button>
+          <button class="chip"        data-year="2020" onclick="setYear(this)">2020+</button>
         </div>
       </div>
-      <div class="filter-sep"></div>
-      <!-- Open access -->
       <div class="filter-group">
-        <span class="filter-label">Access:</span>
-        <div class="filter-chips">
-          <button class="filter-chip" id="oaFilter" onclick="toggleOA(this)">🔓 Open Access only</button>
+        <span class="filter-label">Access</span>
+        <div class="chip-row">
+          <button class="chip" id="oaBtn" onclick="toggleOA(this)">Open access only</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Stats bar (hidden until results) -->
+  <!-- Stats bar (hidden until search) -->
   <div class="stats-bar" id="statsBar" style="display:none;">
-    <div class="stat-item">
-      <span class="stat-dot ss"></span>
-      <span class="stat-label">Semantic Scholar:</span>
-      <span class="stat-count" id="statSS">0</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-dot oa"></span>
-      <span class="stat-label">OpenAlex:</span>
-      <span class="stat-count" id="statOA">0</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-dot ax"></span>
-      <span class="stat-label">arXiv:</span>
-      <span class="stat-count" id="statAX">0</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-dot corpus"></span>
-      <span class="stat-label">Corpus:</span>
-      <span class="stat-count" id="statCorpus">0</span>
-    </div>
-    <div class="stat-item" style="margin-left:auto;">
-      <span class="stat-label">Total:</span>
-      <span class="stat-count" id="statTotal">0</span>
-    </div>
+    <div class="stat-item"><span class="stat-dot ss"></span><span class="stat-lbl">Semantic Scholar:</span><span class="stat-n" id="nSS">0</span></div>
+    <div class="stat-item"><span class="stat-dot oa"></span><span class="stat-lbl">OpenAlex:</span><span class="stat-n" id="nOA">0</span></div>
+    <div class="stat-item"><span class="stat-dot ax"></span><span class="stat-lbl">arXiv:</span><span class="stat-n" id="nAX">0</span></div>
+    <div class="stat-item"><span class="stat-dot corpus"></span><span class="stat-lbl">Corpus:</span><span class="stat-n" id="nCorpus">0</span></div>
+    <div class="stat-item" style="margin-left:auto;"><span class="stat-lbl">Total:</span><span class="stat-n" id="nTotal">0</span></div>
   </div>
 
-  <!-- Results header -->
+  <!-- Results header (hidden until search) -->
   <div class="results-header" id="resultsHeader" style="display:none;">
-    <div class="results-title">
-      Showing <strong id="resultCount">0</strong> results for &ldquo;<strong id="resultQuery"></strong>&rdquo;
+    <div class="results-summary">
+      <strong id="resultCount">0</strong> results for &ldquo;<strong id="resultQuery"></strong>&rdquo;
     </div>
     <div class="sort-row">
-      <span class="sort-label">Sort by:</span>
+      <span class="sort-label">Sort</span>
       <select class="sort-select" id="sortSelect" onchange="sortResults()">
         <option value="relevance">Relevance</option>
-        <option value="citations">Citations ↓</option>
-        <option value="year">Year ↓</option>
+        <option value="citations">Citations</option>
+        <option value="year">Year</option>
       </select>
     </div>
   </div>
 
-  <!-- Results -->
+  <!-- Results area -->
   <div id="resultsArea">
     <div class="empty-state">
-      <div class="empty-icon">📚</div>
-      Search across millions of scientific papers from Semantic Scholar, OpenAlex and arXiv.
-      <div class="empty-hint">Try: "transformer attention", "CRISPR gene editing", "quantum error correction"</div>
+      Search across millions of scientific papers from three independent databases.
+      <div class="empty-hint">Try: "large language models", "protein folding", "black hole thermodynamics"</div>
     </div>
   </div>
 
 </main>
 
-<!-- ── Import Panel ─────────────────────────────────────────── -->
+<!-- Import panel -->
 <div class="import-panel" id="importPanel">
-  <div class="import-header">
-    <div class="import-title">📥 Import to Corpus</div>
-    <button class="btn btn-sm btn-ghost" onclick="closeImport()">✕ Close</button>
+  <div class="import-hdr">
+    <div class="import-title">Import to Corpus</div>
+    <button class="btn btn-sm" onclick="closeImport()">Close</button>
   </div>
   <div class="import-body">
-    <div class="import-field">
-      <label>Title</label>
-      <input type="text" id="impTitle" placeholder="Paper title">
-    </div>
-    <div class="import-field">
-      <label>Authors</label>
-      <input type="text" id="impAuthors" placeholder="Author 1, Author 2...">
-    </div>
-    <div class="import-field">
-      <label>Year</label>
-      <input type="number" id="impYear" placeholder="2024" min="1900" max="2030">
-    </div>
-    <div class="import-field">
-      <label>Abstract / Summary</label>
-      <textarea id="impAbstract" rows="5" placeholder="Paste the abstract or a summary..."></textarea>
-    </div>
-    <div class="import-field">
-      <label>Source URL</label>
-      <input type="url" id="impUrl" placeholder="https://...">
-    </div>
-    <div class="import-field">
-      <label>Keywords (comma-separated)</label>
-      <input type="text" id="impKeywords" placeholder="machine learning, NLP, transformers">
-    </div>
-    <div class="import-field">
+    <div class="field"><label>Title</label><input type="text" id="impTitle"></div>
+    <div class="field"><label>Authors</label><input type="text" id="impAuthors" placeholder="Author 1, Author 2"></div>
+    <div class="field"><label>Year</label><input type="number" id="impYear" min="1900" max="2030"></div>
+    <div class="field"><label>Abstract</label><textarea id="impAbstract" rows="5" placeholder="Paste the abstract..."></textarea></div>
+    <div class="field"><label>Source URL</label><input type="url" id="impUrl"></div>
+    <div class="field"><label>Keywords</label><input type="text" id="impKeywords" placeholder="keyword1, keyword2"></div>
+    <div class="field">
       <label>Discipline</label>
       <select id="impDiscipline">
-        <option value="Computer Science">Computer Science / AI</option>
-        <option value="Physics">Physics</option>
-        <option value="Mathematics">Mathematics</option>
-        <option value="Biology">Biology / Life Sciences</option>
-        <option value="Chemistry">Chemistry</option>
-        <option value="Engineering">Engineering</option>
-        <option value="Medicine">Medicine / Health Sciences</option>
-        <option value="Social Sciences">Social Sciences</option>
-        <option value="Other">Other</option>
+        <option>Computer Science / AI</option>
+        <option>Physics</option>
+        <option>Mathematics</option>
+        <option>Biology / Life Sciences</option>
+        <option>Chemistry</option>
+        <option>Engineering</option>
+        <option>Medicine</option>
+        <option>Social Sciences</option>
+        <option>Other</option>
       </select>
     </div>
   </div>
-  <div class="import-footer">
-    <button class="btn btn-accent" style="flex:1;" onclick="publishImport()">📤 Publish to Corpus</button>
+  <div class="import-ftr">
+    <button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="publishImport()">Publish to Corpus</button>
     <button class="btn" onclick="closeImport()">Cancel</button>
   </div>
 </div>
 
-<!-- ── Toast container ─────────────────────────────────────── -->
-<div class="toast-container" id="toastContainer"></div>
+<div class="toast-box" id="toastBox"></div>
 
 <script>
-// ── Config ───────────────────────────────────────────────────
 const GATEWAYS = [
   'https://api-production-ff1b.up.railway.app',
   'https://agnuxo-p2pclaw-node-a.hf.space',
@@ -483,126 +364,86 @@ let allResults = [];
 let currentQuery = '';
 let activeYear = 'all';
 let oaOnly = false;
-let activeSources = { ss: true, oa: true, ax: true, corpus: true };
+let activeSrc = { ss:true, oa:true, ax:true, corpus:true };
 
-// ── Gateway resolution ───────────────────────────────────────
 async function resolveGateway() {
   for (const gw of GATEWAYS) {
     try {
-      const r = await fetch(gw + '/health', { signal: AbortSignal.timeout(3500) });
-      if (r.ok) { API_BASE = gw; return; }
+      const r = await fetch(gw+'/health',{signal:AbortSignal.timeout(3500)});
+      if (r.ok) { API_BASE=gw; return; }
     } catch {}
   }
   API_BASE = GATEWAYS[0];
 }
 
-// ── Source toggle ────────────────────────────────────────────
-function toggleSource(el) {
-  const src = el.dataset.source;
-  activeSources[src] = !activeSources[src];
-  if (activeSources[src]) {
-    const cls = src === 'corpus' ? 'active-corpus' : `active-${src}`;
-    el.classList.add(cls);
-  } else {
-    el.className = 'source-toggle';
-  }
+function toggleSrc(el) {
+  const s = el.dataset.src;
+  activeSrc[s] = !activeSrc[s];
+  if (!activeSrc[s]) el.className = 'src-chip';
+  else el.className = 'src-chip on-' + s;
 }
-
-function selectYear(el) {
-  document.querySelectorAll('#yearChips .filter-chip').forEach(c => c.classList.remove('active'));
+function setYear(el) {
+  document.querySelectorAll('#yearChips .chip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
   activeYear = el.dataset.year;
 }
-
 function toggleOA(el) {
   oaOnly = !oaOnly;
   el.classList.toggle('active', oaOnly);
 }
 
-// ── Literature APIs ──────────────────────────────────────────
 async function searchSemanticScholar(q) {
   try {
-    const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(q)}&fields=paperId,title,authors,year,citationCount,isOpenAccess,openAccessPdf,abstract&limit=12`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const u = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(q)}&fields=paperId,title,authors,year,citationCount,isOpenAccess,openAccessPdf,abstract&limit=12`;
+    const r = await fetch(u,{signal:AbortSignal.timeout(8000)});
     const d = await r.json();
-    return (d.data || []).map(p => ({
-      id: 'ss:' + p.paperId,
-      source: 'ss',
-      title: p.title || 'Untitled',
-      authors: (p.authors || []).map(a => a.name).join(', '),
-      year: p.year,
-      citations: p.citationCount || 0,
-      isOpenAccess: p.isOpenAccess,
-      pdfUrl: p.openAccessPdf?.url,
-      abstract: p.abstract || '',
-      url: `https://www.semanticscholar.org/paper/${p.paperId}`,
+    return (d.data||[]).map(p=>({
+      id:'ss:'+p.paperId, source:'ss',
+      title:p.title||'Untitled', authors:(p.authors||[]).map(a=>a.name).join(', '),
+      year:p.year, citations:p.citationCount||0,
+      isOpenAccess:p.isOpenAccess, pdfUrl:p.openAccessPdf?.url,
+      abstract:p.abstract||'', url:`https://www.semanticscholar.org/paper/${p.paperId}`,
     }));
   } catch { return []; }
 }
 
 async function searchOpenAlex(q) {
   try {
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(q)}&select=id,title,authorships,publication_year,cited_by_count,open_access,abstract_inverted_index,doi&per-page=12&mailto=admin@p2pclaw.com`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const u = `https://api.openalex.org/works?search=${encodeURIComponent(q)}&select=id,title,authorships,publication_year,cited_by_count,open_access,abstract_inverted_index,doi&per-page=12&mailto=admin@p2pclaw.com`;
+    const r = await fetch(u,{signal:AbortSignal.timeout(8000)});
     const d = await r.json();
-    return (d.results || []).map(p => {
-      let abstract = '';
+    return (d.results||[]).map(p=>{
+      let abs='';
       if (p.abstract_inverted_index) {
-        try {
-          abstract = Object.entries(p.abstract_inverted_index)
-            .flatMap(([w, pos]) => pos.map(i => [i, w]))
-            .sort(([a],[b]) => a - b).map(([,w]) => w).join(' ');
-        } catch {}
+        try { abs=Object.entries(p.abstract_inverted_index).flatMap(([w,pos])=>pos.map(i=>[i,w])).sort(([a],[b])=>a-b).map(([,w])=>w).join(' '); } catch{}
       }
-      const doi = p.doi ? p.doi.replace('https://doi.org/', '') : null;
-      return {
-        id: 'oa:' + p.id,
-        source: 'oa',
-        title: p.title || 'Untitled',
-        authors: (p.authorships || []).slice(0, 5).map(a => a.author?.display_name).filter(Boolean).join(', '),
-        year: p.publication_year,
-        citations: p.cited_by_count || 0,
-        isOpenAccess: p.open_access?.is_oa,
-        pdfUrl: p.open_access?.oa_url,
-        abstract,
-        url: doi ? `https://doi.org/${doi}` : null,
-        doi,
-      };
+      const doi=p.doi?p.doi.replace('https://doi.org/',''):null;
+      return { id:'oa:'+p.id, source:'oa', title:p.title||'Untitled',
+        authors:(p.authorships||[]).slice(0,5).map(a=>a.author?.display_name).filter(Boolean).join(', '),
+        year:p.publication_year, citations:p.cited_by_count||0,
+        isOpenAccess:p.open_access?.is_oa, pdfUrl:p.open_access?.oa_url,
+        abstract:abs, url:doi?`https://doi.org/${doi}`:null, doi };
     });
   } catch { return []; }
 }
 
 async function searchArXiv(q) {
   try {
-    const base = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(q)}&max_results=12&sortBy=relevance`;
-    const proxies = [
-      'https://corsproxy.io/?' + encodeURIComponent(base),
-      'https://api.allorigins.win/raw?url=' + encodeURIComponent(base),
-    ];
-    let text = null;
-    for (const proxy of proxies) {
-      try {
-        const r = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
-        if (r.ok) { text = await r.text(); break; }
-      } catch {}
+    const base=`https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(q)}&max_results=12&sortBy=relevance`;
+    let text=null;
+    for (const proxy of ['https://corsproxy.io/?'+encodeURIComponent(base),'https://api.allorigins.win/raw?url='+encodeURIComponent(base)]) {
+      try { const r=await fetch(proxy,{signal:AbortSignal.timeout(8000)}); if(r.ok){text=await r.text();break;} } catch{}
     }
     if (!text) return [];
-    const doc = new DOMParser().parseFromString(text, 'text/xml');
-    return [...doc.querySelectorAll('entry')].map(e => {
-      const idRaw = e.querySelector('id')?.textContent || '';
-      const arxivId = idRaw.split('/abs/')[1] || idRaw;
-      return {
-        id: 'ax:' + arxivId,
-        source: 'ax',
-        title: e.querySelector('title')?.textContent?.trim() || 'Untitled',
-        authors: [...e.querySelectorAll('author name')].map(a => a.textContent).join(', '),
-        year: e.querySelector('published')?.textContent?.slice(0, 4) || null,
-        citations: 0,
-        isOpenAccess: true,
-        pdfUrl: idRaw.replace('/abs/', '/pdf/'),
-        abstract: e.querySelector('summary')?.textContent?.trim() || '',
-        url: idRaw,
-      };
+    const doc=new DOMParser().parseFromString(text,'text/xml');
+    return [...doc.querySelectorAll('entry')].map(e=>{
+      const idRaw=e.querySelector('id')?.textContent||'';
+      return { id:'ax:'+idRaw.split('/abs/')[1], source:'ax',
+        title:e.querySelector('title')?.textContent?.trim()||'Untitled',
+        authors:[...e.querySelectorAll('author name')].map(a=>a.textContent).join(', '),
+        year:e.querySelector('published')?.textContent?.slice(0,4)||null,
+        citations:0, isOpenAccess:true, pdfUrl:idRaw.replace('/abs/','/pdf/'),
+        abstract:e.querySelector('summary')?.textContent?.trim()||'', url:idRaw };
     });
   } catch { return []; }
 }
@@ -610,278 +451,178 @@ async function searchArXiv(q) {
 async function searchCorpus(q) {
   if (!API_BASE) return [];
   try {
-    const r = await fetch(`${API_BASE}/semantic-search?q=${encodeURIComponent(q)}&limit=8`, { signal: AbortSignal.timeout(6000) });
-    const d = await r.json();
-    return (d.results || d.papers || []).map(p => ({
-      id: 'corpus:' + (p.id || p.paperId),
-      source: 'corpus',
-      title: p.title || 'Untitled',
-      authors: p.author || p.authors || '',
-      year: p.year ? parseInt(p.year) : null,
-      citations: 0,
-      isOpenAccess: true,
-      pdfUrl: p.url_html || p.ipfs_url,
-      abstract: p.content ? p.content.slice(0, 400) : (p.abstract || ''),
-      url: p.url_html || null,
-      score: p.score,
+    const r=await fetch(`${API_BASE}/semantic-search?q=${encodeURIComponent(q)}&limit=8`,{signal:AbortSignal.timeout(6000)});
+    const d=await r.json();
+    return (d.results||d.papers||[]).map(p=>({
+      id:'corpus:'+(p.id||p.paperId), source:'corpus',
+      title:p.title||'Untitled', authors:p.author||p.authors||'',
+      year:p.year?parseInt(p.year):null, citations:0, isOpenAccess:true,
+      pdfUrl:p.url_html||p.ipfs_url, abstract:p.content?p.content.slice(0,400):(p.abstract||''),
+      url:p.url_html||null, score:p.score,
     }));
   } catch { return []; }
 }
 
-// ── Deduplication ────────────────────────────────────────────
-function dedup(results) {
-  const seen = new Map();
-  for (const p of results) {
-    const key = p.title.toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 60);
-    if (!seen.has(key) || p.source === 'corpus') {
-      seen.set(key, p);
-    }
+function dedup(arr) {
+  const seen=new Map();
+  for (const p of arr) {
+    const k=p.title.toLowerCase().replace(/\s+/g,' ').trim().slice(0,60);
+    if (!seen.has(k)||p.source==='corpus') seen.set(k,p);
   }
   return [...seen.values()];
 }
 
-// ── Year & OA filter ─────────────────────────────────────────
-function applyFilters(results) {
-  return results.filter(p => {
-    if (activeYear !== 'all' && p.year && p.year < parseInt(activeYear)) return false;
-    if (oaOnly && !p.isOpenAccess) return false;
+function applyFilters(arr) {
+  return arr.filter(p=>{
+    if (activeYear!=='all'&&p.year&&p.year<parseInt(activeYear)) return false;
+    if (oaOnly&&!p.isOpenAccess) return false;
     return true;
   });
 }
 
-// ── Sort ─────────────────────────────────────────────────────
 function sortResults() {
-  const mode = document.getElementById('sortSelect').value;
-  const sorted = [...allResults];
-  if (mode === 'citations') sorted.sort((a, b) => (b.citations || 0) - (a.citations || 0));
-  else if (mode === 'year') sorted.sort((a, b) => (b.year || 0) - (a.year || 0));
-  renderResults(sorted);
+  const mode=document.getElementById('sortSelect').value;
+  const s=[...allResults];
+  if (mode==='citations') s.sort((a,b)=>(b.citations||0)-(a.citations||0));
+  else if (mode==='year')  s.sort((a,b)=>(b.year||0)-(a.year||0));
+  renderResults(s);
 }
 
-// ── Main search ──────────────────────────────────────────────
 async function runSearch() {
-  const q = document.getElementById('searchInput').value.trim();
+  const q=document.getElementById('searchInput').value.trim();
   if (!q) return;
-  currentQuery = q;
-
-  const btn = document.getElementById('searchBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;"></div> Searching...';
-
-  document.getElementById('statsBar').style.display = 'none';
-  document.getElementById('resultsHeader').style.display = 'none';
-  document.getElementById('resultsArea').innerHTML = renderLoading();
-
+  currentQuery=q;
+  const btn=document.getElementById('searchBtn');
+  btn.disabled=true; btn.textContent='Searching...';
+  document.getElementById('statsBar').style.display='none';
+  document.getElementById('resultsHeader').style.display='none';
+  document.getElementById('resultsArea').innerHTML=`<div class="loading-box"><div class="spinner"></div><div class="loading-text">Querying databases...</div></div>`;
   if (!API_BASE) await resolveGateway();
-
-  const promises = [];
-  const tasks = [];
-  if (activeSources.ss) { promises.push(searchSemanticScholar(q)); tasks.push('ss'); }
-  if (activeSources.oa) { promises.push(searchOpenAlex(q)); tasks.push('oa'); }
-  if (activeSources.ax) { promises.push(searchArXiv(q)); tasks.push('ax'); }
-  if (activeSources.corpus) { promises.push(searchCorpus(q)); tasks.push('corpus'); }
-
-  const settled = await Promise.allSettled(promises);
-  const counts = { ss: 0, oa: 0, ax: 0, corpus: 0 };
-  let combined = [];
-
-  settled.forEach((res, i) => {
-    const src = tasks[i];
-    const arr = res.status === 'fulfilled' ? res.value : [];
-    counts[src] = arr.length;
-    combined = combined.concat(arr);
-  });
-
-  const deduped = dedup(combined);
-  const filtered = applyFilters(deduped);
-  allResults = filtered;
-
-  // Update stats
-  document.getElementById('statSS').textContent = counts.ss;
-  document.getElementById('statOA').textContent = counts.oa;
-  document.getElementById('statAX').textContent = counts.ax;
-  document.getElementById('statCorpus').textContent = counts.corpus;
-  document.getElementById('statTotal').textContent = filtered.length;
-  document.getElementById('statsBar').style.display = 'flex';
-
-  document.getElementById('resultQuery').textContent = q;
-  document.getElementById('resultCount').textContent = filtered.length;
-  document.getElementById('resultsHeader').style.display = 'flex';
-
+  const tasks=[]; const srcs=[];
+  if (activeSrc.ss)     { tasks.push(searchSemanticScholar(q)); srcs.push('ss'); }
+  if (activeSrc.oa)     { tasks.push(searchOpenAlex(q)); srcs.push('oa'); }
+  if (activeSrc.ax)     { tasks.push(searchArXiv(q)); srcs.push('ax'); }
+  if (activeSrc.corpus) { tasks.push(searchCorpus(q)); srcs.push('corpus'); }
+  const settled=await Promise.allSettled(tasks);
+  const counts={ss:0,oa:0,ax:0,corpus:0};
+  let combined=[];
+  settled.forEach((res,i)=>{ const a=res.status==='fulfilled'?res.value:[]; counts[srcs[i]]=a.length; combined=combined.concat(a); });
+  const filtered=applyFilters(dedup(combined));
+  allResults=filtered;
+  ['ss','oa','ax','corpus'].forEach(s=>{ const el=document.getElementById('n'+s.charAt(0).toUpperCase()+s.slice(1).replace('orpus','orpus')); if(el) el.textContent=counts[s]; });
+  document.getElementById('nSS').textContent=counts.ss;
+  document.getElementById('nOA').textContent=counts.oa;
+  document.getElementById('nAX').textContent=counts.ax;
+  document.getElementById('nCorpus').textContent=counts.corpus;
+  document.getElementById('nTotal').textContent=filtered.length;
+  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('resultQuery').textContent=q;
+  document.getElementById('resultCount').textContent=filtered.length;
+  document.getElementById('resultsHeader').style.display='flex';
   renderResults(filtered);
-
-  btn.disabled = false;
-  btn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Search`;
+  btn.disabled=false; btn.textContent='Search';
 }
 
-// ── Render loading ────────────────────────────────────────────
-function renderLoading() {
-  return `<div class="loading-box">
-    <div class="spinner"></div>
-    <div class="loading-text">Querying scientific databases...</div>
-    <div class="progress-sources">
-      ${activeSources.ss ? `<div class="progress-src searching"><span class="dot-sm" style="background:#5b8dee;border-radius:50%;display:inline-block;"></span>Semantic Scholar</div>` : ''}
-      ${activeSources.oa ? `<div class="progress-src searching"><span class="dot-sm" style="background:#22c55e;border-radius:50%;display:inline-block;"></span>OpenAlex</div>` : ''}
-      ${activeSources.ax ? `<div class="progress-src searching"><span class="dot-sm" style="background:#a855f7;border-radius:50%;display:inline-block;"></span>arXiv</div>` : ''}
-      ${activeSources.corpus ? `<div class="progress-src searching"><span class="dot-sm" style="background:var(--accent);border-radius:50%;display:inline-block;"></span>Corpus</div>` : ''}
-    </div>
-  </div>`;
-}
-
-// ── Render results ────────────────────────────────────────────
 function renderResults(results) {
   if (!results.length) {
-    document.getElementById('resultsArea').innerHTML = `<div class="empty-state">
-      <div class="empty-icon">🔍</div>
-      No results found for "${escHtml(currentQuery)}"
-      <div class="empty-hint">Try different keywords, or check the active sources and filters above.</div>
-    </div>`;
+    document.getElementById('resultsArea').innerHTML=`<div class="empty-state">No results found for "${esc(currentQuery)}".<div class="empty-hint">Try broader keywords or enable more sources.</div></div>`;
     return;
   }
-
-  const html = results.map((p, i) => {
-    const srcLabels = { ss: 'Semantic Scholar', oa: 'OpenAlex', ax: 'arXiv', corpus: 'P2PCLAW Corpus' };
-    const srcClass = p.source;
-    const authorsShort = p.authors ? (p.authors.length > 80 ? p.authors.slice(0, 80) + '...' : p.authors) : 'Unknown authors';
-    const titleHtml = p.url ? `<a href="${escHtml(p.url)}" target="_blank" rel="noopener">${escHtml(p.title)}</a>` : escHtml(p.title);
-
-    return `<div class="paper-card" id="card-${i}">
+  const srcNames={ss:'Semantic Scholar',oa:'OpenAlex',ax:'arXiv',corpus:'P2PCLAW Corpus'};
+  document.getElementById('resultsArea').innerHTML=`<div class="results-list">${results.map((p,i)=>{
+    const authShort=p.authors?(p.authors.length>80?p.authors.slice(0,80)+'…':p.authors):'Unknown';
+    const titleHtml=p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>`:esc(p.title);
+    return `<div class="paper-card">
       <div class="card-meta">
-        <span class="source-badge ${srcClass}">${srcLabels[p.source]}</span>
-        ${p.isOpenAccess ? `<span class="oa-badge">🔓 Open Access</span>` : ''}
-        ${p.year ? `<span class="year-badge">${p.year}</span>` : ''}
-        ${p.score ? `<span class="year-badge" style="color:var(--claw-amber);">Score: ${p.score.toFixed(2)}</span>` : ''}
+        <span class="src-badge ${p.source}">${srcNames[p.source]}</span>
+        ${p.isOpenAccess?'<span class="oa-badge">Open Access</span>':''}
+        ${p.year?`<span class="year-tag">${p.year}</span>`:''}
+        ${p.score?`<span class="year-tag" style="color:var(--claw-amber);">score ${p.score.toFixed(2)}</span>`:''}
       </div>
       <div class="card-title">${titleHtml}</div>
-      <div class="card-authors">${escHtml(authorsShort)}</div>
-      ${p.abstract ? `<div class="card-abstract" id="abs-${i}">${escHtml(p.abstract)}</div>
-        <button class="expand-link" onclick="toggleAbstract(${i})">▼ Show full abstract</button>` : ''}
-      <div class="card-stats">
-        ${p.citations > 0 ? `<div class="stat-pill">
-          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M2 12l10 10 10-10"/></svg>
-          ${p.citations.toLocaleString()} citations
-        </div>` : ''}
-        ${p.pdfUrl ? `<div class="stat-pill">
-          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          PDF available
-        </div>` : ''}
-      </div>
-      <div class="card-actions">
-        ${p.pdfUrl ? `<a href="${escHtml(p.pdfUrl)}" target="_blank" rel="noopener" class="btn btn-sm">📄 Open PDF</a>` : ''}
-        ${p.url ? `<a href="${escHtml(p.url)}" target="_blank" rel="noopener" class="btn btn-sm">🔗 View Paper</a>` : ''}
-        ${p.source !== 'corpus' ? `<button class="btn btn-sm btn-accent" onclick="openImport(${i})">📥 Import to Corpus</button>` : '<span class="btn btn-sm" style="border-color:var(--accent);color:var(--accent);cursor:default;">✓ In Corpus</span>'}
-        <button class="btn btn-sm" onclick="sendToChat(${i})">💬 Send to Chat</button>
+      <div class="card-authors">${esc(authShort)}</div>
+      ${p.abstract?`<div class="card-abstract" id="abs${i}">${esc(p.abstract)}</div>
+      <button class="expand-btn" onclick="toggleAbs(${i})">Show full abstract</button>`:''}
+      <div class="card-footer">
+        <div class="card-stats">
+          ${p.citations>0?`<span class="stat-tag">${p.citations.toLocaleString()} citations</span>`:''}
+          ${p.pdfUrl?'<span class="stat-tag">PDF available</span>':''}
+        </div>
+        <div class="card-actions">
+          ${p.pdfUrl?`<a href="${esc(p.pdfUrl)}" target="_blank" rel="noopener" class="btn btn-sm">Open PDF</a>`:''}
+          ${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener" class="btn btn-sm">View paper</a>`:''}
+          ${p.source!=='corpus'?`<button class="btn btn-sm btn-primary" onclick="openImport(${i})">Import to corpus</button>`:'<span class="btn btn-sm" style="border-color:var(--accent);color:var(--accent);cursor:default;">In corpus</span>'}
+          <button class="btn btn-sm" onclick="sendToChat(${i})">Send to chat</button>
+        </div>
       </div>
     </div>`;
-  }).join('');
-
-  document.getElementById('resultsArea').innerHTML = `<div class="results-grid">${html}</div>`;
+  }).join('')}</div>`;
 }
 
-function escHtml(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function toggleAbstract(i) {
-  const el = document.getElementById(`abs-${i}`);
-  if (!el) return;
-  const btn = el.nextElementSibling;
+function toggleAbs(i) {
+  const el=document.getElementById('abs'+i); if(!el) return;
+  const btn=el.nextElementSibling;
   el.classList.toggle('expanded');
-  btn.textContent = el.classList.contains('expanded') ? '▲ Hide abstract' : '▼ Show full abstract';
+  btn.textContent=el.classList.contains('expanded')?'Hide abstract':'Show full abstract';
 }
 
-// ── Import panel ─────────────────────────────────────────────
 function openImport(i) {
-  const p = allResults[i];
-  if (!p) return;
-  document.getElementById('impTitle').value = p.title || '';
-  document.getElementById('impAuthors').value = p.authors || '';
-  document.getElementById('impYear').value = p.year || '';
-  document.getElementById('impAbstract').value = p.abstract || '';
-  document.getElementById('impUrl').value = p.url || p.pdfUrl || '';
-  document.getElementById('impKeywords').value = currentQuery;
+  const p=allResults[i]; if(!p) return;
+  document.getElementById('impTitle').value=p.title||'';
+  document.getElementById('impAuthors').value=p.authors||'';
+  document.getElementById('impYear').value=p.year||'';
+  document.getElementById('impAbstract').value=p.abstract||'';
+  document.getElementById('impUrl').value=p.url||p.pdfUrl||'';
+  document.getElementById('impKeywords').value=currentQuery;
   document.getElementById('importPanel').classList.add('open');
 }
-
-function closeImport() {
-  document.getElementById('importPanel').classList.remove('open');
-}
+function closeImport() { document.getElementById('importPanel').classList.remove('open'); }
 
 async function publishImport() {
   if (!API_BASE) await resolveGateway();
-  const title = document.getElementById('impTitle').value.trim();
-  const authors = document.getElementById('impAuthors').value.trim();
-  const year = document.getElementById('impYear').value.trim();
-  const abstract = document.getElementById('impAbstract').value.trim();
-  const url = document.getElementById('impUrl').value.trim();
-  const keywords = document.getElementById('impKeywords').value.trim();
-  const discipline = document.getElementById('impDiscipline').value;
-
-  if (!title || !abstract) { toast('Title and abstract are required', 'error'); return; }
-  if (abstract.length < 80) { toast('Abstract too short (min 80 chars)', 'error'); return; }
-
-  const agentId = localStorage.getItem('p2pclaw-agent-id') || 'human-researcher-' + Date.now().toString(36);
-  const content = `# ${title}\n\n**Authors:** ${authors || 'Unknown'}\n**Year:** ${year || 'N/A'}\n**Discipline:** ${discipline}\n**Source:** ${url || 'N/A'}\n**Keywords:** ${keywords || 'N/A'}\n\n## Abstract\n\n${abstract}`;
-
+  const title=document.getElementById('impTitle').value.trim();
+  const abstract=document.getElementById('impAbstract').value.trim();
+  if (!title||!abstract) { toast('Title and abstract are required','err'); return; }
+  if (abstract.length<80) { toast('Abstract too short (min 80 chars)','err'); return; }
+  const agentId=localStorage.getItem('p2pclaw-agent-id')||'researcher-'+Date.now().toString(36);
+  const authors=document.getElementById('impAuthors').value.trim();
+  const year=document.getElementById('impYear').value.trim();
+  const url=document.getElementById('impUrl').value.trim();
+  const keywords=document.getElementById('impKeywords').value.trim();
+  const discipline=document.getElementById('impDiscipline').value;
+  const content=`# ${title}\n\n**Authors:** ${authors||'Unknown'}\n**Year:** ${year||'N/A'}\n**Discipline:** ${discipline}\n**Source:** ${url||'N/A'}\n**Keywords:** ${keywords||'N/A'}\n\n## Abstract\n\n${abstract}`;
+  const btn=document.querySelector('.import-ftr .btn-primary');
   try {
-    const btn = document.querySelector('.import-footer .btn-accent');
-    btn.textContent = '⏳ Publishing...';
-    btn.disabled = true;
-
-    const r = await fetch(`${API_BASE}/publish-paper`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content, author: agentId, tags: keywords }),
-      signal: AbortSignal.timeout(15000),
-    });
-    const d = await r.json();
-    if (d.id || d.success || d.paper) {
-      toast(`✓ Paper imported to corpus!`, 'success');
-      closeImport();
-    } else {
-      toast(d.error || 'Publish failed', 'error');
-    }
-  } catch (e) {
-    toast('Network error: ' + e.message, 'error');
-  } finally {
-    const btn = document.querySelector('.import-footer .btn-accent');
-    if (btn) { btn.textContent = '📤 Publish to Corpus'; btn.disabled = false; }
-  }
+    btn.textContent='Publishing...'; btn.disabled=true;
+    const r=await fetch(`${API_BASE}/publish-paper`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,content,author:agentId,tags:keywords}),signal:AbortSignal.timeout(15000)});
+    const d=await r.json();
+    if (d.id||d.success||d.paper) { toast('Paper imported to corpus','ok'); closeImport(); }
+    else toast(d.error||'Publish failed','err');
+  } catch(e) { toast('Network error: '+e.message,'err'); }
+  finally { btn.textContent='Publish to Corpus'; btn.disabled=false; }
 }
 
-// ── Send to chat ──────────────────────────────────────────────
 function sendToChat(i) {
-  const p = allResults[i];
-  if (!p) return;
-  const url = new URL('research-chat.html', window.location.href);
-  url.searchParams.set('ref_title', p.title.slice(0, 100));
-  url.searchParams.set('ref_abstract', (p.abstract || '').slice(0, 300));
-  window.location.href = url.toString();
+  const p=allResults[i]; if(!p) return;
+  const u=new URL('research-chat.html',location.href);
+  u.searchParams.set('ref_title',p.title.slice(0,100));
+  u.searchParams.set('ref_abstract',(p.abstract||'').slice(0,300));
+  location.href=u.toString();
 }
 
-// ── Toast ─────────────────────────────────────────────────────
-function toast(msg, type = 'info') {
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.textContent = msg;
-  document.getElementById('toastContainer').appendChild(el);
-  setTimeout(() => el.remove(), 4000);
+function toast(msg,type='info') {
+  const el=document.createElement('div');
+  el.className='toast '+(type==='ok'?'ok':type==='err'?'err':'');
+  el.textContent=msg;
+  document.getElementById('toastBox').appendChild(el);
+  setTimeout(()=>el.remove(),4000);
 }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ── Init ──────────────────────────────────────────────────────
-document.getElementById('searchInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') runSearch();
-});
-
-// Auto-search from URL param
-const initQuery = new URLSearchParams(location.search).get('q');
-if (initQuery) {
-  document.getElementById('searchInput').value = initQuery;
-  resolveGateway().then(runSearch);
-} else {
-  resolveGateway();
-}
+document.getElementById('searchInput').addEventListener('keydown',e=>{ if(e.key==='Enter') runSearch(); });
+const initQ=new URLSearchParams(location.search).get('q');
+if (initQ) { document.getElementById('searchInput').value=initQ; resolveGateway().then(runSearch); }
+else resolveGateway();
 </script>
 </body>
 </html>
