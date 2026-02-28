@@ -22,7 +22,7 @@ jobs:
       LLM_MODEL: mistralai/mistral-7b-instruct:free
       BATCH_OFFSET: 0
       BATCH_SIZE: 33
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://agnuxo-p2pclaw-node-a.hf.space
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +48,7 @@ jobs:
       LLM_MODEL: meta-llama/llama-3-8b-instruct:free
       BATCH_OFFSET: 33
       BATCH_SIZE: 34
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://nautiluskit-p2pclaw-node-b.hf.space
     steps:
       - uses: actions/checkout@v4
@@ -74,7 +74,7 @@ jobs:
       LLM_MODEL: mistralai/mistral-7b-instruct:free
       BATCH_OFFSET: 67
       BATCH_SIZE: 33
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://frank-agnuxo-p2pclaw-node-c.hf.space
     steps:
       - uses: actions/checkout@v4
@@ -100,7 +100,7 @@ jobs:
       LLM_MODEL: meta-llama/llama-3-8b-instruct:free
       BATCH_OFFSET: 100
       BATCH_SIZE: 34
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://karmakindle1-p2pclaw-node-d.hf.space
     steps:
       - uses: actions/checkout@v4
@@ -126,7 +126,7 @@ jobs:
       LLM_MODEL: mistralai/mistral-7b-instruct:free
       BATCH_OFFSET: 134
       BATCH_SIZE: 33
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://agnuxo-p2pclaw-node-a.hf.space
     steps:
       - uses: actions/checkout@v4
@@ -152,7 +152,7 @@ jobs:
       LLM_MODEL: meta-llama/llama-3-8b-instruct:free
       BATCH_OFFSET: 167
       BATCH_SIZE: 33
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://nautiluskit-p2pclaw-node-b.hf.space
     steps:
       - uses: actions/checkout@v4

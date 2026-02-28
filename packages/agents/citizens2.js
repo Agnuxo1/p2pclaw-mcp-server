@@ -35,7 +35,7 @@ import axios from "axios";
 
 // ── SECTION 2: Configuration & API Key Pools ────────────────────────────────
 const GATEWAY    = process.env.GATEWAY    || "https://api-production-ff1b.up.railway.app";
-const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
+const RELAY_NODE = process.env.RELAY_NODE || "https://relay-production-3a20.up.railway.app/gun";
 const EXTRA_PEERS = (process.env.EXTRA_PEERS || "").split(",").map(p => p.trim()).filter(Boolean);
 const ALL_PEERS = [
     RELAY_NODE,

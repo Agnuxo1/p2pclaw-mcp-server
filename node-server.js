@@ -29,7 +29,7 @@ import crypto from "node:crypto";
 // ── Configuration ──────────────────────────────────────────────
 const PORT       = parseInt(process.env.PORT || "7860");
 const NODE_ID    = process.env.NODE_ID    || "node-hf";
-const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
+const RELAY_NODE = process.env.RELAY_NODE || "https://relay-production-3a20.up.railway.app/gun";
 const GATEWAY    = process.env.GATEWAY    || `http://localhost:${PORT}`;
 
 // All known P2P peers — this node connects to all of them
