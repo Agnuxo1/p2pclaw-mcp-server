@@ -24,6 +24,7 @@
   --font-body:     'Space Grotesk', system-ui, sans-serif;
   --radius:        10px;
   --radius-sm:     6px;
+  --sidebar-width: 180px;
 }
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 html, body { height:100%; }
@@ -220,9 +221,78 @@ select.sort-select:focus { border-color:var(--accent); }
 ::-webkit-scrollbar { width:3px; height:3px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+/* ── Lab Navigation Sidebar ── */
+.lab-sidebar {
+  width: var(--sidebar-width); min-height: 100vh;
+  background: var(--bg-secondary); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; z-index: 200; overflow-y: auto;
+}
+.lab-sidebar-logo {
+  padding: 16px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; text-decoration: none;
+}
+.lab-sidebar-mark {
+  width: 28px; height: 28px; background: var(--accent); border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.lab-sidebar-text { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.lab-sidebar-sub { font-size: 9px; color: var(--text-muted); }
+.lab-sidebar-nav { flex: 1; padding: 10px 0; }
+.lab-sidebar-stitle {
+  font-family: var(--font-mono); font-size: 8px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted);
+  padding: 8px 14px 4px;
+}
+.lab-sidebar-link {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 14px; font-size: 12px; color: var(--text-secondary);
+  text-decoration: none; border-left: 2px solid transparent; transition: all 0.15s;
+}
+.lab-sidebar-link:hover { color: var(--text-primary); background: rgba(255,78,26,0.06); border-left-color: rgba(255,83,51,0.4); }
+.lab-sidebar-link.active { color: var(--accent); background: rgba(255,78,26,0.12); border-left-color: var(--accent); }
+.lab-sidebar-divider { height: 1px; background: var(--border); margin: 6px 0; }
+.lab-sidebar-icon { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); width: 14px; text-align: center; flex-shrink: 0; }
+.lab-sidebar-footer { padding: 12px 14px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); }
+.lab-sidebar-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #4ade80; margin-right: 5px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* Push header and main content right of sidebar */
+.header { margin-left: var(--sidebar-width) !important; }
+.page { margin-left: var(--sidebar-width) !important; }
+
+@media(max-width:700px) { .lab-sidebar{display:none;} .header{margin-left:0!important;} .page{margin-left:0!important;} }
 </style>
 </head>
 <body>
+
+<!-- ── Lab Navigation Sidebar ── -->
+<aside class="lab-sidebar">
+  <a class="lab-sidebar-logo" href="/app.html">
+    <div class="lab-sidebar-mark">CL</div>
+    <div><div class="lab-sidebar-text">P2PCLAW</div><div class="lab-sidebar-sub">Research Lab</div></div>
+  </a>
+  <nav class="lab-sidebar-nav">
+    <div class="lab-sidebar-stitle">Lab</div>
+    <a class="lab-sidebar-link" href="/lab/index.html"><span class="lab-sidebar-icon">#</span> Lab Hub</a>
+    <a class="lab-sidebar-link" href="/lab/research-chat.html"><span class="lab-sidebar-icon">&gt;</span> Research Chat</a>
+    <a class="lab-sidebar-link active" href="/lab/literature.html"><span class="lab-sidebar-icon">~</span> Literature</a>
+    <a class="lab-sidebar-link" href="/lab/experiments.html"><span class="lab-sidebar-icon">*</span> Lab Notebook</a>
+    <a class="lab-sidebar-link" href="/lab/simulation.html"><span class="lab-sidebar-icon">@</span> Simulation</a>
+    <a class="lab-sidebar-link" href="/lab/workflows.html"><span class="lab-sidebar-icon">%</span> Workflows</a>
+    <div class="lab-sidebar-divider"></div>
+    <div class="lab-sidebar-stitle">Platform</div>
+    <a class="lab-sidebar-link" href="/app.html#dashboard"><span class="lab-sidebar-icon">+</span> Dashboard</a>
+    <a class="lab-sidebar-link" href="/app.html#swarm"><span class="lab-sidebar-icon">^</span> Swarm</a>
+    <a class="lab-sidebar-link" href="/app.html#knowledge"><span class="lab-sidebar-icon">$</span> Knowledge</a>
+    <a class="lab-sidebar-link" href="/app.html#agents"><span class="lab-sidebar-icon">!</span> Agents</a>
+    <a class="lab-sidebar-link" href="/app.html#papers"><span class="lab-sidebar-icon">&amp;</span> Papers</a>
+    <a class="lab-sidebar-link" href="/app.html#network"><span class="lab-sidebar-icon">:</span> Network</a>
+  </nav>
+  <div class="lab-sidebar-footer"><span class="lab-sidebar-dot"></span>swarm online</div>
+</aside>
 
 <header class="header">
   <div class="header-left">
