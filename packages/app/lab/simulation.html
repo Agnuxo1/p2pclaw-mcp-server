@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P2PCLAW — Simulation Launcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0c0c0d; --bg-secondary: #121214; --bg-card: #1a1a1c; --bg-card-hover: #222226;
+  --border: #2c2c30; --border-glow: #ff5533;
+  --text-primary: #f5f0eb; --text-secondary: #9a9490; --text-muted: #52504e;
+  --accent: #ff4e1a; --accent-light: #ff7020; --accent-glow: rgba(255,78,26,0.18);
+  --green: #4ade80; --yellow: #fbbf24; --blue: #60a5fa; --purple: #a78bfa; --pink: #f472b6; --teal: #34d399;
+  --font-mono: 'JetBrains Mono', monospace; --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --radius: 10px; --radius-sm: 6px; --sidebar-width: 220px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-body); overflow-x: hidden; }
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; border: none; background: none; color: inherit; font-family: inherit; }
+.lab-layout { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar { width: var(--sidebar-width); min-height: 100vh; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 100; overflow-y: auto; }
+.sidebar-logo { padding: 20px 18px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.sidebar-logo-mark { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.sidebar-logo-text { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.sidebar-logo-sub { font-size: 10px; color: var(--text-muted); }
+.sidebar-nav { flex: 1; padding: 12px 0; }
+.sidebar-section-title { font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.12em; color: var(--text-muted); text-transform: uppercase; padding: 10px 18px 6px; }
+.sidebar-item { display: flex; align-items: center; gap: 10px; padding: 8px 18px; font-size: 13px; color: var(--text-secondary); border-left: 2px solid transparent; transition: all 0.15s; }
+.sidebar-item:hover { color: var(--text-primary); background: rgba(255,78,26,0.06); border-left-color: var(--border-glow); }
+.sidebar-item.active { color: var(--accent); background: var(--accent-glow); border-left-color: var(--accent); }
+.sidebar-item-icon { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); width: 16px; text-align: center; flex-shrink: 0; }
+.sidebar-divider { height: 1px; background: var(--border); margin: 8px 0; }
+.sidebar-footer { padding: 14px 18px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.sidebar-status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* Main */
+.lab-main { margin-left: var(--sidebar-width); flex: 1; min-width: 0; }
+.lab-topbar { padding: 18px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); position: sticky; top: 0; z-index: 50; }
+.lab-topbar-title { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+.lab-topbar-breadcrumb { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.lab-topbar-actions { display: flex; gap: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 11px; font-weight: 500; transition: all 0.15s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-light); }
+.btn-secondary { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.lab-content { padding: 32px; }
+.section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+.section-title { font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-secondary); }
+.section-step { font-family: var(--font-mono); font-size: 9px; padding: 2px 8px; border-radius: 3px; background: var(--accent-glow); color: var(--accent); border: 1px solid rgba(255,78,26,0.25); }
+.section-sub { font-size: 12px; color: var(--text-muted); }
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* Domain grid */
+.domain-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 0; }
+.domain-card { background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: all 0.18s; position: relative; }
+.domain-card:hover { border-color: var(--domain-color, var(--accent)); background: var(--bg-card-hover); }
+.domain-card.selected { border-color: var(--domain-color, var(--accent)); background: rgba(255,78,26,0.06); }
+.domain-card.selected::after { content: '✓'; position: absolute; top: 10px; right: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--domain-color, var(--accent)); }
+.domain-num { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); margin-bottom: 6px; }
+.domain-name { font-family: var(--font-mono); font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.domain-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+
+/* Two-col layout */
+.two-col { display: grid; grid-template-columns: 5fr 4fr; gap: 24px; align-items: start; }
+
+/* Tool picker */
+.tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tool-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; cursor: pointer; transition: all 0.15s; }
+.tool-card:hover { border-color: var(--accent); }
+.tool-card.selected { border-color: var(--accent); background: var(--accent-glow); }
+.tool-name { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+.tool-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.3; }
+.tool-badge { font-family: var(--font-mono); font-size: 9px; padding: 2px 6px; border-radius: 3px; background: rgba(255,78,26,0.08); color: var(--text-muted); border: 1px solid var(--border); display: inline-block; margin-top: 5px; }
+
+/* Config panel */
+.config-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.config-panel-header { padding: 14px 18px; border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); background: var(--bg-secondary); }
+.config-panel-body { padding: 18px; }
+.form-group { margin-bottom: 14px; }
+.form-label { font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; display: block; }
+.form-input, .form-select, .form-textarea { width: 100%; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; font-family: var(--font-mono); font-size: 12px; color: var(--text-primary); outline: none; transition: border-color 0.15s; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-select option { background: var(--bg-secondary); }
+.form-textarea { resize: vertical; min-height: 70px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.json-preview { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); white-space: pre-wrap; word-break: break-all; max-height: 180px; overflow-y: auto; line-height: 1.6; }
+.json-key { color: var(--blue); }
+.json-str { color: var(--green); }
+.json-num { color: var(--yellow); }
+
+/* Submit bar */
+.submit-bar { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+.submit-info { flex: 1; }
+.submit-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.submit-detail { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.submit-detail.ok { color: var(--green); }
+.submit-detail.err { color: #f87171; }
+
+/* Active simulations table */
+.data-table-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 32px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-muted); text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
+td { padding: 10px 14px; border-bottom: 1px solid rgba(44,44,48,0.5); color: var(--text-secondary); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,78,26,0.03); }
+.status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 3px; font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.status-running { background: rgba(74,222,128,0.1); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+.status-pending { background: rgba(251,191,36,0.1); color: var(--yellow); border: 1px solid rgba(251,191,36,0.2); }
+.status-done { background: rgba(96,165,250,0.1); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+.status-failed { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
+.empty-cell { text-align: center; padding: 28px; font-size: 12px; color: var(--text-muted); }
+::-webkit-scrollbar { width: 4px; height: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+@media (max-width: 1100px) { .domain-grid { grid-template-columns: repeat(2,1fr); } .two-col { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .sidebar { display: none; } .lab-main { margin-left: 0; } .lab-content { padding: 16px; } .domain-grid { grid-template-columns: repeat(2,1fr); } .tool-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="lab-layout">
+
+<aside class="sidebar">
+  <a class="sidebar-logo" href="/app.html">
+    <div class="sidebar-logo-mark">CL</div>
+    <div><div class="sidebar-logo-text">P2PCLAW</div><div class="sidebar-logo-sub">Research Lab</div></div>
+  </a>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-title">Lab</div>
+    <a class="sidebar-item" href="/lab/index.html"><span class="sidebar-item-icon">#</span> Lab Hub</a>
+    <a class="sidebar-item" href="/lab/research-chat.html"><span class="sidebar-item-icon">&gt;</span> Research Chat</a>
+    <a class="sidebar-item" href="/lab/literature.html"><span class="sidebar-item-icon">~</span> Literature</a>
+    <a class="sidebar-item" href="/lab/experiments.html"><span class="sidebar-item-icon">*</span> Lab Notebook</a>
+    <a class="sidebar-item active" href="/lab/simulation.html"><span class="sidebar-item-icon">@</span> Simulation</a>
+    <a class="sidebar-item" href="/lab/workflows.html"><span class="sidebar-item-icon">%</span> Workflows</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">Platform</div>
+    <a class="sidebar-item" href="/app.html#dashboard"><span class="sidebar-item-icon">+</span> Dashboard</a>
+    <a class="sidebar-item" href="/app.html#swarm"><span class="sidebar-item-icon">^</span> Swarm Compute</a>
+    <a class="sidebar-item" href="/app.html#knowledge"><span class="sidebar-item-icon">$</span> Knowledge</a>
+    <a class="sidebar-item" href="/app.html#agents"><span class="sidebar-item-icon">!</span> Agents</a>
+    <a class="sidebar-item" href="/app.html#papers"><span class="sidebar-item-icon">&amp;</span> Papers</a>
+    <a class="sidebar-item" href="/app.html#network"><span class="sidebar-item-icon">:</span> Network</a>
+    <a class="sidebar-item" href="/app.html#governance"><span class="sidebar-item-icon">=</span> Governance</a>
+  </nav>
+  <div class="sidebar-footer"><span class="sidebar-status-dot"></span><span id="sb-agents">—</span> agents online</div>
+</aside>
+
+<main class="lab-main">
+  <div class="lab-topbar">
+    <div>
+      <div class="lab-topbar-title">Simulation Launcher</div>
+      <div class="lab-topbar-breadcrumb">P2PCLAW / Lab / Simulation</div>
+    </div>
+    <div class="lab-topbar-actions">
+      <a href="/lab/workflows.html" class="btn btn-secondary">Workflows</a>
+      <button class="btn btn-primary" onclick="submitSimulation()">Submit to Swarm</button>
+    </div>
+  </div>
+
+  <div class="lab-content">
+
+    <!-- Step 1: Domain -->
+    <div class="section-header">
+      <span class="section-step">Step 1</span>
+      <div class="section-title">Select Domain</div>
+      <div class="section-sub">Choose a scientific discipline</div>
+    </div>
+    <div class="domain-grid" id="domain-grid" style="margin-bottom:28px;"></div>
+
+    <hr class="section-divider">
+
+    <!-- Step 2: Tool + Config -->
+    <div class="section-header">
+      <span class="section-step">Step 2</span>
+      <div class="section-title">Configure Simulation</div>
+      <div class="section-sub" id="step2-sub">Select a domain first</div>
+    </div>
+    <div class="two-col" style="margin-bottom:28px;">
+      <!-- Tool picker -->
+      <div>
+        <div style="font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:0.10em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Available Tools</div>
+        <div class="tool-grid" id="tool-grid">
+          <div style="grid-column:1/-1;text-align:center;padding:20px;font-size:12px;color:var(--text-muted);">Select a domain to see tools.</div>
+        </div>
+      </div>
+      <!-- Config panel -->
+      <div class="config-panel">
+        <div class="config-panel-header">Job Configuration</div>
+        <div class="config-panel-body">
+          <div class="form-group">
+            <label class="form-label">Simulation Title</label>
+            <input type="text" class="form-input" id="sim-title" placeholder="e.g., Quantum circuit depth sweep" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hypothesis</label>
+            <input type="text" class="form-input" id="sim-hypothesis" placeholder="e.g., Depth > 10 improves expressibility" oninput="updatePreview()">
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">CPU Cores</label>
+              <select class="form-select" id="res-cpu" onchange="updatePreview()">
+                <option value="1">1</option><option value="2">2</option><option value="4" selected>4</option>
+                <option value="8">8</option><option value="16">16</option><option value="32">32</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">GPU</label>
+              <select class="form-select" id="res-gpu" onchange="updatePreview()">
+                <option value="none">None</option><option value="T4">T4</option>
+                <option value="A10G">A10G</option><option value="A100">A100</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:10px">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Duration</label>
+              <select class="form-select" id="res-duration" onchange="updatePreview()">
+                <option value="30m">30 min</option><option value="1h" selected>1 hour</option>
+                <option value="4h">4 hours</option><option value="12h">12 hours</option><option value="24h">24 hours</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Replications</label>
+              <select class="form-select" id="res-replications" onchange="updatePreview()">
+                <option value="1" selected>1</option><option value="2">2</option><option value="3">3 (consensus)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <label class="form-label">Custom Params (JSON)</label>
+            <textarea class="form-textarea" id="sim-params" placeholder='{"steps":1000,"temperature":300}' oninput="updatePreview()"></textarea>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:0.10em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Payload Preview</div>
+          <div class="json-preview" id="json-preview">Select domain and tool to preview payload.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit bar -->
+    <div class="submit-bar">
+      <div class="submit-info">
+        <div class="submit-title" id="submit-title">Ready to configure</div>
+        <div class="submit-detail" id="submit-detail">Select a domain and tool, then fill the job title.</div>
+      </div>
+      <button class="btn btn-secondary" onclick="resetForm()">Reset</button>
+      <button class="btn btn-primary" id="submit-btn" onclick="submitSimulation()">Submit to Swarm</button>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- Active Simulations -->
+    <div class="section-header">
+      <div class="section-title">Active Simulations</div>
+      <div class="section-sub">Live compute jobs on the swarm</div>
+    </div>
+    <div class="data-table-wrap">
+      <table>
+        <thead><tr>
+          <th>Task ID</th><th>Title / Tool</th><th>Domain</th><th>CPU</th><th>GPU</th><th>Status</th><th>Submitted</th>
+        </tr></thead>
+        <tbody id="active-tbody"><tr><td colspan="7" class="empty-cell">Loading...</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Recent Completed -->
+    <div class="section-header">
+      <div class="section-title">Recent Completed</div>
+      <div class="section-sub">Finished or failed jobs</div>
+    </div>
+    <div class="data-table-wrap">
+      <table>
+        <thead><tr>
+          <th>Task ID</th><th>Title / Tool</th><th>Domain</th><th>Duration</th><th>Status</th><th>Completed</th>
+        </tr></thead>
+        <tbody id="done-tbody"><tr><td colspan="6" class="empty-cell">Loading...</td></tr></tbody>
+      </table>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<script>
+const API_BASE = 'https://api-production-ff1b.up.railway.app';
+let selectedDomain = null, selectedTool = null;
+
+const DOMAINS = [
+  { id:'physics', num:'01', name:'Physics & Cosmology', color:'#60a5fa', desc:'N-body, quantum circuits, MD, field theory.',
+    tools:[
+      {id:'lammps',name:'LAMMPS',desc:'Molecular dynamics. Classical & reactive force fields.',cat:'MD'},
+      {id:'qiskit',name:'Qiskit',desc:'Quantum circuit simulation. VQE, QAOA, noise models.',cat:'QC'},
+      {id:'gromacs',name:'GROMACS',desc:'High-performance MD for biomolecular systems.',cat:'MD'},
+      {id:'fenics',name:'FEniCS',desc:'Finite element PDE solver. Elasticity, fluids.',cat:'FEA'},
+      {id:'openmm',name:'OpenMM',desc:'GPU-accelerated MD. Alchemical transformations.',cat:'MD'},
+      {id:'astropy',name:'yt + Astropy',desc:'Astrophysical simulation analysis. SPH, AMR.',cat:'Astro'},
+    ]},
+  { id:'robotics', num:'02', name:'Robotics & Control', color:'#a78bfa', desc:'ROS2, RL environments, path optimisation.',
+    tools:[
+      {id:'ros2',name:'ROS2 + Nav2',desc:'Robot OS 2. Navigation stack, SLAM.',cat:'Nav'},
+      {id:'pybullet',name:'PyBullet',desc:'Physics for robotics. Rigid body dynamics.',cat:'Sim'},
+      {id:'gymnasium',name:'Gymnasium',desc:'RL environments. MuJoCo, Atari, Box2D.',cat:'RL'},
+      {id:'mujoco',name:'MuJoCo',desc:'Contact-rich manipulation. Dexterous tasks.',cat:'Sim'},
+      {id:'isaacgym',name:'Isaac Gym',desc:'GPU-parallel RL training at scale.',cat:'RL'},
+      {id:'ortools',name:'OR-Tools',desc:'Route planning, scheduling, constraint sat.',cat:'Opt'},
+    ]},
+  { id:'chemistry', num:'03', name:'Chemistry & Materials', color:'#4ade80', desc:'Drug screening, DFT, protein folding.',
+    tools:[
+      {id:'rdkit',name:'RDKit',desc:'Cheminformatics. Virtual screening, fingerprints.',cat:'Chem'},
+      {id:'psi4',name:'Psi4',desc:'Quantum chemistry. DFT, MP2, CCSD(T).',cat:'QC'},
+      {id:'orca',name:'ORCA',desc:'General QC. Relativistic, multireference.',cat:'QC'},
+      {id:'openbabel',name:'OpenBabel',desc:'110+ format conversion, descriptor calc.',cat:'Conv'},
+      {id:'alphafold',name:'AlphaFold2',desc:'Protein structure prediction from sequence.',cat:'Bio'},
+      {id:'cp2k',name:'CP2K',desc:'DFT, tight-binding, periodic boundary.',cat:'DFT'},
+    ]},
+  { id:'biology', num:'04', name:'Biology & Genomics', color:'#fbbf24', desc:'Gene expression, phylogenetics, multi-omics.',
+    tools:[
+      {id:'bioconductor',name:'Bioconductor',desc:'R packages. DE analysis, scRNA-seq.',cat:'Omics'},
+      {id:'blast',name:'BLAST+',desc:'Sequence alignment. Local search tool.',cat:'Seq'},
+      {id:'star',name:'STAR Aligner',desc:'Splice-aware RNA-seq mapping.',cat:'RNA'},
+      {id:'deseq2',name:'DESeq2',desc:'Differential gene expression. Neg-binomial.',cat:'RNA'},
+      {id:'cellranger',name:'Cell Ranger',desc:'Single-cell RNA-seq. Barcode, UMI.',cat:'scRNA'},
+      {id:'beast2',name:'BEAST2',desc:'Bayesian phylogenetics. Molecular clock.',cat:'Phylo'},
+    ]},
+  { id:'ai', num:'05', name:'AI / Machine Learning', color:'#ff4e1a', desc:'Distributed training, HPO, NAS, federated.',
+    tools:[
+      {id:'pytorch',name:'PyTorch + Ray',desc:'Distributed training. FSDP, pipeline.',cat:'DL'},
+      {id:'jax',name:'JAX + Flax',desc:'Functional ML. XLA, auto-diff.',cat:'DL'},
+      {id:'optuna',name:'Optuna',desc:'Hyperparameter optimisation. TPE, pruning.',cat:'HPO'},
+      {id:'deepspeed',name:'DeepSpeed',desc:'LLM training. ZeRO, offloading.',cat:'LLM'},
+      {id:'flower',name:'Flower FL',desc:'Federated learning. Privacy-preserving.',cat:'Fed'},
+      {id:'nasbench',name:'NAS Bench',desc:'Neural architecture search. Differentiable.',cat:'NAS'},
+    ]},
+  { id:'visualization', num:'06', name:'Data Visualization', color:'#f472b6', desc:'3D rendering, interactive plots, geospatial.',
+    tools:[
+      {id:'paraview',name:'ParaView',desc:'Scientific viz. Volume rendering, streamlines.',cat:'3D'},
+      {id:'plotly',name:'Plotly Dash',desc:'Interactive dashboards. Charts, maps.',cat:'Plot'},
+      {id:'vtk',name:'VTK',desc:'Contours, vector fields, surface extraction.',cat:'3D'},
+      {id:'networkx',name:'NetworkX',desc:'Graph analysis. Community detection.',cat:'Graph'},
+      {id:'keplergl',name:'Kepler.gl',desc:'Geospatial. Heatmaps, H3 aggregation.',cat:'Geo'},
+      {id:'blender',name:'Blender Py',desc:'Scientific 3D rendering. Molecules, proteins.',cat:'3D'},
+    ]},
+  { id:'workflows', num:'07', name:'Workflow Management', color:'#34d399', desc:'Pipeline automation, versioning, sweeps.',
+    tools:[
+      {id:'snakemake',name:'Snakemake',desc:'Rule-based DAGs. Cluster, container.',cat:'WF'},
+      {id:'nextflow',name:'Nextflow',desc:'DSL2 pipelines. Cloud-native execution.',cat:'WF'},
+      {id:'dvc',name:'DVC',desc:'Data versioning. Experiment tracking.',cat:'Ver'},
+      {id:'airflow',name:'Airflow',desc:'DAG scheduling. Monitoring, retries.',cat:'Orch'},
+      {id:'prefect',name:'Prefect',desc:'Async tasks. Observability, deployments.',cat:'Orch'},
+      {id:'cwl',name:'CWL / WDL',desc:'Portable bioinformatics pipelines.',cat:'Std'},
+    ]},
+  { id:'decentralized', num:'08', name:'Decentralized Science', color:'#e879f9', desc:'Bacalhau, IPFS pipelines, on-chain attestation.',
+    tools:[
+      {id:'bacalhau',name:'Bacalhau',desc:'Compute over IPFS data. Docker/WASM jobs.',cat:'P2P'},
+      {id:'libp2p',name:'IPFS + libp2p',desc:'Content-addressed storage. Pubsub, DHT.',cat:'P2P'},
+      {id:'gunjs',name:'Gun.js RAD',desc:'Distributed graph DB. Real-time, offline-first.',cat:'DB'},
+      {id:'ceramic',name:'Ceramic',desc:'Decentralized data streams. Self-sovereign ID.',cat:'DID'},
+      {id:'atproto',name:'AT Protocol',desc:'Open distributed social/data protocol.',cat:'Fed'},
+      {id:'ocean',name:'Ocean Protocol',desc:'Data marketplace. Compute-to-data, privacy ML.',cat:'Market'},
+    ]},
+];
+
+function renderDomains() {
+  document.getElementById('domain-grid').innerHTML = DOMAINS.map(d => `
+    <div class="domain-card" id="dc-${d.id}" style="--domain-color:${d.color}" onclick="selectDomain('${d.id}')">
+      <div class="domain-num">${d.num}</div>
+      <div class="domain-name" style="color:${d.color}">${d.name}</div>
+      <div class="domain-desc">${d.desc}</div>
+    </div>`).join('');
+}
+
+function selectDomain(id) {
+  selectedDomain = DOMAINS.find(d => d.id === id);
+  selectedTool = null;
+  document.querySelectorAll('.domain-card').forEach(el => el.classList.remove('selected'));
+  document.getElementById('dc-' + id)?.classList.add('selected');
+  document.getElementById('step2-sub').textContent = selectedDomain.name + ' — select a tool';
+  renderTools();
+  updatePreview();
+}
+
+function renderTools() {
+  const grid = document.getElementById('tool-grid');
+  if (!selectedDomain) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;font-size:12px;color:var(--text-muted)">Select a domain.</div>'; return; }
+  grid.innerHTML = selectedDomain.tools.map(t => `
+    <div class="tool-card" id="tc-${t.id}" onclick="selectTool('${t.id}')">
+      <div class="tool-name">${t.name}</div>
+      <div class="tool-desc">${t.desc}</div>
+      <span class="tool-badge">${t.cat}</span>
+    </div>`).join('');
+}
+
+function selectTool(id) {
+  if (!selectedDomain) return;
+  selectedTool = selectedDomain.tools.find(t => t.id === id);
+  document.querySelectorAll('.tool-card').forEach(el => el.classList.remove('selected'));
+  document.getElementById('tc-' + id)?.classList.add('selected');
+  updatePreview();
+  document.getElementById('submit-title').textContent = selectedDomain.name + ' / ' + selectedTool.name;
+  document.getElementById('submit-detail').textContent = 'Fill in simulation title and submit to the compute swarm.';
+  document.getElementById('submit-detail').className = 'submit-detail';
+}
+
+function buildPayload() {
+  let custom = {};
+  try { custom = JSON.parse(document.getElementById('sim-params').value || '{}'); } catch(e) {}
+  return {
+    type: 'simulation', source: 'lab-simulation-ui',
+    domain: selectedDomain?.id || '', tool: selectedTool?.id || '', tool_name: selectedTool?.name || '',
+    title: document.getElementById('sim-title').value || '',
+    hypothesis: document.getElementById('sim-hypothesis').value || '',
+    resources: { cpu: +document.getElementById('res-cpu').value, gpu: document.getElementById('res-gpu').value, duration: document.getElementById('res-duration').value, replications: +document.getElementById('res-replications').value },
+    params: custom, submitted_at: new Date().toISOString()
+  };
+}
+
+function syntaxHL(obj) {
+  return JSON.stringify(obj, null, 2)
+    .replace(/("[\w_-]+")\s*:/g, '<span class="json-key">$1</span>:')
+    .replace(/:\s*(".*?")/g, ': <span class="json-str">$1</span>')
+    .replace(/:\s*(\d[\d.]*)/g, ': <span class="json-num">$1</span>');
+}
+
+function updatePreview() {
+  document.getElementById('json-preview').innerHTML = syntaxHL(buildPayload());
+}
+
+async function submitSimulation() {
+  if (!selectedDomain || !selectedTool) { setStatus('Select a domain and tool first.', 'err'); return; }
+  const payload = buildPayload();
+  if (!payload.title) { setStatus('Please provide a simulation title.', 'err'); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  setStatus('Submitting to swarm...', '');
+  try {
+    const r = await fetch(API_BASE + '/swarm/compute/task', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (r.ok) {
+      setStatus('Submitted — Task ID: ' + (d.task_id || d.id || 'received'), 'ok');
+      setTimeout(loadTasks, 2000);
+    } else throw new Error(d.error || d.message || 'API error ' + r.status);
+  } catch(e) { setStatus('Error: ' + e.message, 'err'); }
+  btn.disabled = false; btn.textContent = 'Submit to Swarm';
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('submit-detail');
+  el.textContent = msg;
+  el.className = 'submit-detail' + (cls ? ' ' + cls : '');
+}
+
+function resetForm() {
+  selectedDomain = null; selectedTool = null;
+  document.querySelectorAll('.domain-card,.tool-card').forEach(el => el.classList.remove('selected'));
+  ['sim-title','sim-hypothesis','sim-params'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('step2-sub').textContent = 'Select a domain first';
+  document.getElementById('submit-title').textContent = 'Ready to configure';
+  setStatus('Select a domain and tool, then fill the job title.', '');
+  renderTools();
+  updatePreview();
+}
+
+async function loadTasks() {
+  try {
+    const r = await fetch(API_BASE + '/swarm/compute/tasks');
+    const d = await r.json();
+    const tasks = Array.isArray(d) ? d : (d.tasks || []);
+    const active = tasks.filter(t => t.status === 'running' || t.status === 'pending' || t.status === 'queued');
+    const done   = tasks.filter(t => t.status === 'done' || t.status === 'completed' || t.status === 'failed');
+    renderTaskTable('active-tbody', active, 7, false);
+    renderTaskTable('done-tbody', done.slice(0,10), 6, true);
+  } catch(e) {
+    document.getElementById('active-tbody').innerHTML = '<tr><td colspan="7" class="empty-cell">Unable to load.</td></tr>';
+    document.getElementById('done-tbody').innerHTML = '<tr><td colspan="6" class="empty-cell">Unable to load.</td></tr>';
+  }
+}
+
+function renderTaskTable(tbodyId, tasks, cols, isDone) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tasks.length) { tbody.innerHTML = `<tr><td colspan="${cols}" class="empty-cell">No jobs found.</td></tr>`; return; }
+  tbody.innerHTML = tasks.map(t => {
+    const sc = t.status === 'running' ? 'status-running' : t.status === 'pending' || t.status === 'queued' ? 'status-pending' : t.status === 'done' || t.status === 'completed' ? 'status-done' : 'status-failed';
+    const id = (t.id || t.task_id || '—').toString().slice(0,10);
+    const title = t.title || t.tool_name || t.tool || '—';
+    const when = t.created_at ? simRelTime(t.created_at) : '—';
+    const doneWhen = (t.completed_at || t.updated_at) ? simRelTime(t.completed_at || t.updated_at) : '—';
+    if (isDone) return `<tr>
+      <td style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">${id}</td>
+      <td>${escHtml(title)}</td>
+      <td style="font-family:var(--font-mono);font-size:11px">${t.domain || '—'}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${t.resources?.duration || '—'}</td>
+      <td><span class="status-badge ${sc}">${t.status}</span></td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${doneWhen}</td>
+    </tr>`;
+    return `<tr>
+      <td style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">${id}</td>
+      <td>${escHtml(title)}</td>
+      <td style="font-family:var(--font-mono);font-size:11px">${t.domain || '—'}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${t.resources?.cpu || t.cpu || '—'}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${t.resources?.gpu || t.gpu || 'none'}</td>
+      <td><span class="status-badge ${sc}">${t.status}</span></td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${when}</td>
+    </tr>`;
+  }).join('');
+}
+
+function simRelTime(ts) {
+  if (!ts) return '—';
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+  if (diff < 60) return diff + 's ago'; if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago'; return Math.floor(diff/86400) + 'd ago';
+}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function loadAgents() {
+  try { const r = await fetch(API_BASE+'/swarm-status'); const d = await r.json(); document.getElementById('sb-agents').textContent = d.active_agents ?? d.agents ?? '—'; } catch(e) {}
+}
+
+// Auto-select domain from URL param
+(function() {
+  const params = new URLSearchParams(location.search);
+  const domain = params.get('domain');
+  if (domain) setTimeout(() => selectDomain(domain), 50);
+})();
+
+renderDomains();
+renderTools();
+updatePreview();
+loadTasks();
+loadAgents();
+setInterval(loadTasks, 30000);
+</script>
+</body>
+</html>

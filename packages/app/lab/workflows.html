@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P2PCLAW — Workflows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0c0c0d; --bg-secondary: #121214; --bg-card: #1a1a1c; --bg-card-hover: #222226;
+  --border: #2c2c30; --border-glow: #ff5533;
+  --text-primary: #f5f0eb; --text-secondary: #9a9490; --text-muted: #52504e;
+  --accent: #ff4e1a; --accent-light: #ff7020; --accent-glow: rgba(255,78,26,0.18);
+  --green: #4ade80; --yellow: #fbbf24; --blue: #60a5fa; --purple: #a78bfa; --teal: #34d399;
+  --font-mono: 'JetBrains Mono', monospace; --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --radius: 10px; --radius-sm: 6px; --sidebar-width: 220px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-body); overflow-x: hidden; }
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; border: none; background: none; color: inherit; font-family: inherit; }
+.lab-layout { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar { width: var(--sidebar-width); min-height: 100vh; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 100; overflow-y: auto; }
+.sidebar-logo { padding: 20px 18px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.sidebar-logo-mark { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.sidebar-logo-text { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+.sidebar-logo-sub { font-size: 10px; color: var(--text-muted); }
+.sidebar-nav { flex: 1; padding: 12px 0; }
+.sidebar-section-title { font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.12em; color: var(--text-muted); text-transform: uppercase; padding: 10px 18px 6px; }
+.sidebar-item { display: flex; align-items: center; gap: 10px; padding: 8px 18px; font-size: 13px; color: var(--text-secondary); border-left: 2px solid transparent; transition: all 0.15s; }
+.sidebar-item:hover { color: var(--text-primary); background: rgba(255,78,26,0.06); border-left-color: var(--border-glow); }
+.sidebar-item.active { color: var(--accent); background: var(--accent-glow); border-left-color: var(--accent); }
+.sidebar-item-icon { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); width: 16px; text-align: center; flex-shrink: 0; }
+.sidebar-divider { height: 1px; background: var(--border); margin: 8px 0; }
+.sidebar-footer { padding: 14px 18px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.sidebar-status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* Main */
+.lab-main { margin-left: var(--sidebar-width); flex: 1; min-width: 0; }
+.lab-topbar { padding: 18px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); position: sticky; top: 0; z-index: 50; }
+.lab-topbar-title { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+.lab-topbar-breadcrumb { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.lab-topbar-actions { display: flex; gap: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 11px; font-weight: 500; transition: all 0.15s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-light); }
+.btn-secondary { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.lab-content { padding: 32px; }
+.section-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+.section-title { font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-secondary); }
+.section-sub { font-size: 12px; color: var(--text-muted); }
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* Tabs */
+.tab-bar { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 24px; background: var(--bg-secondary); border-radius: var(--radius) var(--radius) 0 0; overflow: hidden; }
+.tab-btn { padding: 12px 20px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; background: none; border-left: none; border-right: none; border-top: none; }
+.tab-btn:hover { color: var(--text-secondary); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(255,78,26,0.04); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Pipeline builder */
+.pipeline-canvas {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  min-height: 240px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+.pipeline-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: max-content;
+}
+.pipeline-step {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  min-width: 140px;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.pipeline-step:hover { border-color: var(--accent); }
+.pipeline-step.selected { border-color: var(--accent); background: var(--accent-glow); }
+.pipeline-step-num { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); margin-bottom: 4px; }
+.pipeline-step-name { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+.pipeline-step-tool { font-size: 11px; color: var(--text-secondary); }
+.pipeline-step-status { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); margin-top: 6px; }
+.pipeline-step-status.ok { color: var(--green); }
+.pipeline-step-status.run { color: var(--yellow); }
+.pipeline-arrow { font-family: var(--font-mono); font-size: 20px; color: var(--text-muted); padding: 0 10px; flex-shrink: 0; }
+.pipeline-add { width: 40px; height: 40px; border: 1px dashed var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; font-family: var(--font-mono); font-size: 18px; color: var(--text-muted); flex-shrink: 0; }
+.pipeline-add:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Step config panel */
+.step-config { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; display: none; }
+.step-config.visible { display: block; }
+.form-group { margin-bottom: 14px; }
+.form-label { font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; display: block; }
+.form-input, .form-select, .form-textarea { width: 100%; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; font-family: var(--font-mono); font-size: 12px; color: var(--text-primary); outline: none; transition: border-color 0.15s; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-select option { background: var(--bg-secondary); }
+.form-textarea { resize: vertical; min-height: 70px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Pipeline list (saved) */
+.pipeline-list { display: flex; flex-direction: column; gap: 10px; }
+.pipeline-row-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 20px; display: grid; grid-template-columns: 1fr 80px 100px 100px 40px; align-items: center; gap: 12px; transition: border-color 0.15s; }
+.pipeline-row-item:hover { border-color: var(--border-glow); }
+.pipeline-item-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.pipeline-item-meta { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 3px; font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.status-running { background: rgba(74,222,128,0.1); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+.status-pending { background: rgba(251,191,36,0.1); color: var(--yellow); border: 1px solid rgba(251,191,36,0.2); }
+.status-done { background: rgba(96,165,250,0.1); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+.status-draft { background: rgba(148,163,184,0.1); color: var(--text-secondary); border: 1px solid rgba(148,163,184,0.2); }
+.delete-btn { padding: 6px; border-radius: var(--radius-sm); color: var(--text-muted); transition: all 0.15s; background: none; border: none; cursor: pointer; font-size: 13px; }
+.delete-btn:hover { color: #f87171; background: rgba(248,113,113,0.08); }
+
+/* DVC version panel */
+.version-table-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-muted); text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
+td { padding: 10px 14px; border-bottom: 1px solid rgba(44,44,48,0.5); color: var(--text-secondary); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,78,26,0.03); }
+.mono { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+
+/* Sweep config */
+.sweep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.sweep-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.sweep-card-title { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 14px; }
+.param-sweep-row { display: grid; grid-template-columns: 1fr 1fr 1fr 32px; gap: 8px; align-items: end; margin-bottom: 8px; }
+.sweep-add-row { font-family: var(--font-mono); font-size: 11px; color: var(--accent); cursor: pointer; padding: 4px 0; display: inline-flex; align-items: center; gap: 6px; }
+.sweep-add-row:hover { color: var(--accent-light); }
+.metrics-list { display: flex; flex-direction: column; gap: 8px; }
+.metric-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.metric-name { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-primary); flex: 1; }
+.metric-dir { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.metric-value { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--teal); }
+
+/* Submit status */
+.submit-bar { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; display: flex; align-items: center; gap: 16px; margin-top: 20px; }
+.submit-info { flex: 1; }
+.submit-title { font-size: 14px; font-weight: 600; }
+.submit-detail { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.submit-detail.ok { color: var(--green); }
+.submit-detail.err { color: #f87171; }
+
+.empty-state { text-align: center; padding: 36px; font-size: 13px; color: var(--text-muted); }
+::-webkit-scrollbar { width: 4px; height: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+@media (max-width: 900px) { .form-row, .sweep-grid { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .sidebar { display: none; } .lab-main { margin-left: 0; } .lab-content { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="lab-layout">
+
+<aside class="sidebar">
+  <a class="sidebar-logo" href="/app.html">
+    <div class="sidebar-logo-mark">CL</div>
+    <div><div class="sidebar-logo-text">P2PCLAW</div><div class="sidebar-logo-sub">Research Lab</div></div>
+  </a>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-title">Lab</div>
+    <a class="sidebar-item" href="/lab/index.html"><span class="sidebar-item-icon">#</span> Lab Hub</a>
+    <a class="sidebar-item" href="/lab/research-chat.html"><span class="sidebar-item-icon">&gt;</span> Research Chat</a>
+    <a class="sidebar-item" href="/lab/literature.html"><span class="sidebar-item-icon">~</span> Literature</a>
+    <a class="sidebar-item" href="/lab/experiments.html"><span class="sidebar-item-icon">*</span> Lab Notebook</a>
+    <a class="sidebar-item" href="/lab/simulation.html"><span class="sidebar-item-icon">@</span> Simulation</a>
+    <a class="sidebar-item active" href="/lab/workflows.html"><span class="sidebar-item-icon">%</span> Workflows</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">Platform</div>
+    <a class="sidebar-item" href="/app.html#dashboard"><span class="sidebar-item-icon">+</span> Dashboard</a>
+    <a class="sidebar-item" href="/app.html#swarm"><span class="sidebar-item-icon">^</span> Swarm Compute</a>
+    <a class="sidebar-item" href="/app.html#knowledge"><span class="sidebar-item-icon">$</span> Knowledge</a>
+    <a class="sidebar-item" href="/app.html#agents"><span class="sidebar-item-icon">!</span> Agents</a>
+    <a class="sidebar-item" href="/app.html#papers"><span class="sidebar-item-icon">&amp;</span> Papers</a>
+    <a class="sidebar-item" href="/app.html#network"><span class="sidebar-item-icon">:</span> Network</a>
+    <a class="sidebar-item" href="/app.html#governance"><span class="sidebar-item-icon">=</span> Governance</a>
+  </nav>
+  <div class="sidebar-footer"><span class="sidebar-status-dot"></span><span id="sb-agents">—</span> agents online</div>
+</aside>
+
+<main class="lab-main">
+  <div class="lab-topbar">
+    <div>
+      <div class="lab-topbar-title">Workflow Management</div>
+      <div class="lab-topbar-breadcrumb">P2PCLAW / Lab / Workflows</div>
+    </div>
+    <div class="lab-topbar-actions">
+      <a href="/lab/simulation.html" class="btn btn-secondary">Simulation</a>
+      <button class="btn btn-primary" onclick="runPipeline()">Run Pipeline</button>
+    </div>
+  </div>
+
+  <div class="lab-content">
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('builder')">Pipeline Builder</button>
+      <button class="tab-btn" onclick="switchTab('pipelines')">My Pipelines</button>
+      <button class="tab-btn" onclick="switchTab('versioning')">DVC Versioning</button>
+      <button class="tab-btn" onclick="switchTab('sweep')">Parameter Sweep</button>
+    </div>
+
+    <!-- Tab: Pipeline Builder -->
+    <div class="tab-panel active" id="tab-builder">
+      <div class="section-header">
+        <div class="section-title">Pipeline Canvas</div>
+        <div class="section-sub">Build a multi-step compute pipeline</div>
+      </div>
+
+      <div class="pipeline-canvas">
+        <div class="pipeline-row" id="pipeline-row">
+          <!-- steps rendered by JS -->
+        </div>
+      </div>
+
+      <div class="step-config" id="step-config">
+        <div style="font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;">Configure Selected Step</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Step Name</label>
+            <input type="text" class="form-input" id="step-name" placeholder="e.g., Preprocess" oninput="updateStep()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tool</label>
+            <select class="form-select" id="step-tool" onchange="updateStep()">
+              <option value="">— Select tool —</option>
+              <optgroup label="Data">
+                <option value="dvc pull">DVC Pull</option>
+                <option value="dvc push">DVC Push</option>
+                <option value="ipfs get">IPFS Get</option>
+              </optgroup>
+              <optgroup label="Compute">
+                <option value="lammps">LAMMPS</option>
+                <option value="gromacs">GROMACS</option>
+                <option value="qiskit">Qiskit</option>
+                <option value="pytorch">PyTorch</option>
+                <option value="jax">JAX</option>
+                <option value="rdkit">RDKit</option>
+                <option value="blast">BLAST+</option>
+              </optgroup>
+              <optgroup label="Analysis">
+                <option value="python">Python script</option>
+                <option value="r">R script</option>
+                <option value="julia">Julia script</option>
+              </optgroup>
+              <optgroup label="Output">
+                <option value="paraview">ParaView render</option>
+                <option value="plotly">Plotly export</option>
+                <option value="publish-paper">Publish to La Rueda</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Input</label>
+            <input type="text" class="form-input" id="step-input" placeholder="IPFS CID, file path, or previous step output" oninput="updateStep()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Output</label>
+            <input type="text" class="form-input" id="step-output" placeholder="Output file name or IPFS namespace" oninput="updateStep()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Command / Script</label>
+          <textarea class="form-textarea" id="step-cmd" placeholder="e.g., lammps -in simulation.in -var T 300"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-secondary" onclick="removeStep()">Remove Step</button>
+          <button class="btn btn-secondary" onclick="closeStepConfig()">Close</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;">
+        <button class="btn btn-secondary" onclick="addStep()">+ Add Step</button>
+        <button class="btn btn-secondary" onclick="clearPipeline()">Clear</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-secondary" onclick="exportDAG()">Export DAG (YAML)</button>
+        <button class="btn btn-primary" onclick="savePipeline()">Save Pipeline</button>
+      </div>
+
+      <!-- DAG preview -->
+      <div class="section-header" style="margin-top:8px">
+        <div class="section-title">Pipeline Config Preview</div>
+        <div class="section-sub">Snakemake-compatible YAML export</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;font-family:var(--font-mono);font-size:11px;color:var(--teal);line-height:1.8;white-space:pre-wrap;max-height:280px;overflow-y:auto;" id="dag-preview">
+# Pipeline definition will appear here.
+# Add steps using the canvas above.
+      </div>
+
+      <div class="submit-bar">
+        <div class="submit-info">
+          <div class="submit-title" id="run-title">Pipeline ready</div>
+          <div class="submit-detail" id="run-detail">Add at least one step, then save or run.</div>
+        </div>
+        <button class="btn btn-secondary" onclick="savePipeline()">Save</button>
+        <button class="btn btn-primary" onclick="runPipeline()">Run on Swarm</button>
+      </div>
+    </div>
+
+    <!-- Tab: My Pipelines -->
+    <div class="tab-panel" id="tab-pipelines">
+      <div class="section-header">
+        <div class="section-title">Saved Pipelines</div>
+        <div class="section-sub">Manage and re-run your compute pipelines</div>
+      </div>
+      <div class="pipeline-list" id="pipeline-list">
+        <div class="empty-state">No saved pipelines. Build one in the Pipeline Builder tab.</div>
+      </div>
+    </div>
+
+    <!-- Tab: DVC Versioning -->
+    <div class="tab-panel" id="tab-versioning">
+      <div class="section-header">
+        <div class="section-title">Experiment Versions</div>
+        <div class="section-sub">DVC-style tracked experiment runs</div>
+      </div>
+      <div class="version-table-wrap">
+        <table>
+          <thead><tr>
+            <th>Version</th><th>Pipeline</th><th>Commit Hash</th><th>Metrics</th><th>Status</th><th>Date</th>
+          </tr></thead>
+          <tbody id="version-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-muted);font-size:12px">Loading versions...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:16px">
+        <div class="section-header">
+          <div class="section-title">Commit New Version</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Pipeline Name</label>
+            <input type="text" class="form-input" id="vc-pipeline" placeholder="e.g., protein-folding-v2">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Metrics JSON</label>
+            <input type="text" class="form-input" id="vc-metrics" placeholder='{"rmsd":0.42,"energy":-1234.5}'>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" id="vc-notes" placeholder="Describe changes from previous version..."></textarea>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+          <button class="btn btn-primary" onclick="commitVersion()">Commit Version</button>
+        </div>
+        <div id="vc-status" style="font-family:var(--font-mono);font-size:11px;margin-top:10px;color:var(--text-muted)"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Parameter Sweep -->
+    <div class="tab-panel" id="tab-sweep">
+      <div class="section-header">
+        <div class="section-title">Parameter Sweep</div>
+        <div class="section-sub">Define parameter ranges for grid or random search</div>
+      </div>
+
+      <div class="sweep-grid">
+        <!-- Parameter ranges -->
+        <div class="sweep-card">
+          <div class="sweep-card-title">Parameter Ranges</div>
+          <div id="sweep-params">
+            <div class="param-sweep-row">
+              <div><label class="form-label">Parameter</label><input type="text" class="form-input" placeholder="e.g., temperature" oninput="updateSweepPreview()"></div>
+              <div><label class="form-label">Min</label><input type="number" class="form-input" placeholder="200" oninput="updateSweepPreview()"></div>
+              <div><label class="form-label">Max</label><input type="number" class="form-input" placeholder="400" oninput="updateSweepPreview()"></div>
+              <div style="display:flex;align-items:flex-end;padding-bottom:2px"><button class="delete-btn" onclick="removeSweepRow(this)">✕</button></div>
+            </div>
+            <div class="param-sweep-row">
+              <div><label class="form-label">Parameter</label><input type="text" class="form-input" placeholder="e.g., timestep" oninput="updateSweepPreview()"></div>
+              <div><label class="form-label">Min</label><input type="number" class="form-input" placeholder="0.5" oninput="updateSweepPreview()"></div>
+              <div><label class="form-label">Max</label><input type="number" class="form-input" placeholder="2.0" oninput="updateSweepPreview()"></div>
+              <div style="display:flex;align-items:flex-end;padding-bottom:2px"><button class="delete-btn" onclick="removeSweepRow(this)">✕</button></div>
+            </div>
+          </div>
+          <div class="sweep-add-row" onclick="addSweepRow()">+ Add parameter</div>
+          <div class="form-row" style="margin-top:16px">
+            <div class="form-group">
+              <label class="form-label">Strategy</label>
+              <select class="form-select" id="sweep-strategy" onchange="updateSweepPreview()">
+                <option value="grid">Grid search</option>
+                <option value="random">Random search</option>
+                <option value="tpe">TPE (Optuna)</option>
+                <option value="asha">ASHA (Ray Tune)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Max Trials</label>
+              <input type="number" class="form-input" id="sweep-trials" value="20" min="1" max="500" oninput="updateSweepPreview()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics to track -->
+        <div class="sweep-card">
+          <div class="sweep-card-title">Optimisation Target</div>
+          <div class="metrics-list" id="metrics-list">
+            <div class="metric-row">
+              <div class="metric-name">loss</div>
+              <div class="metric-dir">minimize</div>
+              <div class="metric-value">—</div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-name">accuracy</div>
+              <div class="metric-dir">maximize</div>
+              <div class="metric-value">—</div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-name">runtime</div>
+              <div class="metric-dir">minimize</div>
+              <div class="metric-value">—</div>
+            </div>
+          </div>
+          <div style="margin-top:16px">
+            <div class="form-group">
+              <label class="form-label">Pipeline to Sweep</label>
+              <select class="form-select" id="sweep-pipeline">
+                <option value="">— Select pipeline —</option>
+              </select>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;margin-top:14px">Sweep Config Preview (YAML)</div>
+            <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-family:var(--font-mono);font-size:10px;color:var(--teal);line-height:1.7;white-space:pre;overflow-x:auto;max-height:140px;" id="sweep-preview"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-bar">
+        <div class="submit-info">
+          <div class="submit-title">Sweep Configuration</div>
+          <div class="submit-detail" id="sweep-status">Configure parameters and select a pipeline, then submit.</div>
+        </div>
+        <button class="btn btn-primary" onclick="submitSweep()">Submit Sweep</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<script>
+const API_BASE = 'https://api-production-ff1b.up.railway.app';
+let pipeline = [];
+let selectedStep = null;
+let savedPipelines = JSON.parse(localStorage.getItem('p2pclaw_pipelines') || '[]');
+let versions = JSON.parse(localStorage.getItem('p2pclaw_versions') || '[]');
+let activeTab = 'builder';
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach((el, i) => {
+    const tabs = ['builder','pipelines','versioning','sweep'];
+    el.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab)?.classList.add('active');
+  if (tab === 'pipelines') renderPipelineList();
+  if (tab === 'versioning') renderVersions();
+  if (tab === 'sweep') { renderSweepPipelineSelect(); updateSweepPreview(); }
+}
+
+/* Pipeline builder */
+function addStep() {
+  const step = { id: Date.now(), name: 'Step ' + (pipeline.length + 1), tool: '', input: '', output: '', cmd: '', status: 'draft' };
+  pipeline.push(step);
+  renderPipelineCanvas();
+  selectStep(step.id);
+}
+
+function removeStep() {
+  if (selectedStep === null) return;
+  pipeline = pipeline.filter(s => s.id !== selectedStep);
+  selectedStep = null;
+  closeStepConfig();
+  renderPipelineCanvas();
+  updateDagPreview();
+}
+
+function clearPipeline() {
+  if (pipeline.length && !confirm('Clear all steps?')) return;
+  pipeline = []; selectedStep = null;
+  closeStepConfig();
+  renderPipelineCanvas();
+  updateDagPreview();
+}
+
+function selectStep(id) {
+  selectedStep = id;
+  const step = pipeline.find(s => s.id === id);
+  if (!step) return;
+  document.querySelectorAll('.pipeline-step').forEach(el => el.classList.toggle('selected', +el.dataset.id === id));
+  document.getElementById('step-config').classList.add('visible');
+  document.getElementById('step-name').value = step.name;
+  document.getElementById('step-tool').value = step.tool;
+  document.getElementById('step-input').value = step.input;
+  document.getElementById('step-output').value = step.output;
+  document.getElementById('step-cmd').value = step.cmd;
+}
+
+function closeStepConfig() {
+  document.getElementById('step-config').classList.remove('visible');
+  selectedStep = null;
+  document.querySelectorAll('.pipeline-step').forEach(el => el.classList.remove('selected'));
+}
+
+function updateStep() {
+  if (!selectedStep) return;
+  const step = pipeline.find(s => s.id === selectedStep);
+  if (!step) return;
+  step.name = document.getElementById('step-name').value || step.name;
+  step.tool = document.getElementById('step-tool').value;
+  step.input = document.getElementById('step-input').value;
+  step.output = document.getElementById('step-output').value;
+  step.cmd = document.getElementById('step-cmd').value;
+  renderPipelineCanvas();
+  updateDagPreview();
+}
+
+function renderPipelineCanvas() {
+  const row = document.getElementById('pipeline-row');
+  if (!pipeline.length) {
+    row.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:32px;color:var(--text-muted);font-size:13px">No steps. Click &ldquo;+ Add Step&rdquo; to begin.</div>';
+    updateDagPreview();
+    return;
+  }
+  let html = '';
+  pipeline.forEach((step, i) => {
+    if (i > 0) html += '<div class="pipeline-arrow">→</div>';
+    const statusClass = step.status === 'running' ? 'run' : step.status === 'done' ? 'ok' : '';
+    const statusLabel = step.status === 'running' ? '● running' : step.status === 'done' ? '● done' : '○ draft';
+    html += `<div class="pipeline-step${selectedStep === step.id ? ' selected' : ''}" data-id="${step.id}" onclick="selectStep(${step.id})">
+      <div class="pipeline-step-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="pipeline-step-name">${escHtml(step.name)}</div>
+      <div class="pipeline-step-tool">${step.tool || 'No tool'}</div>
+      <div class="pipeline-step-status ${statusClass}">${statusLabel}</div>
+    </div>`;
+  });
+  html += `<div class="pipeline-arrow"></div><div class="pipeline-add" onclick="addStep()" title="Add step">+</div>`;
+  row.innerHTML = html;
+  updateDagPreview();
+}
+
+function updateDagPreview() {
+  const el = document.getElementById('dag-preview');
+  if (!pipeline.length) { el.textContent = '# Pipeline definition will appear here.\n# Add steps using the canvas above.'; return; }
+  let yaml = '# P2PCLAW Pipeline\n# Generated ' + new Date().toISOString().slice(0,10) + '\n\npipeline:\n';
+  pipeline.forEach((step, i) => {
+    yaml += `  step_${i+1}:\n`;
+    yaml += `    name: "${step.name}"\n`;
+    if (step.tool) yaml += `    tool: ${step.tool}\n`;
+    if (step.input) yaml += `    input: ${step.input}\n`;
+    if (step.output) yaml += `    output: ${step.output}\n`;
+    if (step.cmd) yaml += `    cmd: "${step.cmd}"\n`;
+    if (i > 0) yaml += `    depends: step_${i}\n`;
+  });
+  yaml += '\nswarm:\n  submit: true\n  relay: https://p2pclaw-relay-production.up.railway.app/gun\n';
+  el.textContent = yaml;
+}
+
+function exportDAG() {
+  updateDagPreview();
+  const content = document.getElementById('dag-preview').textContent;
+  const blob = new Blob([content], {type:'text/yaml'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'p2pclaw-pipeline.yaml';
+  a.click();
+}
+
+function savePipeline() {
+  if (!pipeline.length) { alert('Add at least one step.'); return; }
+  const name = prompt('Pipeline name:', 'My Pipeline ' + (savedPipelines.length + 1));
+  if (!name) return;
+  const record = { id: Date.now(), name, steps: pipeline.length, status: 'draft', created_at: new Date().toISOString(), steps_data: JSON.parse(JSON.stringify(pipeline)) };
+  savedPipelines.unshift(record);
+  localStorage.setItem('p2pclaw_pipelines', JSON.stringify(savedPipelines));
+  document.getElementById('run-detail').textContent = 'Pipeline "' + name + '" saved.';
+  document.getElementById('run-detail').className = 'submit-detail ok';
+}
+
+async function runPipeline() {
+  if (!pipeline.length) { alert('Add at least one step.'); return; }
+  const payload = { type: 'pipeline', source: 'lab-workflows-ui', steps: pipeline.map(s => ({name:s.name,tool:s.tool,input:s.input,output:s.output,cmd:s.cmd})), submitted_at: new Date().toISOString() };
+  document.getElementById('run-detail').textContent = 'Submitting pipeline to swarm...';
+  document.getElementById('run-detail').className = 'submit-detail';
+  try {
+    const r = await fetch(API_BASE + '/swarm/compute/task', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d = await r.json();
+    if (r.ok) { document.getElementById('run-detail').textContent = 'Pipeline submitted — Task: ' + (d.task_id || d.id || 'ok'); document.getElementById('run-detail').className = 'submit-detail ok'; }
+    else throw new Error(d.error || 'API error');
+  } catch(e) { document.getElementById('run-detail').textContent = 'Error: ' + e.message; document.getElementById('run-detail').className = 'submit-detail err'; }
+}
+
+/* Pipelines list */
+function renderPipelineList() {
+  const el = document.getElementById('pipeline-list');
+  if (!savedPipelines.length) { el.innerHTML = '<div class="empty-state">No saved pipelines. Build one in the Pipeline Builder tab.</div>'; return; }
+  el.innerHTML = savedPipelines.map(p => {
+    const sc = 'status-' + (p.status || 'draft');
+    return `<div class="pipeline-row-item">
+      <div><div class="pipeline-item-name">${escHtml(p.name)}</div><div class="pipeline-item-meta">${p.steps} steps &bull; ${relTime(p.created_at)}</div></div>
+      <div><span class="status-badge ${sc}">${p.status || 'draft'}</span></div>
+      <button class="btn btn-secondary" style="font-size:10px;padding:5px 10px" onclick="loadPipeline(${p.id})">Load</button>
+      <button class="btn btn-secondary" style="font-size:10px;padding:5px 10px" onclick="clonePipeline(${p.id})">Clone</button>
+      <button class="delete-btn" onclick="deletePipeline(${p.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function loadPipeline(id) {
+  const p = savedPipelines.find(x => x.id === id);
+  if (!p || !p.steps_data) return;
+  pipeline = JSON.parse(JSON.stringify(p.steps_data));
+  selectedStep = null;
+  switchTab('builder');
+  renderPipelineCanvas();
+}
+function clonePipeline(id) {
+  const p = savedPipelines.find(x => x.id === id);
+  if (!p) return;
+  const clone = Object.assign({}, p, {id: Date.now(), name: p.name + ' (copy)', created_at: new Date().toISOString()});
+  savedPipelines.unshift(clone);
+  localStorage.setItem('p2pclaw_pipelines', JSON.stringify(savedPipelines));
+  renderPipelineList();
+}
+function deletePipeline(id) {
+  if (!confirm('Delete this pipeline?')) return;
+  savedPipelines = savedPipelines.filter(p => p.id !== id);
+  localStorage.setItem('p2pclaw_pipelines', JSON.stringify(savedPipelines));
+  renderPipelineList();
+}
+
+/* DVC Versioning */
+function renderVersions() {
+  const tbody = document.getElementById('version-tbody');
+  if (!versions.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-muted);font-size:12px">No versions committed yet.</td></tr>'; return; }
+  tbody.innerHTML = versions.map((v, i) => {
+    const sc = 'status-done';
+    return `<tr>
+      <td class="mono">v${versions.length - i}</td>
+      <td>${escHtml(v.pipeline)}</td>
+      <td class="mono">${v.hash}</td>
+      <td class="mono" style="color:var(--teal)">${v.metrics ? JSON.stringify(JSON.parse(v.metrics)).slice(0,40) : '—'}</td>
+      <td><span class="status-badge ${sc}">committed</span></td>
+      <td class="mono">${relTime(v.date)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function commitVersion() {
+  const pipeline_name = document.getElementById('vc-pipeline').value.trim();
+  const metrics = document.getElementById('vc-metrics').value.trim();
+  const notes = document.getElementById('vc-notes').value.trim();
+  if (!pipeline_name) { document.getElementById('vc-status').textContent = 'Pipeline name required.'; return; }
+  const version = {
+    pipeline: pipeline_name, metrics, notes,
+    hash: Math.random().toString(36).slice(2,10),
+    date: new Date().toISOString()
+  };
+  versions.unshift(version);
+  localStorage.setItem('p2pclaw_versions', JSON.stringify(versions));
+  document.getElementById('vc-status').textContent = 'Version committed: v' + versions.length;
+  document.getElementById('vc-status').style.color = 'var(--green)';
+  document.getElementById('vc-pipeline').value = '';
+  document.getElementById('vc-metrics').value = '';
+  document.getElementById('vc-notes').value = '';
+  renderVersions();
+}
+
+/* Parameter Sweep */
+function addSweepRow() {
+  const container = document.getElementById('sweep-params');
+  const div = document.createElement('div');
+  div.className = 'param-sweep-row';
+  div.innerHTML = `<div><label class="form-label">Parameter</label><input type="text" class="form-input" placeholder="param name" oninput="updateSweepPreview()"></div>
+    <div><label class="form-label">Min</label><input type="number" class="form-input" placeholder="0" oninput="updateSweepPreview()"></div>
+    <div><label class="form-label">Max</label><input type="number" class="form-input" placeholder="100" oninput="updateSweepPreview()"></div>
+    <div style="display:flex;align-items:flex-end;padding-bottom:2px"><button class="delete-btn" onclick="removeSweepRow(this)">✕</button></div>`;
+  container.appendChild(div);
+}
+function removeSweepRow(btn) {
+  btn.closest('.param-sweep-row').remove();
+  updateSweepPreview();
+}
+
+function getSweepParams() {
+  return Array.from(document.querySelectorAll('.param-sweep-row')).map(row => {
+    const inputs = row.querySelectorAll('input');
+    return { name: inputs[0]?.value || '', min: inputs[1]?.value || '', max: inputs[2]?.value || '' };
+  }).filter(p => p.name);
+}
+
+function updateSweepPreview() {
+  const params = getSweepParams();
+  const strategy = document.getElementById('sweep-strategy')?.value || 'grid';
+  const trials = document.getElementById('sweep-trials')?.value || 20;
+  let yaml = `sweep:\n  strategy: ${strategy}\n  max_trials: ${trials}\n  parameters:\n`;
+  params.forEach(p => { yaml += `    ${p.name}:\n      min: ${p.min || 0}\n      max: ${p.max || 1}\n`; });
+  yaml += `  objectives:\n    - metric: loss\n      direction: minimize\n`;
+  document.getElementById('sweep-preview').textContent = yaml;
+}
+
+function renderSweepPipelineSelect() {
+  const sel = document.getElementById('sweep-pipeline');
+  sel.innerHTML = '<option value="">— Select pipeline —</option>' + savedPipelines.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
+}
+
+async function submitSweep() {
+  const params = getSweepParams();
+  if (!params.length) { document.getElementById('sweep-status').textContent = 'Add at least one parameter.'; return; }
+  const strategy = document.getElementById('sweep-strategy').value;
+  const trials = +document.getElementById('sweep-trials').value;
+  const payload = { type: 'parameter_sweep', source: 'lab-workflows-ui', sweep: { strategy, max_trials: trials, parameters: params }, submitted_at: new Date().toISOString() };
+  document.getElementById('sweep-status').textContent = 'Submitting sweep to swarm...';
+  try {
+    const r = await fetch(API_BASE + '/swarm/compute/task', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d = await r.json();
+    if (r.ok) { document.getElementById('sweep-status').textContent = 'Sweep submitted — Task: ' + (d.task_id || d.id || 'ok'); document.getElementById('sweep-status').className = 'submit-detail ok'; }
+    else throw new Error(d.error || 'API error');
+  } catch(e) { document.getElementById('sweep-status').textContent = 'Error: ' + e.message; }
+}
+
+function relTime(ts) {
+  if (!ts) return '—';
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+  if (diff < 60) return diff + 's ago'; if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago'; return Math.floor(diff/86400) + 'd ago';
+}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function loadAgents() {
+  try { const r = await fetch(API_BASE+'/swarm-status'); const d = await r.json(); document.getElementById('sb-agents').textContent = d.active_agents ?? d.agents ?? '—'; } catch(e) {}
+}
+
+renderPipelineCanvas();
+updateDagPreview();
+updateSweepPreview();
+loadAgents();
+</script>
+</body>
+</html>

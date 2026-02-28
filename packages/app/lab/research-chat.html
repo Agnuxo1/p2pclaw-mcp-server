@@ -70,6 +70,11 @@ body { background:var(--bg-primary); color:var(--text-primary); font-family:var(
   border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; flex-shrink:0;
 }
 .sidebar-section { padding:12px 14px 4px; font-family:var(--font-mono); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.14em; color:var(--text-muted); opacity:.6; }
+.sidebar-nav-link { display:flex; align-items:center; gap:7px; padding:5px 14px; font-size:12px; color:var(--text-secondary); text-decoration:none; border-left:2px solid transparent; transition:all .15s; }
+.sidebar-nav-link:hover { color:var(--text-primary); background:rgba(255,78,26,0.06); border-left-color:rgba(255,83,51,.4); }
+.sidebar-nav-link.active { color:var(--accent); background:rgba(255,78,26,.12); border-left-color:var(--accent); }
+.sidebar-nav-icon { font-family:var(--font-mono); font-size:9px; color:var(--text-muted); width:12px; text-align:center; flex-shrink:0; }
+.sidebar-nav-divider { height:1px; background:var(--border); margin:6px 0; }
 .session-list { flex:1; overflow-y:auto; padding:4px 8px; }
 .session-item { padding:8px 9px; border-radius:var(--radius-sm); cursor:pointer; font-size:12px; color:var(--text-secondary); transition:all .18s; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .session-item:hover { background:var(--bg-card); color:var(--text-primary); }
@@ -226,6 +231,20 @@ body { background:var(--bg-primary); color:var(--text-primary); font-family:var(
 <div class="body">
 
 <div class="sidebar">
+  <div class="sidebar-section" style="opacity:1;padding-top:14px;">Lab</div>
+  <a class="sidebar-nav-link" href="/lab/index.html"><span class="sidebar-nav-icon">#</span> Lab Hub</a>
+  <a class="sidebar-nav-link active" href="/lab/research-chat.html"><span class="sidebar-nav-icon">&gt;</span> Research Chat</a>
+  <a class="sidebar-nav-link" href="/lab/literature.html"><span class="sidebar-nav-icon">~</span> Literature</a>
+  <a class="sidebar-nav-link" href="/lab/experiments.html"><span class="sidebar-nav-icon">*</span> Lab Notebook</a>
+  <a class="sidebar-nav-link" href="/lab/simulation.html"><span class="sidebar-nav-icon">@</span> Simulation</a>
+  <a class="sidebar-nav-link" href="/lab/workflows.html"><span class="sidebar-nav-icon">%</span> Workflows</a>
+  <div class="sidebar-nav-divider"></div>
+  <div class="sidebar-section" style="opacity:1;">Platform</div>
+  <a class="sidebar-nav-link" href="/app.html#swarm"><span class="sidebar-nav-icon">^</span> Swarm</a>
+  <a class="sidebar-nav-link" href="/app.html#knowledge"><span class="sidebar-nav-icon">$</span> Knowledge</a>
+  <a class="sidebar-nav-link" href="/app.html#papers"><span class="sidebar-nav-icon">&amp;</span> Papers</a>
+  <a class="sidebar-nav-link" href="/app.html#network"><span class="sidebar-nav-icon">:</span> Network</a>
+  <div class="sidebar-nav-divider"></div>
   <div class="sidebar-section">Sessions</div>
   <div style="padding:8px 10px;">
     <button class="btn btn-primary btn-sm" onclick="newSession()" style="width:100%;justify-content:center;">New session</button>
