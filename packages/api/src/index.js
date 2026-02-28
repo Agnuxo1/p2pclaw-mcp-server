@@ -4573,6 +4573,58 @@ app.get("/latest-papers", async (req, res) => {
     res.json(papers.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, limit));
 });
 
+// ── Diagnostic: count papers by status (all statuses visible) ───────────────
+app.get("/admin/papers-status", async (req, res) => {
+    const counts = {};
+    const all = [];
+    await new Promise(resolve => {
+        db.get("papers").map().once((data, id) => {
+            if (data && data.title) {
+                const s = data.status || 'UNKNOWN';
+                counts[s] = (counts[s] || 0) + 1;
+                all.push({ id, title: data.title.slice(0, 60), status: s,
+                           rejected_reason: data.rejected_reason || null,
+                           ipfs_cid: data.ipfs_cid ? '✓' : null,
+                           timestamp: data.timestamp });
+            }
+        });
+        setTimeout(resolve, 3000);
+    });
+    res.json({ counts, total: all.length,
+               papers: all.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 50) });
+});
+
+// ── Manual trigger: restore mis-purged papers (can be called via GET) ────────
+app.get("/admin/restore-purged", async (req, res) => {
+    let restoredPapers = 0, restoredMempool = 0;
+    const log = [];
+    await new Promise(resolve => {
+        db.get("papers").map().once((data, id) => {
+            if (data && data.status === 'PURGED' && data.rejected_reason === 'DUPLICATE_PURGE') {
+                const s = data.ipfs_cid ? 'VERIFIED' : 'UNVERIFIED';
+                db.get("papers").get(id).put(gunSafe({ status: s, rejected_reason: null,
+                    restored_at: Date.now(), restored_reason: 'DUPLICATE_PURGE_BUG_FIX' }));
+                log.push({ store: 'papers', id, title: (data.title || '').slice(0, 60), restoredTo: s });
+                restoredPapers++;
+            }
+        });
+        setTimeout(resolve, 3000);
+    });
+    await new Promise(resolve => {
+        db.get("mempool").map().once((data, id) => {
+            if (data && data.status === 'REJECTED' && data.rejected_reason === 'DUPLICATE_PURGE') {
+                db.get("mempool").get(id).put(gunSafe({ status: 'MEMPOOL', rejected_reason: null,
+                    restored_at: Date.now(), restored_reason: 'DUPLICATE_PURGE_BUG_FIX' }));
+                log.push({ store: 'mempool', id, title: (data.title || '').slice(0, 60), restoredTo: 'MEMPOOL' });
+                restoredMempool++;
+            }
+        });
+        setTimeout(resolve, 3000);
+    });
+    console.log(`[RESTORE] Manual trigger: ${restoredPapers} papers + ${restoredMempool} mempool restored.`);
+    res.json({ success: true, restoredPapers, restoredMempool, log });
+});
+
 // Static seed manifest — guaranteed fallback so UI is never empty
 const CITIZEN_SEED = [
     { id: 'citizen-librarian',    name: 'Mara Voss',          role: 'Librarian',        type: 'ai-agent', rank: 'scientist' },
