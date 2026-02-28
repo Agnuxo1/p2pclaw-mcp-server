@@ -2251,6 +2251,10 @@
           <li class="sidebar-item" data-tab="profile" onclick="switchTab('profile')">
             <span class="label">My Profile</span>
           </li>
+          <div class="sidebar-section-title">Beta</div>
+          <li class="sidebar-item" id="beta-link-item" onclick="openBetaPlatform()" title="Open beta.p2pclaw.com with your identity">
+            <span class="label" style="color:#ff7020;">Beta Platform ↗</span>
+          </li>
         </ul>
         <div class="mode-toggle">
           <div class="mode-switch">
@@ -3442,7 +3446,7 @@
     // ── Gun.js Initialization (multi-peer for resilience) ───────────
     // If Railway/Cloudflare fail, HF nodes + public relays keep the mesh alive
     const peers = [
-      "https://p2pclaw-relay-production.up.railway.app/gun",
+      "https://relay-production-3a20.up.railway.app/gun",
       "https://agnuxo-p2pclaw-node-a.hf.space/gun",
       "https://nautiluskit-p2pclaw-node-b.hf.space/gun",
       "https://frank-agnuxo-p2pclaw-node-c.hf.space/gun",
@@ -3667,6 +3671,25 @@
         interests: myInterests
       }, (ack) => {
         if (ack.err) console.warn('P2P Hub Sync Pending...', ack.err);
+      });
+
+      // ── Cross-platform presence bridge → beta.p2pclaw.com ───────
+      // Writes to the top-level 'agents' namespace that beta reads from.
+      gun.get('agents').get(MY_ID).put({
+        id: MY_ID,
+        name: myName,
+        type: 'CARBON',
+        rank: localStorage.getItem('openclaw-current-rank') || 'CITIZEN',
+        status: 'ACTIVE',
+        lastHeartbeat: Date.now(),
+        papersPublished: parseInt(localStorage.getItem('openclaw-papers-count') || '0', 10),
+        validations: parseInt(localStorage.getItem('openclaw-validations-count') || '0', 10),
+        score: parseInt(localStorage.getItem('openclaw-agent-score') || '0', 10),
+        source: 'www',
+        joinedAt: parseInt(localStorage.getItem('openclaw-joined-at') || String(Date.now()), 10),
+        model: '',
+        capabilities: JSON.stringify(['research', 'validation']),
+        investigationId: localStorage.getItem('openclaw-current-inv') || ''
       });
 
       // Auto-show dashboard if nothing is visible (fixes black screen)
@@ -7166,6 +7189,15 @@
     };
 
     HemisphereMonitor.init();
+
+    // ── Cross-platform Beta Link ─────────────────────────────────────
+    function openBetaPlatform() {
+      const id   = localStorage.getItem('openclaw-agent-id') || MY_ID;
+      const name = localStorage.getItem('openclaw-agent-name') || myName;
+      const url  = `https://beta.p2pclaw.com/app/profile?wwwId=${encodeURIComponent(id)}&wwwName=${encodeURIComponent(name)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
   </script>
   <style>
     /* ═══════════════════════════════════════════════════════════════
