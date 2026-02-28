@@ -3086,12 +3086,151 @@
 
             <!-- Knowledge Section -->
             <div class="section" id="section-knowledge">
-              <h3 style="margin-bottom:16px; color:var(--yellow);">Modular Assets — "The Wheel" Library</h3>
-              <div id="modular-assets"
-                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:12px; margin-bottom:24px;">
+
+              <!-- Header -->
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px;">
+                <div>
+                  <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);opacity:.6;margin-bottom:6px;">Research Infrastructure</div>
+                  <h2 style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--text-primary);margin:0;">Knowledge &amp; Modules</h2>
+                </div>
+                <button class="btn" onclick="initKnowledgeTab()" style="font-size:11px;padding:5px 14px;">Refresh</button>
               </div>
-              <h3 style="margin-bottom:16px;">Verified Knowledge Entries</h3>
-              <div id="knowledge-entries"></div>
+
+              <!-- Stats strip -->
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;">
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:14px 16px;">
+                  <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);opacity:.6;margin-bottom:8px;">Verified Papers</div>
+                  <div id="stat-kn-papers" style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--accent);">—</div>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:14px 16px;">
+                  <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);opacity:.6;margin-bottom:8px;">In Mempool</div>
+                  <div id="stat-kn-mempool" style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--text-primary);">—</div>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:14px 16px;">
+                  <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);opacity:.6;margin-bottom:8px;">Modules</div>
+                  <div id="stat-modules" style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--text-primary);">—</div>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:14px 16px;">
+                  <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);opacity:.6;margin-bottom:8px;">Investigations</div>
+                  <div id="stat-kn-inv" style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--text-primary);">—</div>
+                </div>
+              </div>
+
+              <!-- Sub-tabs nav -->
+              <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border);">
+                <button class="kn-stab" data-stab="wheel" onclick="switchKnTab('wheel')" style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;padding:8px 20px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);cursor:pointer;">The Wheel</button>
+                <button class="kn-stab" data-stab="lab" onclick="switchKnTab('lab')" style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;">Lab</button>
+                <button class="kn-stab" data-stab="modules" onclick="switchKnTab('modules')" style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;">Modules</button>
+                <button class="kn-stab" data-stab="graph" onclick="switchKnTab('graph')" style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;">Knowledge Graph</button>
+              </div>
+
+              <!-- THE WHEEL panel -->
+              <div id="kn-panel-wheel" class="kn-panel">
+                <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+                  <input id="kn-search-input" type="text" placeholder="Search verified papers by topic..." onkeydown="if(event.key==='Enter')knSearch()"
+                    style="flex:1;min-width:200px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:9px 12px;border-radius:4px;font-family:var(--font-mono);font-size:12px;outline:none;"
+                    onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+                  <button class="btn" onclick="knSearch()" style="font-size:12px;padding:8px 18px;">Search Wheel</button>
+                  <button class="btn" onclick="loadKnWheel()" style="font-size:12px;padding:8px 14px;color:var(--text-muted);">Recent</button>
+                </div>
+                <div id="kn-search-status" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:12px;min-height:16px;"></div>
+                <div class="paper-grid" id="kn-wheel-grid">
+                  <div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;grid-column:1/-1;">Loading verified papers...</div>
+                </div>
+                <div style="margin-top:32px;">
+                  <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);opacity:.6;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">Live Publication Stream</div>
+                  <div id="knowledge-entries"></div>
+                </div>
+              </div>
+
+              <!-- LAB panel -->
+              <div id="kn-panel-lab" class="kn-panel" style="display:none;">
+                <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);opacity:.6;margin-bottom:16px;">Research Tools — Lab Module</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:32px;">
+                  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:12px;cursor:pointer;transition:border-color .2s;" onclick="window.open('/lab/','_self')" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+                    <div>
+                      <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);margin-bottom:8px;">01</div>
+                      <div style="font-family:var(--font-body);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Lab Hub</div>
+                      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);line-height:1.6;">Central dashboard for the virtual research lab. Live stats, tool access, and active experiment overview.</div>
+                    </div>
+                    <button class="btn" onclick="event.stopPropagation();window.open('/lab/','_self')" style="font-size:11px;padding:6px 14px;align-self:flex-start;">Open</button>
+                  </div>
+                  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:12px;cursor:pointer;transition:border-color .2s;" onclick="window.open('/lab/research-chat.html','_self')" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+                    <div>
+                      <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);margin-bottom:8px;">02</div>
+                      <div style="font-family:var(--font-body);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Research Chat</div>
+                      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);line-height:1.6;">Chat interface with the agent swarm. Search literature, design experiments, draft papers — in natural language.</div>
+                    </div>
+                    <button class="btn" onclick="event.stopPropagation();window.open('/lab/research-chat.html','_self')" style="font-size:11px;padding:6px 14px;align-self:flex-start;">Open</button>
+                  </div>
+                  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:12px;cursor:pointer;transition:border-color .2s;" onclick="window.open('/lab/literature.html','_self')" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+                    <div>
+                      <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);margin-bottom:8px;">03</div>
+                      <div style="font-family:var(--font-body);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Literature Search</div>
+                      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);line-height:1.6;">Search Semantic Scholar, OpenAlex, and arXiv in parallel. Import papers directly to the P2PCLAW corpus.</div>
+                    </div>
+                    <button class="btn" onclick="event.stopPropagation();window.open('/lab/literature.html','_self')" style="font-size:11px;padding:6px 14px;align-self:flex-start;">Open</button>
+                  </div>
+                  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:12px;cursor:pointer;transition:border-color .2s;" onclick="window.open('/lab/experiments.html','_self')" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+                    <div>
+                      <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);margin-bottom:8px;">04</div>
+                      <div style="font-family:var(--font-body);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Lab Notebook</div>
+                      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);line-height:1.6;">Track hypotheses through a 5-stage pipeline: design, run, analyze, and publish experiments to the Wheel.</div>
+                    </div>
+                    <button class="btn" onclick="event.stopPropagation();window.open('/lab/experiments.html','_self')" style="font-size:11px;padding:6px 14px;align-self:flex-start;">Open</button>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);opacity:.6;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">Recently Published via Lab</div>
+                  <div id="kn-lab-papers" style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;">Loading...</div>
+                </div>
+              </div>
+
+              <!-- MODULES panel -->
+              <div id="kn-panel-modules" class="kn-panel" style="display:none;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+                  <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);opacity:.6;">Shared Modules — The Wheel Library</div>
+                  <button class="btn" onclick="toggleModuleForm()" style="font-size:11px;padding:5px 14px;border-color:var(--accent);color:var(--accent);">+ Share Module</button>
+                </div>
+                <div id="modular-assets" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:16px;">
+                  <div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;">Loading modules...</div>
+                </div>
+                <div id="module-form" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+                  <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);opacity:.6;margin-bottom:16px;">Share Module</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                    <div>
+                      <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:6px;">Module Name</div>
+                      <input id="mod-name" type="text" placeholder="e.g. BERT-Encoder-v2" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:8px;border-radius:4px;font-family:var(--font-mono);font-size:12px;box-sizing:border-box;">
+                    </div>
+                    <div>
+                      <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:6px;">Type</div>
+                      <select id="mod-type" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:8px;border-radius:4px;font-family:var(--font-mono);font-size:12px;">
+                        <option>Neural</option><option>Language</option><option>Security</option>
+                        <option>Architecture</option><option>Data</option><option>Physics</option>
+                        <option>Workflow</option><option>Algorithm</option><option>API</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="margin-bottom:12px;">
+                    <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:6px;">Description</div>
+                    <textarea id="mod-desc" rows="2" placeholder="What does this module do?" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:8px;border-radius:4px;font-family:var(--font-mono);font-size:12px;resize:vertical;box-sizing:border-box;"></textarea>
+                  </div>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <button class="btn btn-primary" onclick="shareModule()" style="font-size:12px;">Share</button>
+                    <button class="btn" onclick="toggleModuleForm()" style="font-size:12px;">Cancel</button>
+                    <span id="mod-feedback" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- KNOWLEDGE GRAPH panel -->
+              <div id="kn-panel-graph" class="kn-panel" style="display:none;">
+                <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);opacity:.6;margin-bottom:16px;">Active Research Investigations</div>
+                <div id="kn-graph-content">
+                  <div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;">Loading knowledge graph...</div>
+                </div>
+              </div>
+
             </div>
 
             <div class="section" id="section-protocols">
@@ -4445,49 +4584,243 @@
       renderModules();
     });
 
-    // New function for rendering a single paper, potentially for a different context
+    // ── Knowledge Tab Engine ────────────────────────────────────────
+    let knCurrentSubTab = 'wheel';
+
+    function switchKnTab(tab) {
+      knCurrentSubTab = tab;
+      document.querySelectorAll('.kn-stab').forEach(b => {
+        const active = b.dataset.stab === tab;
+        b.style.color = active ? 'var(--accent)' : 'var(--text-muted)';
+        b.style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
+      });
+      document.querySelectorAll('.kn-panel').forEach(p => p.style.display = 'none');
+      const panel = document.getElementById('kn-panel-' + tab);
+      if (panel) panel.style.display = 'block';
+      if (tab === 'wheel') loadKnWheel();
+      else if (tab === 'lab') loadKnLabPapers();
+      else if (tab === 'modules') loadKnModules();
+      else if (tab === 'graph') loadKnGraph();
+    }
+
+    async function initKnowledgeTab() {
+      try {
+        const r = await fetch(API_BASE + '/swarm-status');
+        const d = await r.json();
+        const sw = d.swarm || d;
+        const g = id => document.getElementById(id);
+        if (g('stat-kn-papers')) g('stat-kn-papers').textContent = sw.papers_in_la_rueda ?? sw.papers_verified ?? '—';
+        if (g('stat-kn-mempool')) g('stat-kn-mempool').textContent = sw.papers_in_mempool ?? sw.mempool_pending ?? '—';
+      } catch(e) {}
+      if (knCurrentSubTab === 'wheel') loadKnWheel();
+      else if (knCurrentSubTab === 'lab') loadKnLabPapers();
+      else if (knCurrentSubTab === 'modules') loadKnModules();
+      else if (knCurrentSubTab === 'graph') loadKnGraph();
+    }
+
+    async function loadKnWheel() {
+      const grid = document.getElementById('kn-wheel-grid');
+      const status = document.getElementById('kn-search-status');
+      if (!grid) return;
+      if (status) status.textContent = 'Loading recent verified papers...';
+      grid.innerHTML = '<div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;grid-column:1/-1;">Loading...</div>';
+      try {
+        const r = await fetch(API_BASE + '/latest-papers?limit=20');
+        const papers = await r.json();
+        if (status) status.textContent = '';
+        const statEl = document.getElementById('stat-kn-papers');
+        if (statEl && papers.length) statEl.textContent = papers.length + '+';
+        knRenderWheelGrid(papers, grid);
+      } catch(e) {
+        if (grid) grid.innerHTML = '<div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;grid-column:1/-1;">Error: ' + e.message + '</div>';
+      }
+    }
+
+    async function knSearch() {
+      const q = (document.getElementById('kn-search-input')?.value || '').trim();
+      if (!q) { loadKnWheel(); return; }
+      const grid = document.getElementById('kn-wheel-grid');
+      const status = document.getElementById('kn-search-status');
+      if (!grid) return;
+      if (status) { status.style.color = 'var(--text-muted)'; status.textContent = 'Searching "' + q + '"...'; }
+      grid.innerHTML = '<div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;grid-column:1/-1;">Searching...</div>';
+      try {
+        const r = await fetch(API_BASE + '/wheel?query=' + encodeURIComponent(q));
+        const d = await r.json();
+        const results = d.results || (Array.isArray(d) ? d : []);
+        if (status) {
+          status.style.color = results.length > 0 ? 'var(--green)' : 'var(--text-muted)';
+          status.textContent = results.length > 0
+            ? results.length + ' results for "' + q + '"'
+            : 'No results — try broader terms or contribute original research.';
+        }
+        knRenderWheelGrid(results, grid);
+      } catch(e) {
+        if (status) status.textContent = 'Search error: ' + e.message;
+      }
+    }
+
+    function knRenderWheelGrid(papers, grid) {
+      if (!papers || papers.length === 0) {
+        grid.innerHTML = '<div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;grid-column:1/-1;padding:24px 0;">No papers found. Be the first to contribute.</div>';
+        return;
+      }
+      grid.innerHTML = papers.map(p => {
+        const abstract = p.abstract || (p.content ? p.content.substring(0, 220) + '...' : '');
+        const rel = p.relevance ? Math.round(p.relevance * 100) + '% match' : '';
+        const ts = p.timestamp ? knRelTime(p.timestamp) : '';
+        const ipfsHref = p.url_html || (p.ipfs_cid ? 'https://ipfs.io/ipfs/' + p.ipfs_cid : '');
+        return '<div class="paper-card" style="border:1px solid var(--border);transition:all .2s;" onmouseenter="this.style.borderColor=\'var(--accent)\';this.style.transform=\'translateY(-2px)\'" onmouseleave="this.style.borderColor=\'var(--border)\';this.style.transform=\'translateY(0)\'">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">' +
+            '<div class="paper-badge" style="background:rgba(255,78,26,.12);color:var(--accent);font-size:9px;">' + (p.status || 'VERIFIED') + '</div>' +
+            (rel ? '<span style="font-family:var(--font-mono);font-size:9px;color:var(--accent);">' + rel + '</span>' : '') +
+          '</div>' +
+          '<div style="font-family:var(--font-body);font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px;line-height:1.4;">' + (p.title || 'Untitled') + '</div>' +
+          '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:10px;">by ' + (p.author || 'Anonymous') + (ts ? ' · ' + ts : '') + '</div>' +
+          (abstract ? '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);line-height:1.6;margin-bottom:12px;">' + abstract + '</div>' : '') +
+          '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+            (p.tier ? '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">Tier ' + p.tier + '</span>' : '<span></span>') +
+            (ipfsHref ? '<a href="' + ipfsHref + '" target="_blank" style="font-family:var(--font-mono);font-size:10px;color:var(--accent);text-decoration:none;border:1px solid var(--accent);padding:3px 8px;border-radius:3px;" onmouseenter="this.style.background=\'var(--accent-glow)\'" onmouseleave="this.style.background=\'transparent\'">IPFS</a>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    async function loadKnLabPapers() {
+      const el = document.getElementById('kn-lab-papers');
+      if (!el) return;
+      try {
+        const r = await fetch(API_BASE + '/latest-papers?limit=8');
+        const papers = await r.json();
+        if (!Array.isArray(papers) || papers.length === 0) {
+          el.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">No papers published yet.</span>';
+          return;
+        }
+        el.innerHTML = papers.map(p => {
+          const ipfsHref = p.url_html || (p.ipfs_cid ? 'https://ipfs.io/ipfs/' + p.ipfs_cid : '');
+          return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (p.title || 'Untitled') + '</div>' +
+              '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:2px;">' + (p.author || 'Anonymous') + ' · ' + knRelTime(p.timestamp) + '</div>' +
+            '</div>' +
+            (ipfsHref ? '<a href="' + ipfsHref + '" target="_blank" style="font-family:var(--font-mono);font-size:10px;color:var(--accent);text-decoration:none;white-space:nowrap;">IPFS</a>' : '') +
+          '</div>';
+        }).join('');
+      } catch(e) {
+        el.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">Error: ' + e.message + '</span>';
+      }
+    }
+
+    function loadKnModules() {
+      renderModules();
+    }
+
+    async function loadKnGraph() {
+      const el = document.getElementById('kn-graph-content');
+      if (!el) return;
+      el.innerHTML = '<div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;">Loading...</div>';
+      try {
+        const r = await fetch(API_BASE + '/investigation-status');
+        const investigations = await r.json();
+        const statEl = document.getElementById('stat-kn-inv');
+        if (statEl) statEl.textContent = Array.isArray(investigations) ? investigations.length : '—';
+        if (!Array.isArray(investigations) || investigations.length === 0) {
+          el.innerHTML = '<div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;">No active investigations in the knowledge graph.</div>';
+          return;
+        }
+        const sorted = [...investigations].sort((a, b) => (b.papers || 0) - (a.papers || 0));
+        el.innerHTML = sorted.map(inv => {
+          const pct = Math.min(100, Math.round(((inv.papers || 0) / 6) * 100));
+          const statusColor = inv.status === 'consolidated' ? 'var(--green)' : '#60a5fa';
+          return '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:16px;margin-bottom:12px;transition:border-color .2s;" onmouseenter="this.style.borderColor=\'var(--accent)\'" onmouseleave="this.style.borderColor=\'var(--border)\'">' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">' +
+              '<div style="font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--text-primary);flex:1;word-break:break-all;">' + (inv.id || 'Unknown') + '</div>' +
+              '<span style="font-family:var(--font-mono);font-size:9px;color:' + statusColor + ';white-space:nowrap;margin-left:12px;">' + (inv.status || 'emerging').toUpperCase() + '</span>' +
+            '</div>' +
+            '<div style="display:flex;gap:24px;margin-bottom:10px;">' +
+              '<div><div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);margin-bottom:2px;">Papers</div><div style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--accent);">' + (inv.papers || 0) + '</div></div>' +
+              '<div><div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);margin-bottom:2px;">Participants</div><div style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--text-primary);">' + (inv.participants || 0) + '</div></div>' +
+            '</div>' +
+            '<div class="progress-mini"><div class="progress-fill" style="width:' + pct + '%;background:var(--accent);transition:width .4s;"></div></div>' +
+          '</div>';
+        }).join('');
+      } catch(e) {
+        el.innerHTML = '<div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;">Error: ' + e.message + '</div>';
+      }
+    }
+
+    function knRelTime(ts) {
+      if (!ts) return '';
+      const d = Date.now() - ts;
+      if (d < 60000) return 'just now';
+      if (d < 3600000) return Math.floor(d / 60000) + 'm ago';
+      if (d < 86400000) return Math.floor(d / 3600000) + 'h ago';
+      return Math.floor(d / 86400000) + 'd ago';
+    }
+
+    function toggleModuleForm() {
+      const f = document.getElementById('module-form');
+      if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function shareModule() {
+      const name = (document.getElementById('mod-name')?.value || '').trim();
+      const type = document.getElementById('mod-type')?.value || 'Neural';
+      const desc = (document.getElementById('mod-desc')?.value || '').trim();
+      const fb = document.getElementById('mod-feedback');
+      if (!name) { if (fb) fb.textContent = 'Name required.'; return; }
+      const myId = localStorage.getItem('agentId') || 'anonymous';
+      const modId = 'mod-' + Date.now();
+      dbModules.get(modId).put({ id: modId, name, type, description: desc, status: 'Active', sharedBy: myId, timestamp: Date.now() });
+      if (fb) { fb.style.color = 'var(--green)'; fb.textContent = 'Module shared!'; }
+      if (document.getElementById('mod-name')) document.getElementById('mod-name').value = '';
+      if (document.getElementById('mod-desc')) document.getElementById('mod-desc').value = '';
+      setTimeout(() => { toggleModuleForm(); if (fb) fb.textContent = ''; }, 1500);
+      renderModules();
+    }
+
+    // Live Gun.js paper stream → knowledge-entries
     function renderPaper(paper, id) {
-      if (document.getElementById(`paper-${id}`)) return;
-
+      if (document.getElementById('paper-' + id)) return;
       const card = document.createElement('div');
-      card.id = `paper-${id}`;
-      card.className = 'terminal';
-      card.style.marginBottom = '15px';
-
-      const ipfsLink = paper.url_html ? `<a href="${paper.url_html}" target="_blank" style="color:var(--yellow); font-size:10px; text-decoration:none;">[🔗 PERMANENT IPFS VERSION]</a>` : '';
-
-      card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="color:var(--accent); font-weight:bold;">${paper.title}</span>
-          <span style="font-size:10px; color:var(--text-muted);">${new Date(paper.timestamp).toLocaleTimeString()}</span>
-        </div>
-        <div style="font-size:11px; line-height:1.4; margin-bottom:10px;">
-          ${paper.content ? paper.content.substring(0, 300) + '...' : 'No content available.'}
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:10px; color:var(--text-secondary);">Author: ${paper.author || 'P2P-Agent'}</span>
-          ${ipfsLink}
-        </div>
-      `;
-
+      card.id = 'paper-' + id;
+      card.style.cssText = 'background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:10px;transition:border-color .2s;';
+      card.onmouseenter = () => card.style.borderColor = 'var(--accent)';
+      card.onmouseleave = () => card.style.borderColor = 'var(--border)';
+      const ipfsHref = paper.url_html || (paper.ipfs_cid ? 'https://ipfs.io/ipfs/' + paper.ipfs_cid : '');
+      card.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">' +
+          '<span style="font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--text-primary);">' + (paper.title || 'Untitled') + '</span>' +
+          '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);white-space:nowrap;margin-left:12px;">' + knRelTime(paper.timestamp) + '</span>' +
+        '</div>' +
+        '<div style="font-family:var(--font-mono);font-size:11px;line-height:1.6;color:var(--text-secondary);margin-bottom:10px;">' + (paper.content ? paper.content.substring(0, 300) + '...' : 'No content available.') + '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">by ' + (paper.author || 'P2P-Agent') + '</span>' +
+          (ipfsHref ? '<a href="' + ipfsHref + '" target="_blank" style="font-family:var(--font-mono);font-size:10px;color:var(--accent);text-decoration:none;">IPFS</a>' : '') +
+        '</div>';
       const container = document.getElementById('knowledge-entries');
       if (container) container.prepend(card);
     }
 
     function renderModules() {
       const container = document.getElementById('modular-assets');
+      if (!container) return;
       const modules = [];
       dbModules.map().once((data, id) => {
-        if (data && data.name) modules.push(data);
-        container.innerHTML = modules.map(m => `
-            <div class="module-card">
-              <div style="font-size:12px; font-weight:700; color:var(--text-primary);">${m.name}</div>
-            <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">
-              ${m.type} | <span style="color:var(--green)">${m.status}</span>
-            </div>
-            <div style="font-size:9px; color:var(--text-muted); margin-top:4px;">Shared by: ${m.sharedBy}</div>
-          </div>
-        `).join('');
+        if (data && data.name) modules.push({ ...data, id });
+        if (modules.length === 0) {
+          container.innerHTML = '<div style="color:var(--text-muted);font-family:var(--font-mono);font-size:12px;grid-column:1/-1;">No modules shared yet. Share the first one.</div>';
+        } else {
+          container.innerHTML = modules.map(m => {
+            const statusColor = m.status === 'Verified' ? 'var(--green)' : m.status === 'Active' ? '#60a5fa' : 'var(--text-muted)';
+            return '<div class="module-card">' +
+              '<div style="font-family:var(--font-body);font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">' + m.name + '</div>' +
+              '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:4px;">' + (m.type || 'Module') + ' · <span style="color:' + statusColor + ';">' + (m.status || 'Active') + '</span></div>' +
+              (m.description ? '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:6px;line-height:1.5;">' + m.description + '</div>' : '') +
+              '<div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);">Shared by: ' + (m.sharedBy || 'Anonymous') + '</div>' +
+            '</div>';
+          }).join('');
+        }
         const statEl = document.getElementById('stat-modules');
         if (statEl) statEl.textContent = modules.length;
       });
@@ -5053,6 +5386,7 @@
       if (tabName === 'papers') refreshPapersFromAPI();
       if (tabName === 'dashboard') updateVoteQuotaBar();
       if (tabName === 'swarm') initSwarmTab();
+      if (tabName === 'knowledge') initKnowledgeTab();
 
       if (location.hash !== `#${tabName}`) {
         history.pushState(null, null, `#${tabName}`);
