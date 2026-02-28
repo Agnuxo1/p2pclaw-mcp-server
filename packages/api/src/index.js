@@ -2830,7 +2830,9 @@ async function runDuplicatePurge() {
     const mempoolEntries = await new Promise(resolve => {
         const entries = [];
         db.get("mempool").map().once((data, id) => {
-            if (data && data.title && data.content && data.status !== 'REJECTED') {
+            // Skip REJECTED and PROMOTED — PROMOTED entries already live in papers bucket
+            // (including them causes VERIFIED papers to be falsely flagged as HASH_DUP)
+            if (data && data.title && data.content && data.status !== 'REJECTED' && data.status !== 'PROMOTED') {
                 const wc = data.content.trim().split(/\s+/).length;
                 const hash = getContentHash(data.content);
                 entries.push({
@@ -2855,7 +2857,9 @@ async function runDuplicatePurge() {
             const existing = seenInvIdTitle.get(entry.investigation_id);
             if (existing) {
                 const sim = titleSimilarity(entry.title, existing.title);
-                if (sim >= 0.55) invIdDup = true;
+                // Raised from 0.55 → 0.85: multiple agents CAN publish different papers
+                // under the same investigation_id; only near-identical titles are true dups
+                if (sim >= 0.85) invIdDup = true;
             }
         }
 
@@ -2887,13 +2891,16 @@ async function runDuplicatePurge() {
     const papersEntries = await new Promise(resolve => {
         const entries = [];
         db.get("papers").map().once((data, id) => {
-            if (data && data.title && data.content) {
+            // Skip already-PURGED papers — avoids re-evaluating them and
+            // accidentally blocking a legitimately re-submitted paper with same content
+            if (data && data.title && data.content && data.status !== 'PURGED') {
                 const wc = data.content.trim().split(/\s+/).length;
                 const hash = getContentHash(data.content);
                 entries.push({
                     id, title: data.title, content: data.content,
                     wordCount: wc, hash, timestamp: data.timestamp || 0,
-                    investigation_id: data.investigation_id || null
+                    investigation_id: data.investigation_id || null,
+                    status: data.status || 'UNVERIFIED'
                 });
             }
         });
@@ -4734,10 +4741,55 @@ initializeTauHeartbeat();
     initializeAbraxasService();
     initializeSocialService();
 
-// ── Auto-purge cron: run once on boot (after 60s) + every 6 hours ─
-setTimeout(() => runDuplicatePurge().catch(e => console.error('[PURGE-CRON] Error:', e.message)), 60_000);
+// ── Restore incorrectly PURGED papers on boot (boot+10s) ──────────────────────
+// Papers whose status was set to PURGED with rejected_reason=DUPLICATE_PURGE are
+// likely victims of the mempool-PROMOTED hash-collision bug (now fixed above).
+// If they have an ipfs_cid they were fully validated — restore them to VERIFIED.
+// If not, restore to UNVERIFIED so they can re-enter the validation queue.
+async function restoreMisPurgedPapers() {
+    let restored = 0;
+    await new Promise(resolve => {
+        db.get("papers").map().once((data, id) => {
+            if (data && data.status === 'PURGED' && data.rejected_reason === 'DUPLICATE_PURGE') {
+                const recoveredStatus = data.ipfs_cid ? 'VERIFIED' : 'UNVERIFIED';
+                db.get("papers").get(id).put(gunSafe({
+                    status: recoveredStatus,
+                    rejected_reason: null,
+                    restored_at: Date.now(),
+                    restored_reason: 'DUPLICATE_PURGE_BUG_FIX'
+                }));
+                restored++;
+            }
+        });
+        setTimeout(resolve, 5000);
+    });
+    // Also restore mempool entries incorrectly REJECTED by the purge
+    let restoredMempool = 0;
+    await new Promise(resolve => {
+        db.get("mempool").map().once((data, id) => {
+            if (data && data.status === 'REJECTED' && data.rejected_reason === 'DUPLICATE_PURGE') {
+                db.get("mempool").get(id).put(gunSafe({
+                    status: 'MEMPOOL',
+                    rejected_reason: null,
+                    restored_at: Date.now(),
+                    restored_reason: 'DUPLICATE_PURGE_BUG_FIX'
+                }));
+                restoredMempool++;
+            }
+        });
+        setTimeout(resolve, 5000);
+    });
+    console.log(`[RESTORE] Recovered ${restored} papers + ${restoredMempool} mempool entries from incorrect DUPLICATE_PURGE.`);
+}
+setTimeout(() => restoreMisPurgedPapers().catch(e => console.error('[RESTORE] Error:', e.message)), 10_000);
+console.log('[RESTORE] Mis-purge recovery scheduled: boot+10s.');
+
+// ── Auto-purge cron: every 6 hours only ─
+// NOTE: boot-time setTimeout removed — Railway container restarts frequently and
+// running the purge 60s after each restart was incorrectly marking all
+// PROMOTED→VERIFIED papers as DUPLICATE_PURGE (hash collision with mempool copies).
 setInterval(() => runDuplicatePurge().catch(e => console.error('[PURGE-CRON] Error:', e.message)), 6 * 60 * 60 * 1000);
-console.log('[PURGE-CRON] Auto-purge scheduled: boot+60s, then every 6h.');
+console.log('[PURGE-CRON] Auto-purge scheduled: every 6h (no boot-time run).');
 
 // ── IPFS migration: pin existing papers without ipfs_cid (boot+90s) ─
 setTimeout(() => migrateExistingPapersToIPFS(db).catch(e => console.error('[IPFS-MIGRATE] Error:', e.message)), 90_000);
