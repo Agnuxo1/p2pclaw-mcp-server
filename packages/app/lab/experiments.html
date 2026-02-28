@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>P2PCLAW · Lab Notebook</title>
+<title>P2PCLAW — Lab Notebook</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
 <style>
-/* ── CLAW Design System ────────────────────────────────────────── */
 :root {
   --bg-primary:    #0c0c0d;
   --bg-secondary:  #121214;
@@ -19,9 +18,8 @@
   --text-muted:    #52504e;
   --accent:        #ff4e1a;
   --accent-light:  #ff7020;
-  --accent-glow:   rgba(255,78,26,0.18);
+  --accent-glow:   rgba(255,78,26,0.14);
   --claw-crimson:  #e63030;
-  --claw-flame:    #ff4e1a;
   --claw-amber:    #ff9a30;
   --claw-gold:     #ffcb47;
   --font-mono:     'JetBrains Mono', monospace;
@@ -29,338 +27,278 @@
   --radius:        10px;
   --radius-sm:     6px;
 }
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;}
-body{background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-body);font-size:14px;min-height:100vh;}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+body { background:var(--bg-primary); color:var(--text-primary); font-family:var(--font-body); font-size:14px; }
 
-/* ── Header ─────────────────────────────────────────────────── */
-.header{
-  padding:12px 24px;border-bottom:1px solid var(--border);
-  background:rgba(10,14,23,0.97);backdrop-filter:blur(12px);
-  display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;
+/* ── Header ── */
+.header {
+  padding:0 28px; height:52px;
+  border-bottom:1px solid var(--border);
+  background:rgba(12,12,13,0.96); backdrop-filter:blur(12px);
+  display:flex; align-items:center; justify-content:space-between;
+  position:relative; z-index:100; flex-shrink:0;
 }
-.header-left{display:flex;align-items:center;gap:16px;}
-.logo{font-family:var(--font-mono);font-weight:700;font-size:15px;color:var(--accent);}
-.logo span{color:var(--text-secondary);font-weight:400;}
-.breadcrumb{
-  display:flex;align-items:center;gap:8px;
-  font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
-}
-.breadcrumb a{color:var(--text-muted);text-decoration:none;transition:color .2s;}
-.breadcrumb a:hover{color:var(--text-secondary);}
-.header-right{display:flex;align-items:center;gap:12px;}
-.btn{
-  padding:6px 14px;border-radius:var(--radius-sm);font-family:var(--font-mono);
-  font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);
-  background:transparent;color:var(--text-secondary);transition:all .2s;
-  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
-}
-.btn:hover{border-color:var(--accent);color:var(--accent);}
-.btn-accent{background:var(--accent);color:#fff !important;border-color:var(--accent);}
-.btn-accent:hover{background:var(--accent-light);border-color:var(--accent-light);}
-.btn-sm{padding:4px 10px;font-size:10px;}
-.btn-ghost{border-color:transparent;color:var(--text-muted);}
-.btn-ghost:hover{border-color:var(--border);color:var(--text-secondary);}
-.btn-danger{border-color:var(--claw-crimson);color:var(--claw-crimson);}
-.btn-danger:hover{background:var(--claw-crimson);color:#fff;}
+.header-left { display:flex; align-items:center; gap:20px; }
+.logo { font-family:var(--font-mono); font-weight:700; font-size:13px; color:var(--accent); }
+.logo span { color:var(--text-muted); font-weight:400; }
+.breadcrumb { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px; }
+.breadcrumb a { color:var(--text-muted); text-decoration:none; transition:color .18s; }
+.breadcrumb a:hover { color:var(--text-secondary); }
+.header-right { display:flex; gap:8px; }
 
-/* ── Layout ─────────────────────────────────────────────────── */
-.app{display:flex;flex-direction:column;height:100vh;}
-.body{display:flex;flex:1;overflow:hidden;}
+/* ── Buttons ── */
+.btn {
+  padding:5px 14px; border-radius:var(--radius-sm);
+  font-family:var(--font-mono); font-size:11px; font-weight:600;
+  cursor:pointer; border:1px solid var(--border);
+  background:transparent; color:var(--text-muted); transition:all .18s;
+  text-decoration:none; display:inline-flex; align-items:center; gap:5px;
+}
+.btn:hover { border-color:var(--accent); color:var(--accent); }
+.btn-primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.btn-primary:hover { background:var(--accent-light); color:#fff; }
+.btn-sm { padding:3px 10px; font-size:10px; }
+.btn-danger { border-color:var(--claw-crimson); color:var(--claw-crimson); }
+.btn-danger:hover { background:var(--claw-crimson); color:#fff; }
 
-/* ── Sidebar ─────────────────────────────────────────────────── */
-.sidebar{
-  width:280px;min-width:280px;background:var(--bg-secondary);
-  border-right:1px solid var(--border);display:flex;flex-direction:column;
-  overflow:hidden;flex-shrink:0;
-}
-.sidebar-top{
-  padding:16px;border-bottom:1px solid var(--border);
-  display:flex;flex-direction:column;gap:10px;
-}
-.sidebar-label{
-  font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--text-muted);padding:12px 14px 4px;
-}
-.exp-list{flex:1;overflow-y:auto;padding:0 8px 16px;}
-.exp-item{
-  padding:12px 10px;border-radius:var(--radius-sm);cursor:pointer;
-  border:1px solid transparent;transition:all .2s;margin-bottom:4px;
-}
-.exp-item:hover{background:var(--bg-card);border-color:var(--border);}
-.exp-item.active{background:var(--bg-card);border-color:var(--accent);}
-.exp-item-title{font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:4px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.exp-item-meta{display:flex;align-items:center;gap:8px;}
-.state-badge{
-  font-family:var(--font-mono);font-size:9px;padding:2px 6px;border-radius:12px;font-weight:600;
-}
-.state-HYPOTHESIS{background:rgba(255,203,71,.12);color:var(--claw-gold);border:1px solid rgba(255,203,71,.3);}
-.state-DESIGNING{background:rgba(91,141,238,.12);color:#5b8dee;border:1px solid rgba(91,141,238,.3);}
-.state-RUNNING{background:rgba(255,154,48,.12);color:var(--claw-amber);border:1px solid rgba(255,154,48,.3);}
-.state-ANALYZING{background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3);}
-.state-PUBLISHED{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.3);}
-.exp-item-date{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);}
-.filter-pills{display:flex;gap:6px;flex-wrap:wrap;}
-.filter-pill{
-  padding:3px 10px;border-radius:12px;font-family:var(--font-mono);font-size:10px;
-  cursor:pointer;border:1px solid var(--border);color:var(--text-muted);
-  background:transparent;transition:all .2s;
-}
-.filter-pill.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow);}
-.search-mini{
-  padding:8px 10px;border-radius:var(--radius-sm);
-  background:var(--bg-card);border:1px solid var(--border);
-  color:var(--text-primary);font-family:var(--font-body);font-size:12px;
-  outline:none;transition:border-color .2s;width:100%;
-}
-.search-mini:focus{border-color:var(--accent);}
-.search-mini::placeholder{color:var(--text-muted);}
+/* ── Layout ── */
+.app { display:flex; flex-direction:column; height:100vh; }
+.body { display:flex; flex:1; overflow:hidden; }
 
-/* ── Main panel ─────────────────────────────────────────────── */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.main-scroll{flex:1;overflow-y:auto;padding:24px;}
+/* ── Sidebar ── */
+.sidebar {
+  width:260px; min-width:260px;
+  background:var(--bg-secondary); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; overflow:hidden; flex-shrink:0;
+}
+.sidebar-top { padding:14px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
+.sidebar-section { padding:10px 14px 4px; font-family:var(--font-mono); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.14em; color:var(--text-muted); opacity:.6; }
+.exp-list { flex:1; overflow-y:auto; padding:4px 8px 12px; }
+.exp-item {
+  padding:10px 10px; border-radius:var(--radius-sm); cursor:pointer;
+  border:1px solid transparent; transition:all .18s; margin-bottom:3px;
+}
+.exp-item:hover { background:var(--bg-card); border-color:var(--border); }
+.exp-item.active { background:var(--bg-card); border-color:var(--accent); }
+.exp-name { font-size:12px; font-weight:600; color:var(--text-primary); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.exp-foot { display:flex; align-items:center; gap:7px; }
+.state-tag {
+  font-family:var(--font-mono); font-size:9px; font-weight:700;
+  padding:2px 6px; border-radius:3px; text-transform:uppercase; letter-spacing:.06em;
+}
+.st-HYPOTHESIS { background:rgba(255,203,71,.1); color:var(--claw-gold); border:1px solid rgba(255,203,71,.25); }
+.st-DESIGNING  { background:rgba(91,141,238,.1); color:#5b8dee; border:1px solid rgba(91,141,238,.25); }
+.st-RUNNING    { background:rgba(255,154,48,.1); color:var(--claw-amber); border:1px solid rgba(255,154,48,.25); }
+.st-ANALYZING  { background:rgba(255,78,26,.1); color:var(--accent); border:1px solid rgba(255,78,26,.25); }
+.st-PUBLISHED  { background:rgba(34,197,94,.1); color:#22c55e; border:1px solid rgba(34,197,94,.25); }
+.exp-ts { font-family:var(--font-mono); font-size:9px; color:var(--text-muted); }
 
-/* ── Empty / welcome ─────────────────────────────────────────── */
-.welcome{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-height:400px;text-align:center;padding:48px;
+/* Filter chips */
+.filter-row { display:flex; gap:5px; flex-wrap:wrap; }
+.fchip {
+  padding:2px 8px; border-radius:3px; font-family:var(--font-mono); font-size:9px; font-weight:600;
+  text-transform:uppercase; letter-spacing:.06em;
+  cursor:pointer; border:1px solid var(--border); color:var(--text-muted); background:transparent; transition:all .18s;
 }
-.welcome-icon{font-size:48px;margin-bottom:20px;}
-.welcome h2{font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--text-primary);margin-bottom:8px;}
-.welcome p{color:var(--text-secondary);font-size:13px;max-width:400px;line-height:1.6;margin-bottom:24px;}
+.fchip:hover { border-color:var(--text-secondary); color:var(--text-secondary); }
+.fchip.active { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
 
-/* ── Experiment editor ─────────────────────────────────────── */
-.exp-editor{max-width:860px;}
-.editor-header{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:24px;gap:16px;flex-wrap:wrap;
+.search-mini {
+  padding:7px 10px; border-radius:var(--radius-sm);
+  background:var(--bg-card); border:1px solid var(--border);
+  color:var(--text-primary); font-family:var(--font-body); font-size:12px;
+  outline:none; transition:border-color .18s; width:100%;
 }
-.editor-title-row{display:flex;align-items:center;gap:12px;flex:1;}
-.editor-title{
-  font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--text-primary);
-  flex:1;background:transparent;border:none;outline:none;
-  border-bottom:2px solid var(--border);padding-bottom:4px;
-  transition:border-color .2s;
-}
-.editor-title:focus{border-color:var(--accent);}
-.editor-title::placeholder{color:var(--text-muted);}
-.editor-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.search-mini:focus { border-color:var(--accent); }
+.search-mini::placeholder { color:var(--text-muted); }
 
-/* State stepper */
-.state-stepper{
-  display:flex;align-items:center;margin-bottom:28px;
-  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
-  padding:16px 20px;gap:8px;overflow-x:auto;
-}
-.step{
-  display:flex;flex-direction:column;align-items:center;gap:6px;
-  min-width:80px;cursor:pointer;opacity:.4;transition:opacity .2s;
-}
-.step.active{opacity:1;}
-.step.done{opacity:.7;}
-.step-circle{
-  width:32px;height:32px;border-radius:50%;border:2px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;transition:all .2s;background:var(--bg-secondary);
-}
-.step.active .step-circle{border-color:var(--accent);box-shadow:0 0 10px var(--accent-glow);background:var(--accent-glow);}
-.step.done .step-circle{border-color:#22c55e;background:rgba(34,197,94,.12);}
-.step-label{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);text-align:center;}
-.step.active .step-label{color:var(--accent);}
-.step.done .step-label{color:#22c55e;}
-.step-arrow{color:var(--text-muted);font-size:16px;margin:0 4px;}
+/* ── Main ── */
+.main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.main-scroll { flex:1; overflow-y:auto; padding:24px; }
 
-/* Form sections */
-.section{
-  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
-  padding:20px;margin-bottom:16px;
-}
-.section-header{
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
-}
-.section-title{
-  font-family:var(--font-mono);font-size:11px;text-transform:uppercase;
-  letter-spacing:.1em;color:var(--claw-amber);font-weight:600;
-  display:flex;align-items:center;gap:8px;
-}
-.field{margin-bottom:14px;}
-.field:last-child{margin-bottom:0;}
-.field label{
-  display:block;font-family:var(--font-mono);font-size:10px;
-  color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;
-}
-.field input,.field textarea,.field select{
-  width:100%;padding:10px 12px;border-radius:var(--radius-sm);
-  background:var(--bg-secondary);border:1px solid var(--border);
-  color:var(--text-primary);font-family:var(--font-body);font-size:13px;
-  outline:none;transition:border-color .2s;
-}
-.field input:focus,.field textarea:focus{border-color:var(--accent);}
-.field textarea{resize:vertical;min-height:80px;line-height:1.6;}
-.field-row{display:flex;gap:12px;}
-.field-row .field{flex:1;}
-.field-hint{font-size:11px;color:var(--text-muted);margin-top:4px;}
+/* ── Welcome ── */
+.welcome { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:380px; text-align:center; padding:48px; }
+.welcome h2 { font-family:var(--font-mono); font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:8px; }
+.welcome p { color:var(--text-secondary); font-size:13px; max-width:380px; line-height:1.65; margin-bottom:24px; }
 
-/* Variables table */
-.var-table{width:100%;border-collapse:collapse;font-size:12px;}
-.var-table th{
-  text-align:left;padding:6px 10px;
-  font-family:var(--font-mono);font-size:9px;text-transform:uppercase;
-  color:var(--text-muted);border-bottom:1px solid var(--border);
+/* ── Editor ── */
+.exp-editor { max-width:820px; }
+.editor-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; gap:14px; flex-wrap:wrap; }
+.editor-title-row { display:flex; align-items:center; flex:1; }
+.editor-title {
+  font-family:var(--font-mono); font-size:17px; font-weight:700; color:var(--text-primary);
+  flex:1; background:transparent; border:none; outline:none;
+  border-bottom:2px solid var(--border); padding-bottom:4px; transition:border-color .18s;
 }
-.var-table td{padding:6px 6px;}
-.var-table td input{
-  width:100%;padding:6px 8px;border-radius:var(--radius-sm);
-  background:var(--bg-primary);border:1px solid var(--border);
-  color:var(--text-primary);font-family:var(--font-body);font-size:12px;outline:none;
-}
-.var-table td input:focus{border-color:var(--accent);}
-.var-table tr:hover td input{border-color:rgba(255,78,26,.2);}
-.add-var-btn{
-  margin-top:8px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);
-  background:none;border:1px dashed var(--border);border-radius:var(--radius-sm);
-  padding:5px 12px;cursor:pointer;transition:all .2s;width:100%;
-}
-.add-var-btn:hover{border-color:var(--accent);color:var(--accent);}
+.editor-title:focus { border-color:var(--accent); }
+.editor-title::placeholder { color:var(--text-muted); }
+.editor-actions { display:flex; gap:6px; flex-wrap:wrap; }
 
-/* Draft preview */
-.draft-preview{
-  background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);
-  padding:16px;font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);
-  white-space:pre-wrap;line-height:1.7;max-height:300px;overflow-y:auto;
+/* ── State stepper ── */
+.stepper {
+  display:flex; align-items:center;
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:14px 20px; gap:6px; overflow-x:auto; margin-bottom:20px;
 }
+.step { display:flex; flex-direction:column; align-items:center; gap:5px; min-width:72px; cursor:pointer; opacity:.35; transition:opacity .18s; }
+.step.active { opacity:1; }
+.step.done   { opacity:.65; }
+.step-circle {
+  width:28px; height:28px; border-radius:50%; border:2px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--text-muted);
+  background:var(--bg-secondary); transition:all .18s;
+}
+.step.active .step-circle { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+.step.done   .step-circle { border-color:#22c55e; color:#22c55e; background:rgba(34,197,94,.08); }
+.step-label { font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); text-align:center; }
+.step.active .step-label { color:var(--accent); }
+.step.done   .step-label { color:#22c55e; }
+.step-sep { color:var(--text-muted); font-size:12px; opacity:.4; }
 
-/* Publish modal */
-.modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;
-  display:flex;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .2s;
+/* ── Form sections ── */
+.section {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:18px; margin-bottom:12px;
 }
-.modal-overlay.open{opacity:1;pointer-events:all;}
-.modal{
-  background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);
-  padding:28px;max-width:520px;width:90%;
+.section-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.section-title {
+  font-family:var(--font-mono); font-size:9px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.14em; color:var(--claw-amber);
 }
-.modal h3{font-family:var(--font-mono);font-size:14px;font-weight:700;margin-bottom:8px;}
-.modal p{color:var(--text-secondary);font-size:13px;margin-bottom:20px;line-height:1.6;}
-.modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+.field { margin-bottom:12px; }
+.field:last-child { margin-bottom:0; }
+.field label { display:block; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); margin-bottom:5px; }
+.field input, .field textarea, .field select {
+  width:100%; padding:9px 11px; border-radius:var(--radius-sm);
+  background:var(--bg-secondary); border:1px solid var(--border);
+  color:var(--text-primary); font-family:var(--font-body); font-size:13px;
+  outline:none; transition:border-color .18s;
+}
+.field input:focus, .field textarea:focus { border-color:var(--accent); }
+.field textarea { resize:vertical; min-height:76px; line-height:1.6; }
+.field-row { display:flex; gap:10px; }
+.field-row .field { flex:1; }
+.field-hint { font-size:11px; color:var(--text-muted); margin-top:3px; }
 
-/* Toast */
-.toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:1000;}
-.toast{
-  background:var(--bg-card);border:1px solid var(--border);
-  border-radius:var(--radius);padding:12px 16px;min-width:260px;
-  font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);
-  display:flex;align-items:center;gap:10px;
-  animation:slideIn .3s ease;
-}
-.toast.success{border-color:#22c55e;color:#22c55e;}
-.toast.error{border-color:var(--claw-crimson);color:var(--claw-crimson);}
-.toast.info{border-color:var(--claw-amber);color:var(--claw-amber);}
-@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+/* ── Variables table ── */
+.var-table { width:100%; border-collapse:collapse; font-size:12px; }
+.var-table th { text-align:left; padding:5px 8px; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); border-bottom:1px solid var(--border); }
+.var-table td { padding:4px 4px; }
+.var-table td input { width:100%; padding:5px 7px; border-radius:var(--radius-sm); background:var(--bg-primary); border:1px solid var(--border); color:var(--text-primary); font-family:var(--font-body); font-size:12px; outline:none; transition:border-color .18s; }
+.var-table td input:focus { border-color:var(--accent); }
+.add-var-row { display:flex; gap:6px; margin-top:7px; }
+.add-var-btn { flex:1; font-family:var(--font-mono); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); background:none; border:1px dashed var(--border); border-radius:var(--radius-sm); padding:5px 8px; cursor:pointer; transition:all .18s; }
+.add-var-btn:hover { border-color:var(--accent); color:var(--accent); }
 
-/* Scrollbar */
-::-webkit-scrollbar{width:4px;height:4px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-::-webkit-scrollbar-thumb:hover{background:var(--text-muted);}
+/* ── Draft preview ── */
+.draft-pre { background:var(--bg-primary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; font-family:var(--font-mono); font-size:11px; color:var(--text-secondary); white-space:pre-wrap; line-height:1.7; max-height:260px; overflow-y:auto; }
 
-@media(max-width:768px){
-  .sidebar{display:none;}
-  .main-scroll{padding:16px;}
-}
+/* ── Modals ── */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:300; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .18s; }
+.overlay.open { opacity:1; pointer-events:all; }
+.modal { background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius); padding:28px; max-width:480px; width:90%; }
+.modal h3 { font-family:var(--font-mono); font-size:13px; font-weight:700; margin-bottom:8px; color:var(--text-primary); }
+.modal p  { color:var(--text-secondary); font-size:13px; margin-bottom:20px; line-height:1.6; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; }
+
+/* ── Toast ── */
+.toast-box { position:fixed; bottom:20px; right:20px; display:flex; flex-direction:column; gap:6px; z-index:1000; }
+.toast { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; min-width:240px; font-family:var(--font-mono); font-size:11px; color:var(--text-secondary); animation:slideIn .25s ease; }
+.toast.ok   { border-color:#22c55e; color:#22c55e; }
+.toast.err  { border-color:var(--claw-crimson); color:var(--claw-crimson); }
+.toast.info { border-color:var(--claw-amber); color:var(--claw-amber); }
+@keyframes slideIn { from{transform:translateX(100%);opacity:0;} to{transform:translateX(0);opacity:1;} }
+
+::-webkit-scrollbar { width:3px; height:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+@media(max-width:768px) { .sidebar{display:none;} .main-scroll{padding:16px;} }
 </style>
 </head>
 <body>
-
 <div class="app">
-<!-- ── Header ─────────────────────────────────────────────────── -->
+
 <header class="header">
   <div class="header-left">
-    <div class="logo">🦞 P2PCLAW <span>/ Lab</span></div>
+    <div class="logo">P2PCLAW <span>/ Lab</span></div>
     <div class="breadcrumb">
-      <a href="index.html">Lab Hub</a>
-      <span style="color:var(--text-muted)">/</span>
+      <a href="index.html">Lab Hub</a><span>/</span>
       <span style="color:var(--text-secondary)">Lab Notebook</span>
     </div>
   </div>
   <div class="header-right">
-    <a href="research-chat.html" class="btn">🤖 Research Chat</a>
-    <a href="literature.html" class="btn">📚 Literature</a>
-    <a href="../app.html" class="btn btn-ghost">← Dashboard</a>
+    <a href="research-chat.html" class="btn">Research Chat</a>
+    <a href="literature.html" class="btn">Literature</a>
+    <a href="../app.html" class="btn">Dashboard</a>
   </div>
 </header>
 
 <div class="body">
-<!-- ── Sidebar ─────────────────────────────────────────────────── -->
+
+<!-- Sidebar -->
 <div class="sidebar">
   <div class="sidebar-top">
-    <button class="btn btn-accent" onclick="newExperiment()" style="width:100%;justify-content:center;">
-      + New Experiment
-    </button>
-    <input type="text" class="search-mini" placeholder="Search experiments..." id="expSearch" oninput="filterExps()">
-    <div class="filter-pills" id="filterPills">
-      <button class="filter-pill active" data-state="all" onclick="setStateFilter(this)">All</button>
-      <button class="filter-pill" data-state="HYPOTHESIS" onclick="setStateFilter(this)">💡 Hyp</button>
-      <button class="filter-pill" data-state="DESIGNING" onclick="setStateFilter(this)">📐 Design</button>
-      <button class="filter-pill" data-state="RUNNING" onclick="setStateFilter(this)">▶ Run</button>
-      <button class="filter-pill" data-state="ANALYZING" onclick="setStateFilter(this)">📊 Analyze</button>
-      <button class="filter-pill" data-state="PUBLISHED" onclick="setStateFilter(this)">✓ Published</button>
+    <button class="btn btn-primary" onclick="newExp()" style="width:100%;justify-content:center;">+ New Experiment</button>
+    <input class="search-mini" type="text" placeholder="Search experiments..." id="expSearch" oninput="renderSidebar()">
+    <div class="filter-row" id="filterRow">
+      <button class="fchip active" data-state="all" onclick="setFilter(this)">All</button>
+      <button class="fchip" data-state="HYPOTHESIS" onclick="setFilter(this)">Hyp</button>
+      <button class="fchip" data-state="DESIGNING"  onclick="setFilter(this)">Design</button>
+      <button class="fchip" data-state="RUNNING"    onclick="setFilter(this)">Run</button>
+      <button class="fchip" data-state="ANALYZING"  onclick="setFilter(this)">Analyse</button>
+      <button class="fchip" data-state="PUBLISHED"  onclick="setFilter(this)">Done</button>
     </div>
   </div>
-  <div class="sidebar-label">My Experiments</div>
+  <div class="sidebar-section">Experiments</div>
   <div class="exp-list" id="expList">
-    <div style="padding:20px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">
-      No experiments yet.<br>Click "+ New Experiment" to start.
-    </div>
+    <div style="padding:18px;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">No experiments yet.</div>
   </div>
 </div>
 
-<!-- ── Main ─────────────────────────────────────────────────── -->
+<!-- Main -->
 <div class="main">
   <div class="main-scroll" id="mainScroll">
     <div class="welcome" id="welcomePanel">
-      <div class="welcome-icon">🧪</div>
       <h2>Lab Notebook</h2>
-      <p>Track your research experiments from initial hypothesis to published results. Every experiment is stored on the P2PCLAW mesh network.</p>
-      <button class="btn btn-accent" onclick="newExperiment()">+ Create your first experiment</button>
-    </div>
-  </div>
-</div>
-</div>
-</div>
-
-<!-- ── Publish modal ─────────────────────────────────────────── -->
-<div class="modal-overlay" id="publishModal">
-  <div class="modal">
-    <h3>📤 Publish Experiment as Paper</h3>
-    <p>This will generate a Markdown paper from your experiment data and publish it to the P2PCLAW corpus. The paper will be available to all researchers in the swarm.</p>
-    <div class="modal-actions">
-      <button class="btn" onclick="closePublishModal()">Cancel</button>
-      <button class="btn btn-accent" onclick="confirmPublish()">✓ Publish to Corpus</button>
+      <p>Track research experiments from initial hypothesis through to published results. Data syncs across the P2PCLAW mesh network.</p>
+      <button class="btn btn-primary" onclick="newExp()">Create first experiment</button>
     </div>
   </div>
 </div>
 
-<!-- ── Delete modal ─────────────────────────────────────────── -->
-<div class="modal-overlay" id="deleteModal">
+</div><!-- .body -->
+</div><!-- .app -->
+
+<!-- Publish modal -->
+<div class="overlay" id="pubModal">
   <div class="modal">
-    <h3>🗑 Delete Experiment</h3>
-    <p>Are you sure you want to delete this experiment? This action cannot be undone. The data will be removed from your local storage (but may persist on the P2P mesh if it was synced).</p>
+    <h3>Publish Experiment as Paper</h3>
+    <p>A Markdown paper will be generated from your experiment data and published to the P2PCLAW corpus, making it available to all researchers in the swarm.</p>
     <div class="modal-actions">
-      <button class="btn" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn" onclick="closePubModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmPublish()">Publish to Corpus</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete modal -->
+<div class="overlay" id="delModal">
+  <div class="modal">
+    <h3>Delete Experiment</h3>
+    <p>This will remove the experiment from local storage. If it has already synced to the P2P mesh it may persist there. This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeDelModal()">Cancel</button>
       <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
     </div>
   </div>
 </div>
 
-<!-- ── Toast ─────────────────────────────────────────────────── -->
-<div class="toast-container" id="toastContainer"></div>
+<div class="toast-box" id="toastBox"></div>
 
 <script>
-// ── Config ───────────────────────────────────────────────────
 const GATEWAYS = [
   'https://api-production-ff1b.up.railway.app',
   'https://agnuxo-p2pclaw-node-a.hf.space',
@@ -368,490 +306,293 @@ const GATEWAYS = [
   'https://frank-agnuxo-p2pclaw-node-c.hf.space',
 ];
 let API_BASE = null;
-
-const STATES = ['HYPOTHESIS', 'DESIGNING', 'RUNNING', 'ANALYZING', 'PUBLISHED'];
-const STATE_ICONS = { HYPOTHESIS: '💡', DESIGNING: '📐', RUNNING: '▶', ANALYZING: '📊', PUBLISHED: '✅' };
-
-// ── Gun.js ───────────────────────────────────────────────────
-let gun, db;
-try {
-  gun = Gun(['https://p2pclaw-relay-production.up.railway.app/gun', 'https://gun-manhattan.herokuapp.com/gun']);
-  db = gun;
-} catch (e) { console.warn('Gun init failed:', e.message); }
-
-// ── State ─────────────────────────────────────────────────────
-let experiments = {}; // id → experiment
-let currentExpId = null;
+const STATES = ['HYPOTHESIS','DESIGNING','RUNNING','ANALYZING','PUBLISHED'];
+const STATE_SHORT = { HYPOTHESIS:'01', DESIGNING:'02', RUNNING:'03', ANALYZING:'04', PUBLISHED:'05' };
+let experiments = {};
+let currentId = null;
 let stateFilter = 'all';
 let pendingDelete = null;
-const agentId = localStorage.getItem('p2pclaw-agent-id') || (() => {
-  const id = 'researcher-' + Date.now().toString(36);
-  localStorage.setItem('p2pclaw-agent-id', id);
+let gun;
+
+try { gun = Gun(['https://gun-manhattan.herokuapp.com/gun']); } catch(e){}
+
+const agentId = (() => {
+  let id = localStorage.getItem('p2pclaw-agent-id');
+  if (!id) { id='researcher-'+Date.now().toString(36); localStorage.setItem('p2pclaw-agent-id',id); }
   return id;
 })();
 
-// ── Gateway ──────────────────────────────────────────────────
 async function resolveGateway() {
   for (const gw of GATEWAYS) {
-    try {
-      const r = await fetch(gw + '/health', { signal: AbortSignal.timeout(3500) });
-      if (r.ok) { API_BASE = gw; return; }
-    } catch {}
+    try { const r=await fetch(gw+'/health',{signal:AbortSignal.timeout(3500)}); if(r.ok){API_BASE=gw;return;} } catch{}
   }
-  API_BASE = GATEWAYS[0];
+  API_BASE=GATEWAYS[0];
 }
 
-// ── Load from localStorage + Gun.js ─────────────────────────
-function loadExperiments() {
-  try {
-    const raw = localStorage.getItem('p2pclaw-experiments');
-    if (raw) experiments = JSON.parse(raw);
-  } catch {}
-
-  // Also subscribe to Gun for cross-device sync
+function loadExps() {
+  try { const raw=localStorage.getItem('p2pclaw-experiments'); if(raw) experiments=JSON.parse(raw); } catch{}
   if (gun) {
-    gun.get('experiments').map().on((data, id) => {
-      if (data && data.agentId === agentId) {
-        experiments[id] = { ...experiments[id], ...data, id };
-        saveLocal();
-        renderSidebar();
-        if (currentExpId === id) renderEditor(id);
-      }
+    gun.get('experiments').map().on((data,id)=>{
+      if (data&&data.agentId===agentId) { experiments[id]={...experiments[id],...data,id}; saveLocal(); renderSidebar(); if(currentId===id) renderEditor(id); }
     });
   }
-
   renderSidebar();
 }
 
-function saveLocal() {
-  try { localStorage.setItem('p2pclaw-experiments', JSON.stringify(experiments)); } catch {}
-}
+function saveLocal() { try{localStorage.setItem('p2pclaw-experiments',JSON.stringify(experiments));}catch{} }
 
-function saveToGun(exp) {
+function syncGun(exp) {
   if (!gun) return;
-  try {
-    gun.get('experiments').get(exp.id).put({
-      id: exp.id,
-      agentId: exp.agentId,
-      title: exp.title,
-      state: exp.state,
-      hypothesis: exp.hypothesis,
-      background: exp.background,
-      methodology: exp.methodology,
-      variables: exp.variables,
-      results: exp.results,
-      conclusions: exp.conclusions,
-      discipline: exp.discipline,
-      created_at: exp.created_at,
-      updated_at: exp.updated_at,
-    });
-  } catch (e) { console.warn('Gun save failed:', e.message); }
+  try { gun.get('experiments').get(exp.id).put({id:exp.id,agentId:exp.agentId,title:exp.title,state:exp.state,hypothesis:exp.hypothesis,background:exp.background,methodology:exp.methodology,variables:exp.variables,results:exp.results,conclusions:exp.conclusions,discipline:exp.discipline,created_at:exp.created_at,updated_at:exp.updated_at}); } catch{}
 }
 
-// ── CRUD ──────────────────────────────────────────────────────
-function newExperiment() {
-  const id = 'exp-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
-  const now = Date.now();
-  const exp = {
-    id,
-    agentId,
-    title: '',
-    state: 'HYPOTHESIS',
-    hypothesis: '',
-    background: '',
-    methodology: '',
-    variables: JSON.stringify([
-      { type: 'independent', name: '', values: '', unit: '' },
-      { type: 'dependent', name: '', values: '', unit: '' },
-      { type: 'control', name: '', values: '', unit: '' },
-    ]),
-    results: '',
-    conclusions: '',
-    discipline: 'Computer Science',
-    created_at: now,
-    updated_at: now,
-  };
-  experiments[id] = exp;
+function newExp() {
+  const id='exp-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);
+  const now=Date.now();
+  experiments[id]={id,agentId,title:'',state:'HYPOTHESIS',hypothesis:'',background:'',methodology:'',variables:JSON.stringify([{type:'independent',name:'',values:'',unit:''},{type:'dependent',name:'',values:'',unit:''},{type:'control',name:'',values:'',unit:''}]),results:'',conclusions:'',discipline:'Computer Science',created_at:now,updated_at:now};
   saveLocal();
   renderSidebar();
   renderEditor(id);
   document.getElementById('welcomePanel')?.remove();
-  toast('New experiment created', 'info');
+  toast('New experiment created','info');
 }
 
-function deleteExperiment(id) {
-  pendingDelete = id;
-  document.getElementById('deleteModal').classList.add('open');
-}
-
-function closeDeleteModal() {
-  document.getElementById('deleteModal').classList.remove('open');
-  pendingDelete = null;
-}
-
-function confirmDelete() {
-  if (!pendingDelete) return;
-  const id = pendingDelete;
-  delete experiments[id];
-  saveLocal();
-  if (currentExpId === id) {
-    currentExpId = null;
-    document.getElementById('mainScroll').innerHTML = `<div class="welcome" id="welcomePanel">
-      <div class="welcome-icon">🧪</div>
-      <h2>Lab Notebook</h2>
-      <p>Track your research experiments from initial hypothesis to published results.</p>
-      <button class="btn btn-accent" onclick="newExperiment()">+ Create your first experiment</button>
-    </div>`;
-  }
-  renderSidebar();
-  closeDeleteModal();
-  toast('Experiment deleted', 'info');
-}
-
-// ── Save from form ────────────────────────────────────────────
-function saveCurrentExp() {
-  if (!currentExpId) return;
-  const exp = experiments[currentExpId];
-  if (!exp) return;
-
-  exp.title = document.getElementById('ef-title')?.value?.trim() || exp.title;
-  exp.hypothesis = document.getElementById('ef-hypothesis')?.value?.trim() || '';
-  exp.background = document.getElementById('ef-background')?.value?.trim() || '';
-  exp.methodology = document.getElementById('ef-methodology')?.value?.trim() || '';
-  exp.results = document.getElementById('ef-results')?.value?.trim() || '';
-  exp.conclusions = document.getElementById('ef-conclusions')?.value?.trim() || '';
-  exp.discipline = document.getElementById('ef-discipline')?.value || 'Computer Science';
-
-  // Save variables
-  const rows = document.querySelectorAll('.var-row');
-  const vars = [];
-  rows.forEach(row => {
-    const type = row.dataset.type;
-    const nameEl = row.querySelector('.var-name');
-    const valEl = row.querySelector('.var-values');
-    const unitEl = row.querySelector('.var-unit');
-    if (nameEl?.value?.trim()) {
-      vars.push({ type, name: nameEl.value, values: valEl?.value || '', unit: unitEl?.value || '' });
-    }
-  });
-  if (vars.length) exp.variables = JSON.stringify(vars);
-
-  exp.updated_at = Date.now();
-  saveLocal();
-  saveToGun(exp);
-  renderSidebarItem(currentExpId);
-}
-
-// ── Advance state ─────────────────────────────────────────────
-function advanceState() {
-  if (!currentExpId) return;
-  saveCurrentExp();
-  const exp = experiments[currentExpId];
-  const idx = STATES.indexOf(exp.state);
-  if (idx < STATES.length - 1) {
-    exp.state = STATES[idx + 1];
-    exp.updated_at = Date.now();
-    saveLocal();
-    saveToGun(exp);
-    renderEditor(currentExpId);
-    renderSidebarItem(currentExpId);
-    toast(`State → ${exp.state}`, 'info');
-  }
-}
-
-// ── Render sidebar ────────────────────────────────────────────
-function filterExps() { renderSidebar(); }
-function setStateFilter(el) {
-  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+function setFilter(el) {
+  document.querySelectorAll('#filterRow .fchip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
-  stateFilter = el.dataset.state;
+  stateFilter=el.dataset.state;
   renderSidebar();
 }
 
 function renderSidebar() {
-  const q = document.getElementById('expSearch')?.value?.toLowerCase() || '';
-  const list = Object.values(experiments)
-    .filter(e => {
-      if (stateFilter !== 'all' && e.state !== stateFilter) return false;
-      if (q && !e.title?.toLowerCase().includes(q) && !e.hypothesis?.toLowerCase().includes(q)) return false;
-      return true;
-    })
-    .sort((a, b) => b.updated_at - a.updated_at);
-
-  const container = document.getElementById('expList');
-  if (!list.length) {
-    container.innerHTML = `<div style="padding:20px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">No experiments found.</div>`;
-    return;
-  }
-  container.innerHTML = list.map(e => `
-    <div class="exp-item${e.id === currentExpId ? ' active' : ''}" onclick="renderEditor('${e.id}')">
-      <div class="exp-item-title">${escHtml(e.title || 'Untitled Experiment')}</div>
-      <div class="exp-item-meta">
-        <span class="state-badge state-${e.state}">${STATE_ICONS[e.state]} ${e.state}</span>
-        <span class="exp-item-date">${formatDate(e.updated_at)}</span>
+  const q=(document.getElementById('expSearch')?.value||'').toLowerCase();
+  const list=Object.values(experiments)
+    .filter(e=>(stateFilter==='all'||e.state===stateFilter)&&(!q||e.title?.toLowerCase().includes(q)||e.hypothesis?.toLowerCase().includes(q)))
+    .sort((a,b)=>b.updated_at-a.updated_at);
+  const c=document.getElementById('expList');
+  if (!list.length) { c.innerHTML='<div style="padding:18px;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">No experiments found.</div>'; return; }
+  c.innerHTML=list.map(e=>`
+    <div class="exp-item${e.id===currentId?' active':''}" onclick="renderEditor('${e.id}')">
+      <div class="exp-name">${esc(e.title||'Untitled')}</div>
+      <div class="exp-foot">
+        <span class="state-tag st-${e.state}">${e.state}</span>
+        <span class="exp-ts">${ago(e.updated_at)}</span>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
-function renderSidebarItem(id) {
-  renderSidebar();
-}
-
-// ── Render editor ─────────────────────────────────────────────
 function renderEditor(id) {
-  currentExpId = id;
-  const exp = experiments[id];
-  if (!exp) return;
+  currentId=id;
+  const exp=experiments[id]; if(!exp) return;
   document.getElementById('welcomePanel')?.remove();
-
-  const stateIdx = STATES.indexOf(exp.state);
-  let vars = [];
-  try { vars = JSON.parse(exp.variables || '[]'); } catch {}
+  const si=STATES.indexOf(exp.state);
+  let vars=[]; try{vars=JSON.parse(exp.variables||'[]');}catch{}
+  const typeColor={independent:'#5b8dee',dependent:'var(--claw-amber)',control:'var(--text-muted)'};
 
   // Stepper
-  const stepperHtml = STATES.map((s, i) => {
-    const cls = i < stateIdx ? 'done' : i === stateIdx ? 'active' : '';
-    return `${i > 0 ? `<span class="step-arrow">→</span>` : ''}<div class="step ${cls}" onclick="jumpToState('${s}')">
-      <div class="step-circle">${STATE_ICONS[s]}</div>
-      <div class="step-label">${s}</div>
-    </div>`;
+  const stepperHtml=STATES.map((s,i)=>{
+    const cls=i<si?'done':i===si?'active':'';
+    return `${i>0?'<span class="step-sep">&rarr;</span>':''}<div class="step ${cls}" onclick="jumpState('${s}')"><div class="step-circle">${STATE_SHORT[s]}</div><div class="step-label">${s}</div></div>`;
   }).join('');
 
   // Variables
-  const varTypes = ['independent', 'dependent', 'control'];
-  const varColors = { independent: '#5b8dee', dependent: '#22c55e', control: '#a855f7' };
-  let varRows = varTypes.flatMap(type => {
-    const typeVars = vars.filter(v => v.type === type);
-    if (!typeVars.length) typeVars.push({ type, name: '', values: '', unit: '' });
-    return typeVars;
+  const typeOrder=['independent','dependent','control'];
+  const varRows=typeOrder.flatMap(t=>{
+    const tv=vars.filter(v=>v.type===t);
+    if (!tv.length) tv.push({type:t,name:'',values:'',unit:''});
+    return tv;
   });
-
-  const varTableHtml = varRows.map((v, i) => `
+  const varHtml=varRows.map(v=>`
     <tr class="var-row" data-type="${v.type}">
-      <td><span style="font-family:var(--font-mono);font-size:10px;color:${varColors[v.type]};text-transform:uppercase;">${v.type.slice(0, 3)}</span></td>
-      <td><input class="var-name" type="text" value="${escHtml(v.name)}" placeholder="Variable name" oninput="autoSave()"></td>
-      <td><input class="var-values" type="text" value="${escHtml(v.values)}" placeholder="e.g. 0.1, 0.5, 1.0" oninput="autoSave()"></td>
-      <td><input class="var-unit" type="text" value="${escHtml(v.unit)}" placeholder="e.g. mg/L" oninput="autoSave()"></td>
-      <td><button class="btn btn-sm btn-ghost" onclick="removeVarRow(this)" title="Remove">✕</button></td>
-    </tr>
-  `).join('');
+      <td><span style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:${typeColor[v.type]}">${v.type.slice(0,3)}</span></td>
+      <td><input class="var-name" type="text" value="${esc(v.name)}" placeholder="Variable name" oninput="autoSave()"></td>
+      <td><input class="var-values" type="text" value="${esc(v.values)}" placeholder="e.g. 0.1, 0.5, 1.0" oninput="autoSave()"></td>
+      <td><input class="var-unit" type="text" value="${esc(v.unit)}" placeholder="unit" oninput="autoSave()"></td>
+      <td><button class="btn btn-sm" onclick="removeVar(this)" style="padding:2px 7px;">x</button></td>
+    </tr>`).join('');
 
-  const canAdvance = stateIdx < STATES.length - 1;
-  const nextState = canAdvance ? STATES[stateIdx + 1] : null;
-  const isPublished = exp.state === 'PUBLISHED';
+  const canAdvance=si<STATES.length-1;
+  const nextState=canAdvance?STATES[si+1]:null;
 
-  document.getElementById('mainScroll').innerHTML = `
-    <div class="exp-editor">
-      <!-- Header -->
-      <div class="editor-header">
-        <div class="editor-title-row">
-          <input type="text" class="editor-title" id="ef-title"
-            value="${escHtml(exp.title || '')}"
-            placeholder="Experiment title..."
-            oninput="autoSave()">
-        </div>
-        <div class="editor-actions">
-          <button class="btn btn-sm" onclick="saveCurrentExp()">💾 Save</button>
-          ${canAdvance ? `<button class="btn btn-sm btn-accent" onclick="advanceState()">→ ${nextState}</button>` : ''}
-          <button class="btn btn-sm" onclick="openPublishModal()" ${!exp.results && !isPublished ? 'title="Add results first"' : ''}>📤 Publish</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteExperiment('${id}')">🗑</button>
-        </div>
+  document.getElementById('mainScroll').innerHTML=`
+  <div class="exp-editor">
+    <div class="editor-header">
+      <div class="editor-title-row">
+        <input class="editor-title" id="ef-title" type="text" value="${esc(exp.title||'')}" placeholder="Experiment title..." oninput="autoSave()">
       </div>
-
-      <!-- Stepper -->
-      <div class="state-stepper">${stepperHtml}</div>
-
-      <!-- Discipline -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title">⚙ Settings</div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Discipline</label>
-            <select id="ef-discipline" onchange="autoSave()">
-              ${['Computer Science', 'Physics', 'Mathematics', 'Biology', 'Chemistry', 'Engineering', 'Medicine', 'Social Sciences', 'Other'].map(d =>
-                `<option value="${d}" ${exp.discipline === d ? 'selected' : ''}>${d}</option>`
-              ).join('')}
-            </select>
-          </div>
-          <div class="field">
-            <label>Created</label>
-            <input type="text" value="${new Date(exp.created_at).toLocaleString()}" readonly style="opacity:.5;cursor:default;">
-          </div>
-          <div class="field">
-            <label>ID</label>
-            <input type="text" value="${exp.id}" readonly style="opacity:.4;cursor:default;font-family:var(--font-mono);font-size:11px;">
-          </div>
-        </div>
+      <div class="editor-actions">
+        <button class="btn btn-sm" onclick="saveCurrentExp()">Save</button>
+        ${canAdvance?`<button class="btn btn-sm btn-primary" onclick="advanceState()">Advance to ${nextState}</button>`:''}
+        <button class="btn btn-sm" onclick="openPubModal()">Publish</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteExp('${id}')">Delete</button>
       </div>
+    </div>
 
-      <!-- Hypothesis -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title">💡 Hypothesis</div>
+    <div class="stepper">${stepperHtml}</div>
+
+    <div class="section">
+      <div class="section-hdr"><div class="section-title">Settings</div></div>
+      <div class="field-row">
+        <div class="field">
+          <label>Discipline</label>
+          <select id="ef-discipline" onchange="autoSave()">
+            ${['Computer Science','Physics','Mathematics','Biology','Chemistry','Engineering','Medicine','Social Sciences','Other'].map(d=>`<option value="${d}"${exp.discipline===d?' selected':''}>${d}</option>`).join('')}
+          </select>
         </div>
         <div class="field">
-          <label>Research Question / Hypothesis</label>
-          <textarea id="ef-hypothesis" rows="3" placeholder="State your hypothesis clearly. e.g. 'If X increases, then Y will decrease because...'" oninput="autoSave()">${escHtml(exp.hypothesis)}</textarea>
-        </div>
-        <div class="field">
-          <label>Background & Motivation</label>
-          <textarea id="ef-background" rows="3" placeholder="Why is this experiment important? What prior work supports it?" oninput="autoSave()">${escHtml(exp.background)}</textarea>
-        </div>
-      </div>
-
-      <!-- Variables -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title">📐 Variables</div>
-        </div>
-        <table class="var-table">
-          <thead>
-            <tr>
-              <th style="width:60px">Type</th>
-              <th>Variable name</th>
-              <th>Values / Range</th>
-              <th>Unit</th>
-              <th style="width:40px"></th>
-            </tr>
-          </thead>
-          <tbody id="varTableBody">${varTableHtml}</tbody>
-        </table>
-        <div style="display:flex;gap:8px;margin-top:8px;">
-          <button class="add-var-btn" onclick="addVarRow('independent')">+ Independent</button>
-          <button class="add-var-btn" onclick="addVarRow('dependent')">+ Dependent</button>
-          <button class="add-var-btn" onclick="addVarRow('control')">+ Control</button>
-        </div>
-      </div>
-
-      <!-- Methodology -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title">🔬 Methodology</div>
-        </div>
-        <div class="field">
-          <label>Experimental Design & Protocol</label>
-          <textarea id="ef-methodology" rows="5" placeholder="Describe the experimental protocol, materials, procedures, equipment..." oninput="autoSave()">${escHtml(exp.methodology)}</textarea>
-        </div>
-      </div>
-
-      <!-- Results -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title">📊 Results</div>
-        </div>
-        <div class="field">
-          <label>Observations & Data</label>
-          <textarea id="ef-results" rows="5" placeholder="Record your observations, measurements, data tables... (Markdown supported)" oninput="autoSave()">${escHtml(exp.results)}</textarea>
-          <div class="field-hint">Tip: Use Markdown tables for data. | Column 1 | Column 2 |</div>
-        </div>
-      </div>
-
-      <!-- Conclusions -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title">🧠 Conclusions</div>
-        </div>
-        <div class="field">
-          <label>Conclusions & Next Steps</label>
-          <textarea id="ef-conclusions" rows="4" placeholder="What did you find? Was the hypothesis supported? What are the implications?" oninput="autoSave()">${escHtml(exp.conclusions)}</textarea>
-        </div>
-      </div>
-
-      <!-- Draft preview -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title">📝 Paper Draft Preview</div>
-          <button class="btn btn-sm" onclick="refreshDraft()">↻ Refresh</button>
-        </div>
-        <div class="draft-preview" id="draftPreview">${generateDraftText(exp)}</div>
-        <div style="margin-top:12px;display:flex;gap:8px;">
-          <button class="btn btn-sm" onclick="copyDraft()">📋 Copy Markdown</button>
-          <button class="btn btn-sm btn-accent" onclick="openPublishModal()">📤 Publish to Corpus</button>
+          <label>Created</label>
+          <input type="text" value="${new Date(exp.created_at).toLocaleString()}" readonly style="opacity:.4;cursor:default;">
         </div>
       </div>
     </div>
-  `;
+
+    <div class="section">
+      <div class="section-hdr"><div class="section-title">Hypothesis</div></div>
+      <div class="field">
+        <label>Research Question / Hypothesis</label>
+        <textarea id="ef-hypothesis" rows="3" placeholder="State your hypothesis clearly. e.g. If X increases then Y will decrease because..." oninput="autoSave()">${esc(exp.hypothesis)}</textarea>
+      </div>
+      <div class="field">
+        <label>Background &amp; Motivation</label>
+        <textarea id="ef-background" rows="3" placeholder="Why is this experiment important? What prior work supports it?" oninput="autoSave()">${esc(exp.background)}</textarea>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-hdr"><div class="section-title">Variables</div></div>
+      <table class="var-table">
+        <thead><tr><th style="width:52px">Type</th><th>Name</th><th>Values / Range</th><th>Unit</th><th style="width:32px"></th></tr></thead>
+        <tbody id="varBody">${varHtml}</tbody>
+      </table>
+      <div class="add-var-row">
+        <button class="add-var-btn" onclick="addVar('independent')">+ Independent</button>
+        <button class="add-var-btn" onclick="addVar('dependent')">+ Dependent</button>
+        <button class="add-var-btn" onclick="addVar('control')">+ Control</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-hdr"><div class="section-title">Methodology</div></div>
+      <div class="field">
+        <label>Experimental Design &amp; Protocol</label>
+        <textarea id="ef-methodology" rows="5" placeholder="Describe the experimental protocol, materials, procedures, equipment..." oninput="autoSave()">${esc(exp.methodology)}</textarea>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-hdr"><div class="section-title">Results</div></div>
+      <div class="field">
+        <label>Observations &amp; Data</label>
+        <textarea id="ef-results" rows="5" placeholder="Record observations, measurements and data. Markdown tables are supported." oninput="autoSave()">${esc(exp.results)}</textarea>
+        <div class="field-hint">Tip: use Markdown tables — | Col 1 | Col 2 |</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-hdr"><div class="section-title">Conclusions</div></div>
+      <div class="field">
+        <label>Conclusions &amp; Next Steps</label>
+        <textarea id="ef-conclusions" rows="4" placeholder="Was the hypothesis supported? What are the implications? What are the next steps?" oninput="autoSave()">${esc(exp.conclusions)}</textarea>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-hdr">
+        <div class="section-title">Paper Draft Preview</div>
+        <button class="btn btn-sm" onclick="refreshDraft()">Refresh</button>
+      </div>
+      <div class="draft-pre" id="draftPre">${genDraft(exp)}</div>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button class="btn btn-sm" onclick="copyDraft()">Copy Markdown</button>
+        <button class="btn btn-sm btn-primary" onclick="openPubModal()">Publish to Corpus</button>
+      </div>
+    </div>
+  </div>`;
 
   renderSidebar();
 }
 
-// ── Variables ─────────────────────────────────────────────────
-function addVarRow(type) {
-  const colors = { independent: '#5b8dee', dependent: '#22c55e', control: '#a855f7' };
-  const tbody = document.getElementById('varTableBody');
-  if (!tbody) return;
-  const tr = document.createElement('tr');
-  tr.className = 'var-row';
-  tr.dataset.type = type;
-  tr.innerHTML = `
-    <td><span style="font-family:var(--font-mono);font-size:10px;color:${colors[type]};text-transform:uppercase;">${type.slice(0,3)}</span></td>
+function addVar(type) {
+  const colors={independent:'#5b8dee',dependent:'var(--claw-amber)',control:'var(--text-muted)'};
+  const tbody=document.getElementById('varBody'); if(!tbody) return;
+  const tr=document.createElement('tr'); tr.className='var-row'; tr.dataset.type=type;
+  tr.innerHTML=`
+    <td><span style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:${colors[type]}">${type.slice(0,3)}</span></td>
     <td><input class="var-name" type="text" placeholder="Variable name" oninput="autoSave()"></td>
     <td><input class="var-values" type="text" placeholder="Values or range" oninput="autoSave()"></td>
-    <td><input class="var-unit" type="text" placeholder="Unit" oninput="autoSave()"></td>
-    <td><button class="btn btn-sm btn-ghost" onclick="removeVarRow(this)">✕</button></td>
-  `;
+    <td><input class="var-unit" type="text" placeholder="unit" oninput="autoSave()"></td>
+    <td><button class="btn btn-sm" onclick="removeVar(this)" style="padding:2px 7px;">x</button></td>`;
   tbody.appendChild(tr);
 }
+function removeVar(btn) { if(document.querySelectorAll('.var-row').length>1){btn.closest('tr').remove();autoSave();} }
 
-function removeVarRow(btn) {
-  const tr = btn.closest('tr');
-  if (document.querySelectorAll('.var-row').length > 1) {
-    tr.remove();
-    autoSave();
-  }
+function saveCurrentExp() {
+  if (!currentId) return;
+  const exp=experiments[currentId]; if(!exp) return;
+  exp.title=document.getElementById('ef-title')?.value?.trim()||exp.title;
+  exp.hypothesis=document.getElementById('ef-hypothesis')?.value?.trim()||'';
+  exp.background=document.getElementById('ef-background')?.value?.trim()||'';
+  exp.methodology=document.getElementById('ef-methodology')?.value?.trim()||'';
+  exp.results=document.getElementById('ef-results')?.value?.trim()||'';
+  exp.conclusions=document.getElementById('ef-conclusions')?.value?.trim()||'';
+  exp.discipline=document.getElementById('ef-discipline')?.value||'Computer Science';
+  const rows=document.querySelectorAll('.var-row');
+  const vars=[];
+  rows.forEach(r=>{ const n=r.querySelector('.var-name'); if(n?.value?.trim()) vars.push({type:r.dataset.type,name:n.value,values:r.querySelector('.var-values')?.value||'',unit:r.querySelector('.var-unit')?.value||''}); });
+  if(vars.length) exp.variables=JSON.stringify(vars);
+  exp.updated_at=Date.now();
+  saveLocal(); syncGun(exp); renderSidebar();
 }
 
-// ── Auto-save ─────────────────────────────────────────────────
-let autoSaveTimer = null;
-function autoSave() {
-  clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(() => { saveCurrentExp(); }, 1200);
-}
+let saveTimer=null;
+function autoSave() { clearTimeout(saveTimer); saveTimer=setTimeout(saveCurrentExp,1200); }
 
-// ── Jump to state ─────────────────────────────────────────────
-function jumpToState(state) {
-  if (!currentExpId) return;
+function advanceState() {
+  if (!currentId) return;
   saveCurrentExp();
-  const exp = experiments[currentExpId];
-  const currentIdx = STATES.indexOf(exp.state);
-  const targetIdx = STATES.indexOf(state);
-  // Only allow going forward, or back to a previous state
-  exp.state = state;
-  exp.updated_at = Date.now();
-  saveLocal();
-  saveToGun(exp);
-  renderEditor(currentExpId);
-  renderSidebarItem(currentExpId);
+  const exp=experiments[currentId];
+  const i=STATES.indexOf(exp.state);
+  if (i<STATES.length-1) { exp.state=STATES[i+1]; exp.updated_at=Date.now(); saveLocal(); syncGun(exp); renderEditor(currentId); toast('State: '+exp.state,'info'); }
+}
+function jumpState(s) {
+  if (!currentId) return;
+  saveCurrentExp();
+  const exp=experiments[currentId];
+  exp.state=s; exp.updated_at=Date.now();
+  saveLocal(); syncGun(exp); renderEditor(currentId);
 }
 
-// ── Draft generation ──────────────────────────────────────────
-function generateDraftText(exp) {
-  const title = exp.title || 'Untitled Experiment';
-  const now = new Date().toISOString().slice(0, 10);
-  let vars = [];
-  try { vars = JSON.parse(exp.variables || '[]'); } catch {}
+function deleteExp(id) { pendingDelete=id; document.getElementById('delModal').classList.add('open'); }
+function closeDelModal() { document.getElementById('delModal').classList.remove('open'); pendingDelete=null; }
+function confirmDelete() {
+  if (!pendingDelete) return;
+  const id=pendingDelete;
+  delete experiments[id];
+  saveLocal();
+  if (currentId===id) {
+    currentId=null;
+    document.getElementById('mainScroll').innerHTML=`<div class="welcome" id="welcomePanel"><h2>Lab Notebook</h2><p>Track research experiments from initial hypothesis through to published results.</p><button class="btn btn-primary" onclick="newExp()">Create first experiment</button></div>`;
+  }
+  renderSidebar(); closeDelModal(); toast('Experiment deleted','info');
+}
 
-  const varSection = vars.length ? vars.map(v =>
-    `- **${v.type.charAt(0).toUpperCase() + v.type.slice(1)}:** ${v.name}${v.unit ? ` (${v.unit})` : ''}${v.values ? ` — ${v.values}` : ''}`
-  ).join('\n') : 'No variables defined.';
+function genDraft(exp) {
+  let vars=[]; try{vars=JSON.parse(exp.variables||'[]');}catch{}
+  const varSection=vars.length?vars.map(v=>`- **${v.type.charAt(0).toUpperCase()+v.type.slice(1)}:** ${v.name}${v.unit?` (${v.unit})`:''}${v.values?` — ${v.values}`:''}`).join('\n'):'No variables defined.';
+  return `# ${exp.title||'Untitled Experiment'}
 
-  return `# ${title}
-
-**Date:** ${now}
+**Date:** ${new Date().toISOString().slice(0,10)}
 **Researcher:** ${agentId}
-**Discipline:** ${exp.discipline || 'N/A'}
+**Discipline:** ${exp.discipline||'N/A'}
 **Status:** ${exp.state}
 
 ## Hypothesis
 
-${exp.hypothesis || '_No hypothesis stated._'}
+${exp.hypothesis||'_Not stated._'}
 
 ## Background
 
-${exp.background || '_No background information._'}
+${exp.background||'_No background information._'}
 
 ## Variables
 
@@ -859,108 +600,48 @@ ${varSection}
 
 ## Methodology
 
-${exp.methodology || '_No methodology defined._'}
+${exp.methodology||'_No methodology defined._'}
 
 ## Results
 
-${exp.results || '_No results recorded._'}
+${exp.results||'_No results recorded._'}
 
 ## Conclusions
 
-${exp.conclusions || '_No conclusions yet._'}
+${exp.conclusions||'_No conclusions yet._'}
 
 ---
 *Published via P2PCLAW Lab Notebook — https://www.p2pclaw.com/lab/*`;
 }
 
-function refreshDraft() {
-  if (!currentExpId) return;
-  saveCurrentExp();
-  const el = document.getElementById('draftPreview');
-  if (el) el.textContent = generateDraftText(experiments[currentExpId]);
-}
+function refreshDraft() { if(!currentId) return; saveCurrentExp(); const el=document.getElementById('draftPre'); if(el) el.textContent=genDraft(experiments[currentId]); }
+function copyDraft() { if(!currentId) return; saveCurrentExp(); navigator.clipboard.writeText(genDraft(experiments[currentId])).then(()=>toast('Copied to clipboard','ok')).catch(()=>toast('Copy failed','err')); }
 
-function copyDraft() {
-  if (!currentExpId) return;
-  saveCurrentExp();
-  const text = generateDraftText(experiments[currentExpId]);
-  navigator.clipboard.writeText(text).then(() => toast('Draft copied to clipboard!', 'success')).catch(() => toast('Copy failed', 'error'));
-}
-
-// ── Publish ───────────────────────────────────────────────────
-function openPublishModal() {
-  if (!currentExpId) return;
-  saveCurrentExp();
-  document.getElementById('publishModal').classList.add('open');
-}
-
-function closePublishModal() {
-  document.getElementById('publishModal').classList.remove('open');
-}
+function openPubModal()  { if(!currentId) return; saveCurrentExp(); document.getElementById('pubModal').classList.add('open'); }
+function closePubModal() { document.getElementById('pubModal').classList.remove('open'); }
 
 async function confirmPublish() {
-  if (!currentExpId) return;
+  if (!currentId) return;
   if (!API_BASE) await resolveGateway();
-
-  const exp = experiments[currentExpId];
-  const content = generateDraftText(exp);
-  const title = exp.title || 'Untitled Experiment';
-
-  closePublishModal();
-  toast('Publishing experiment...', 'info');
-
+  const exp=experiments[currentId];
+  closePubModal();
+  toast('Publishing...','info');
   try {
-    const r = await fetch(`${API_BASE}/publish-paper`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content, author: agentId, tags: exp.discipline }),
-      signal: AbortSignal.timeout(15000),
-    });
-    const d = await r.json();
-    if (d.id || d.success || d.paper) {
-      exp.state = 'PUBLISHED';
-      exp.updated_at = Date.now();
-      saveLocal();
-      saveToGun(exp);
-      renderEditor(currentExpId);
-      renderSidebarItem(currentExpId);
-      toast('✓ Published to P2PCLAW corpus!', 'success');
-    } else {
-      toast(d.error || 'Publish failed', 'error');
-    }
-  } catch (e) {
-    toast('Network error: ' + e.message, 'error');
-  }
+    const r=await fetch(`${API_BASE}/publish-paper`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:exp.title||'Untitled',content:genDraft(exp),author:agentId,tags:exp.discipline}),signal:AbortSignal.timeout(15000)});
+    const d=await r.json();
+    if (d.id||d.success||d.paper) {
+      exp.state='PUBLISHED'; exp.updated_at=Date.now();
+      saveLocal(); syncGun(exp); renderEditor(currentId); toast('Published to corpus','ok');
+    } else toast(d.error||'Publish failed','err');
+  } catch(e) { toast('Network error: '+e.message,'err'); }
 }
 
-// ── Helpers ───────────────────────────────────────────────────
-function escHtml(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+function ago(ts) { if(!ts) return '—'; const s=(Date.now()-ts)/1000; if(s<60) return Math.floor(s)+'s ago'; if(s<3600) return Math.floor(s/60)+'m ago'; if(s<86400) return Math.floor(s/3600)+'h ago'; return new Date(ts).toLocaleDateString(); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg,type='info') { const el=document.createElement('div'); el.className='toast '+(type); el.textContent=msg; document.getElementById('toastBox').appendChild(el); setTimeout(()=>el.remove(),4000); }
 
-function formatDate(ts) {
-  if (!ts) return '';
-  const d = new Date(ts);
-  const now = new Date();
-  const diff = (now - d) / 1000;
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
-  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
-  return d.toLocaleDateString();
-}
-
-function toast(msg, type = 'info') {
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.textContent = msg;
-  document.getElementById('toastContainer').appendChild(el);
-  setTimeout(() => el.remove(), 4000);
-}
-
-// ── Init ──────────────────────────────────────────────────────
 resolveGateway();
-loadExperiments();
+loadExps();
 </script>
 </body>
 </html>
