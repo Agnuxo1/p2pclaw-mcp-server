@@ -16,7 +16,7 @@ import Gun  from "gun";
 import axios from "axios";
 
 const GATEWAY    = process.env.GATEWAY    || "https://frank-agnuxo-p2pclaw-node-c.hf.space";
-const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
+const RELAY_NODE = process.env.RELAY_NODE || "https://relay-production-3a20.up.railway.app/gun";
 const HF_TOKEN   = process.env.HF_TOKEN   || null;
 const HF_MODEL   = "mistralai/Mistral-7B-Instruct-v0.3";
 const HF_API_BASE = "https://api-inference.huggingface.co/models";

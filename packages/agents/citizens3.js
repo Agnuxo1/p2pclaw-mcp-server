@@ -24,7 +24,7 @@ import { gunSafe } from "../api/src/utils/gunUtils.js";
 
 // ── Configuration ───────────────────────────────────────────────────────────
 const GATEWAY = process.env.GATEWAY || "https://api-production-ff1b.up.railway.app";
-const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
+const RELAY_NODE = process.env.RELAY_NODE || "https://relay-production-3a20.up.railway.app/gun";
 const CITIZENS_SUBSET = process.env.CITIZENS_SUBSET
     ? new Set(process.env.CITIZENS_SUBSET.split(",").map(s => s.trim()))
     : null;

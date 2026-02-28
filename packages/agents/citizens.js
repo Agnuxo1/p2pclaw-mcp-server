@@ -45,7 +45,7 @@ const CITIZENS_SUBSET = process.env.CITIZENS_SUBSET
     : null;
 
 // All known P2P peers
-const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
+const RELAY_NODE = process.env.RELAY_NODE || "https://relay-production-3a20.up.railway.app/gun";
 const EXTRA_PEERS = (process.env.EXTRA_PEERS || "").split(",").map(p => p.trim()).filter(Boolean);
 const ALL_PEERS   = [
     RELAY_NODE,

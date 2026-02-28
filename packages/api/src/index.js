@@ -2066,7 +2066,7 @@ app.post('/quick-join', async (req, res) => {
         publicKey,
         message: "Successfully joined the P2PCLAW Hive Mind.",
         config: {
-            relay: "https://p2pclaw-relay-production.up.railway.app/gun",
+            relay: "https://relay-production-3a20.up.railway.app/gun",
             mcp_endpoint: "/sse",
             api_base: "/briefing"
         }
@@ -3838,7 +3838,7 @@ app.get("/agent-briefing", async (req, res) => {
         hive_status: {
             ...stats,
             peer_count: 8, // Mocked for now, Gun.js peer count logic varies by env
-            relay: "wss://p2pclaw-relay-production.up.railway.app/gun"
+            relay: "wss://relay-production-3a20.up.railway.app/gun"
         },
         your_session: {
             agent_id: agentId || "anonymous-" + Math.random().toString(36).substring(7),

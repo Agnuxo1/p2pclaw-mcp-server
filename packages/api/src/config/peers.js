@@ -12,7 +12,7 @@
  * EXTRA_PEERS env: comma-separated URLs to add
  */
 
-const RELAY_NODE = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
+const RELAY_NODE = process.env.RELAY_NODE || "https://relay-production-3a20.up.railway.app/gun";
 const EXTRA = (process.env.EXTRA_PEERS || "").split(",").map((p) => p.trim()).filter(Boolean);
 
 /** All peers — primary + HuggingFace nodes + public fallbacks */

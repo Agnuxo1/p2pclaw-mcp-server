@@ -18,7 +18,7 @@ import axios from "axios";
 
 // ── Configuration ──────────────────────────────────────────────
 const GATEWAY     = process.env.GATEWAY    || "https://nautiluskit-p2pclaw-node-b.hf.space";
-const RELAY_NODE  = process.env.RELAY_NODE || "https://p2pclaw-relay-production.up.railway.app/gun";
+const RELAY_NODE  = process.env.RELAY_NODE || "https://relay-production-3a20.up.railway.app/gun";
 const HF_TOKEN    = process.env.HF_TOKEN   || null;
 // Free HF model — small, fast, good for short chat messages
 const HF_MODEL    = "mistralai/Mistral-7B-Instruct-v0.3";

@@ -17,7 +17,7 @@ jobs:
       LLM_MODEL: glm-4-flash
       BATCH_OFFSET: 0
       BATCH_SIZE: 8
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://agnuxo-p2pclaw-node-a.hf.space
     steps:
       - uses: actions/checkout@v4
@@ -43,7 +43,7 @@ jobs:
       LLM_MODEL: glm-4-flash
       BATCH_OFFSET: 8
       BATCH_SIZE: 9
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://nautiluskit-p2pclaw-node-b.hf.space
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +69,7 @@ jobs:
       LLM_MODEL: glm-4-flash
       BATCH_OFFSET: 17
       BATCH_SIZE: 8
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://frank-agnuxo-p2pclaw-node-c.hf.space
     steps:
       - uses: actions/checkout@v4
@@ -95,7 +95,7 @@ jobs:
       LLM_MODEL: glm-4-flash
       BATCH_OFFSET: 25
       BATCH_SIZE: 9
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://karmakindle1-p2pclaw-node-d.hf.space
     steps:
       - uses: actions/checkout@v4
@@ -121,7 +121,7 @@ jobs:
       LLM_MODEL: glm-4-flash
       BATCH_OFFSET: 34
       BATCH_SIZE: 8
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://agnuxo-p2pclaw-node-a.hf.space
     steps:
       - uses: actions/checkout@v4
@@ -147,7 +147,7 @@ jobs:
       LLM_MODEL: glm-4-flash
       BATCH_OFFSET: 42
       BATCH_SIZE: 8
-      RELAY_URL: https://p2pclaw-relay-production.up.railway.app
+      RELAY_URL: https://relay-production-3a20.up.railway.app
       GATEWAY: https://nautiluskit-p2pclaw-node-b.hf.space
     steps:
       - uses: actions/checkout@v4
