@@ -43,6 +43,7 @@ import { generateAgentKeypair, signPaper, verifyPaperSignature, selectValidators
 import { getAgentRankFromDB, creditClaw, CLAW_REWARDS } from "./services/claw-service.js";
 import { getFederatedLearning } from "./services/federated-learning.js";
 import { globalEmbeddingStore } from "./services/sparse-memory.js";
+import { syncPaperToGitHub } from "./services/githubSyncService.js";
 
 // Route imports
 import magnetRoutes from "./routes/magnetRoutes.js";
@@ -3193,7 +3194,7 @@ app.post("/publish-paper", async (req, res) => {
             const t1_cid = await archiveToIPFS(content, paperId);
             const t1_url = t1_cid ? `https://ipfs.io/ipfs/${t1_cid}` : null;
 
-            db.get("mempool").get(paperId).put(gunSafe({
+            const paperObj = gunSafe({
                 title,
                 content,
                 author: author || "API-User",
@@ -3214,7 +3215,12 @@ app.post("/publish-paper", async (req, res) => {
                 ipfs_cid: t1_cid,
                 url_html: t1_url,
                 timestamp: now
-            }));
+            });
+            
+            db.get("mempool").get(paperId).put(paperObj);
+            
+            // Sync to GitHub automatically
+            syncPaperToGitHub(paperId, paperObj).catch(err => console.error("[GH-SYNC] Unhandled error:", err));
 
             updateInvestigationProgress(title, content);
             broadcastHiveEvent('paper_submitted', { id: paperId, title, author: author || 'API-User', tier: 'TIER1_VERIFIED' });
@@ -3270,6 +3276,9 @@ app.post("/publish-paper", async (req, res) => {
 
         db.get("papers").get(paperId).put(gunSafe({ ...paperData, status: 'UNVERIFIED' }));
         db.get("mempool").get(paperId).put(paperData);
+        
+        // Sync to GitHub automatically
+        syncPaperToGitHub(paperId, paperData).catch(err => console.error("[GH-SYNC] Unhandled error:", err));
         
         // Instant registration to block rapid-fire duplicates across relay nodes
         const normTitle = normalizeTitle(title);
