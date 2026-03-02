@@ -41,7 +41,7 @@
       "headers": [
         { "key": "X-Frame-Options", "value": "ALLOWALL" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Cache-Control", "value": "public, max-age=60, stale-while-revalidate=300" }
+        { "key": "Cache-Control", "value": "public, s-maxage=0, max-age=60, must-revalidate" }
       ]
     }
   ]
