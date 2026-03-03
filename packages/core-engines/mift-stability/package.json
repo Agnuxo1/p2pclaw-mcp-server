@@ -1,0 +1,14 @@
+{
+  "name": "p2pclaw-core-mift-stability",
+  "version": "2.0.0",
+  "description": "P2PCLAW Core Engine - MIFT Invariant & Stability Control",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.1"
+  }
+}
