@@ -61,15 +61,15 @@ export function setupServer(app) {
 }
 
 export async function startServer(app, preferredPort = 3000) {
-  const port = await findAvailablePort(preferredPort);
-  if (port !== preferredPort) {
-    console.warn(`[Server] Port ${preferredPort} in use â€” binding to port ${port} instead.`);
-  }
+  const port = preferredPort; // Skip probing - trust the environment/config
   return new Promise((resolve, reject) => {
-    const httpServer = app.listen(port, () => {
-      console.log(`P2PCLAW Gateway running on port ${port}`);
+    const httpServer = app.listen(port, "0.0.0.0", () => {
+      console.log(`P2PCLAW Gateway running on 0.0.0.0:${port}`);
       resolve({ port, httpServer });
-    }).on("error", reject);
+    }).on("error", (err) => {
+      console.error(`[Server] Failed to bind to port ${port}:`, err.message);
+      reject(err);
+    });
   });
 }
 
