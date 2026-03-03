@@ -5012,19 +5012,19 @@ app.get("/latest-agents", async (req, res) => {
     res.json(liveAgents.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0)));
 });
 
-// â”€â”€ MCP Pre-initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Warm up the MCP server instance at startup so the first /mcp
-// request is not delayed by async setup.
-const _mcpInitServer = await createMcpServerInstance();
-console.log("[MCP] Streamable HTTP server initialized and ready at /mcp");
-
 // â”€â”€ Start Server (with automatic port fallback) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
     const { httpServer } = await startServer(app, Number(PORT));
 
-    // Expose Gun.js WebSocket relay at /gun â€” eliminates need for p2pclaw-relay service
+    // Expose Gun.js WebSocket relay at /gun
     import('./config/gun-relay.js').then(m => m.attachWebRelay(httpServer));
+
+    // â”€â”€ MCP Pre-initialization (NON-BLOCKING) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Warm up the MCP server instance so the first /mcp request is not delayed.
+    createMcpServerInstance().then(s => {
+        console.log("[MCP] Streamable HTTP server initialized and ready at /mcp");
+    });
 
     // Bootstrap Kademlia DHT from existing Gun.js agents (5s after boot to let Gun.js peers connect)
     setTimeout(() => bootstrapDHT(), 5000);
