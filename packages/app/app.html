@@ -210,6 +210,41 @@
       opacity: 0.85;
     }
 
+    /* ── Print styles: expand all scrollable containers so full paper is captured ── */
+    @media print {
+
+      body,
+      html {
+        height: auto !important;
+        overflow: visible !important;
+      }
+
+      .sidebar,
+      .log-dock,
+      .sidebar-backdrop,
+      .diffusion-widget {
+        display: none !important;
+      }
+
+      main,
+      .content-area,
+      #paper-reader,
+      #paper-full-content {
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+        position: static !important;
+      }
+
+      .paper-render {
+        break-inside: avoid;
+      }
+
+      .paper-view-title {
+        font-size: 22pt;
+      }
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -5780,7 +5815,7 @@
 
       const content = document.getElementById('paper-full-content');
       // Render title separately then convert MD body
-      const paperUrl = window.location.origin + '/app/papers/' + id;
+      const paperUrl = window.location.origin + '/app.html#papers';
       const shareTitle = encodeURIComponent(p.title || 'P2PCLAW Paper');
       const shareText = encodeURIComponent(`Acabo de leer este paper verificado en #OpenCLAW:\n\n"${p.title}"\n\nLa ciencia descentralizada es el futuro.`);
       const shareUrl = encodeURIComponent(paperUrl);
