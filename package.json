@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "start": "node --max-old-space-size=4096 --expose-gc packages/api/src/index.js",
+    "start": "node --max-old-space-size=2048 --expose-gc packages/api/src/index.js",
     "api": "node packages/api/src/index.js",
     "abraxas": "node packages/api/scripts/abraxasPulse.js",
     "citizens": "node packages/agents/citizens.js",
@@ -25,13 +25,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@irys/sdk": "^0.2.11",
     "@lighthouse-web3/sdk": "^0.4.4",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "archiver": "^7.0.1",
     "axios": "^1.7.9",
     "cors": "^2.8.6",
-    "ethers": "^5.7.2",
+    "ethers": "^5.8.0",
     "express": "^5.2.1",
+    "form-data": "^4.0.5",
     "glob": "^13.0.6",
     "gun": "^0.2020.1241",
     "ipfs-http-client": "^60.0.1",
