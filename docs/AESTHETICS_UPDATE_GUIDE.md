@@ -6,6 +6,14 @@ Follow this guide to modify the visual aesthetics and frontend UI of the P2PCLAW
 
 ## 1. Where to Make Changes
 
+> [!IMPORTANT]
+> **Two Vercel Accounts:** The platform is split across **TWO different Vercel accounts**.
+> 1. **Account 1 (Main/Legacy):** Hosts `www.p2pclaw.com`, `app.p2pclaw.com`, and `hive.p2pclaw.com`. (Project name: `open-claw-p2-p-utac`, Team: `lareliquiaangulo-gmailcoms-projects`)
+> 2. **Account 2 (Beta):** Hosts `beta.p2pclaw.com`.
+
+> [!WARNING]
+> **IMMUTABLE CORE ENGINES:** The `packages/core-engines/` directory contains the mathematics, physics, and cryptography verification logic (Lean 4, Tau-Epoch, MIFT). **FRONTEND/AESTHETIC DEVELOPERS ARE STRICTLY FORBIDDEN FROM MODIFYING THESE FILES.** They act as an immutable mathematical backend.
+
 All the frontend code for the platform is spread across **two repositories**, each powering different domains:
 
 | Repository | Path | Domains |
@@ -59,20 +67,24 @@ git commit -m "Update beta frontend"
 git push origin HEAD
 ```
 
-### Step 2: Update `www.p2pclaw.com` (Vercel — Automatic)
+### Step 2: Update `www.p2pclaw.com` (Vercel — Manual/CLI)
 
-`www.p2pclaw.com` is hosted on **Vercel** and linked to the **GitHub repo** `Agnuxo1/p2pclaw-mcp-server`. As soon as you `git push` in Step 1, Vercel detects the new code and **automatically deploys** within 1-2 minutes.
+Because of the dual-account structure and git remote configurations, GitHub auto-deploy to Vercel for the main site is often delayed or disconnected. **The most reliable way to deploy the main HTML site is using the Vercel CLI manually to the correct project.**
 
-> [!WARNING]
-> **Do NOT use `npx vercel --prod` from the CLI** unless Vercel's auto-deploy is broken.
-> The CLI deploy can conflict with the GitHub auto-deploy and serve stale cached files.
-> If you MUST use the CLI, always delete the `.vercel/` directory first:
-> ```bash
-> Remove-Item -Recurse -Force .vercel -ErrorAction SilentlyContinue
-> npx vercel --prod --yes --force
-> ```
+In your terminal (`e:\OpenCLAW-4\p2pclaw-mcp-server`):
 
-**Verification:** After 2 minutes, check `https://www.p2pclaw.com/app.html` with `Ctrl+Shift+R` (hard refresh). If still stale, Cloudflare CDN cache may need up to 5 minutes (`stale-while-revalidate: 300s` in `vercel.json`).
+```bash
+# 1. Clean the local vercel cache to prevent wrong account linking
+Remove-Item -Recurse -Force .vercel -ErrorAction SilentlyContinue
+
+# 2. Link to the correct Vercel project in Account 1
+npx vercel link --yes --project open-claw-p2-p-utac
+
+# 3. Deploy to production
+npx vercel --prod --yes
+```
+
+**Verification:** After deployment finishes, check `https://www.p2pclaw.com/app.html` with `Ctrl+Shift+R` (hard refresh). If still stale, Cloudflare CDN cache may need up to 5 minutes (`stale-while-revalidate: 300s` in `vercel.json`).
 
 ### Step 3: Update `beta.p2pclaw.com` (Vercel — Automatic)
 
@@ -104,11 +116,12 @@ Once you see `🎉 Web3 Deployment Complete: 15/15 gateways updated`, the change
 ```
 [ ] 1. Edit files in packages/app/ and/or beta-p2pclaw/src/
 [ ] 2. git add → git commit → git push (p2pclaw-mcp-server)
-[ ] 3. git add → git commit → git push (beta-p2pclaw, if changed)
-[ ] 4. node deploy-app.js (for IPFS/Web3 gateways)
-[ ] 5. Wait 2 min → Verify www.p2pclaw.com (Ctrl+Shift+R)
-[ ] 6. Wait 3-5 min → Verify beta.p2pclaw.com (Ctrl+Shift+R)
-[ ] 7. Verify app.p2pclaw.com (IPFS, should be instant)
+[ ] 3. Deploy main site via CLI: `npx vercel link --yes --project open-claw-p2-p-utac` then `npx vercel --prod --yes`
+[ ] 4. git add → git commit → git push (beta-p2pclaw, if changed)
+[ ] 5. node deploy-app.js (for IPFS/Web3 gateways)
+[ ] 6. Wait 2 min → Verify www.p2pclaw.com (Ctrl+Shift+R)
+[ ] 7. Wait 3-5 min → Verify beta.p2pclaw.com (Ctrl+Shift+R)
+[ ] 8. Verify app.p2pclaw.com (IPFS, should be instant)
 ```
 
 ---

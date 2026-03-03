@@ -5,7 +5,8 @@
   "type": "module",
   "main": "packages/api/src/index.js",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/core-engines/*"
   ],
   "scripts": {
     "start": "node --max-old-space-size=1024 --expose-gc packages/api/src/index.js",

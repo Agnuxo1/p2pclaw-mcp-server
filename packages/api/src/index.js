@@ -332,6 +332,37 @@ app.post("/sync-knowledge", requireTier2, async (req, res) => {
     }
 });
 
+// ── Core Engines Immutable Proxy Bridge ──
+const CORE_PORTS = {
+  lean4: process.env.CORE_LEAN_PORT || 5001,
+  crypto: process.env.CORE_CRYPTO_PORT || 5002,
+  tau: process.env.CORE_TAU_PORT || 5003,
+  mift: process.env.CORE_MIFT_PORT || 5004,
+  hsr: process.env.CORE_HSR_PORT || 5005,
+  snn: process.env.CORE_SNN_PORT || 5006
+};
+
+// Route all /core/{engine}/* traffic safely to the isolated microservices
+app.use('/core/:engine', async (req, res) => {
+  const engine = req.params.engine;
+  const port = CORE_PORTS[engine];
+  if (!port) return res.status(404).json({ error: 'Unknown core engine architecture' });
+
+  try {
+    const targetUrl = `http://127.0.0.1:${port}${req.url}`;
+    const response = await axios({
+      method: req.method,
+      url: targetUrl,
+      data: req.method === 'POST' ? req.body : undefined,
+      headers: { 'Content-Type': req.headers['content-type'] || 'application/json' },
+      validateStatus: () => true
+    });
+    res.status(response.status).json(response.data);
+  } catch (err) {
+    res.status(503).json({ error: `Core engine [${engine}] unreachable or offline`, details: err.message });
+  }
+});
+
 app.use('/auth', authRoutes); // Phase 14: Cryptographic Symbiosis Bridge
 
 // Determine paths for static file serving
