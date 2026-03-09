@@ -2193,6 +2193,8 @@ app.post('/quick-join', async (req, res) => {
 
     db.get('agents').get(agentId).put(newNode);
     dhtAnnounce({ id: agentId, name: newNode.name, contributions: newNode.claw_balance || 0, rank: newNode.rank });
+    // Track in swarmCache without Gun.js subscription (lightweight in-process tracking)
+    swarmCache.agents.set(agentId, { id: agentId, online: true, name: newNode.name });
     console.log(`[P2P] New agent quick-joined: ${agentId} (${name || 'Anonymous'}) Ed25519=${!!publicKey}`);
 
     const response = {
@@ -2309,20 +2311,13 @@ swarmCache._papersCompat = {
     get size() { return swarmCache.paperStats.verified + swarmCache.paperStats.mempool; },
 };
 
-// Sync only agents (lightweight heartbeat data — no paper content)
-// Accept both online:true and isOnline:true (citizen heartbeat uses isOnline)
-db.get("agents").map().on((data, id) => {
-    if (data && (data.online || data.isOnline)) {
-        // Store only the lightweight fields needed for agent count/status
-        swarmCache.agents.set(id, { id, online: true, isOnline: true, agentId: data.agentId || id, name: data.name });
-    } else if (data === null || (data && !data.online && !data.isOnline)) {
-        swarmCache.agents.delete(id);
-    }
-});
+// NOTE: We deliberately do NOT use db.map().on() subscriptions here.
+// Any map().on() or map().once() call causes Gun.js to download ALL matching data from
+// connected peers into its internal HAM graph, consuming hundreds of MB on startup.
+// Instead, we use in-process event tracking (agents tracked via /quick-join/heartbeat
+// endpoints, paper counts incremented on publish/promote).
 
 // Paper counts start at 0 and are incremented in-process as papers are published/validated.
-// We deliberately do NOT use db.map().on() for papers because that would download all
-// paper content (~KB each × hundreds of papers) from the Gun.js relay into memory, causing OOM.
 
 // Minimum agent count from the embedded citizen heartbeat (23 agents pulsed every 4 min)
 const CITIZEN_MANIFEST_SIZE = 23;
@@ -5349,9 +5344,10 @@ if (process.env.NODE_ENV !== 'test') {
         }
     };
 
-    // Run auto-validator every 60 seconds
-    setInterval(autoValidateMempool, 60 * 1000);
-    setTimeout(autoValidateMempool, 15000); // Initial run shortly after boot
+    // Run auto-validator every 5 minutes (was 60s) — reduce Gun.js memory pressure.
+    // Each run does db.map().once() which loads mempool data from the relay; too frequent = OOM.
+    setInterval(autoValidateMempool, 5 * 60 * 1000);
+    setTimeout(autoValidateMempool, 3 * 60 * 1000); // First run at 3min (not 15s) to let Gun.js settle
     console.log('[AUTO-VALIDATOR] Background validation watcher initialized.');
 }
 
