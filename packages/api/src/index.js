@@ -5175,8 +5175,8 @@ if (process.env.NODE_ENV !== 'test') {
             const after = process.memoryUsage().heapUsed;
             const freed = Math.round((before - after) / 1024 / 1024);
             if (freed > 5) console.log(`[GC] Manual GC freed ~${freed}MB (heap now ${Math.round(after/1024/1024)}MB)`);
-        }, 90 * 1000);
-        console.log('[GC] Periodic garbage collection enabled (every 90s).');
+        }, 30 * 1000); // Every 30s (was 90s) — more aggressive to prevent OOM in Railway
+        console.log('[GC] Periodic garbage collection enabled (every 30s).');
     }
     
     // Phase 3: Periodic Nash Stability Check (every 30 mins)
@@ -5254,12 +5254,29 @@ if (process.env.NODE_ENV !== 'test') {
     // sequentially with a direct DB fallback if promoteToWheel fails.
     const autoValidateMempool = async () => {
         try {
-            // Collect all pending papers FIRST (Gun.js map().once is unreliable with async)
+            // Collect pending papers — store only IDs + minimal metadata (NOT full content).
+            // Full paper content is retrieved individually below. This prevents loading
+            // hundreds of KB of content into memory on every 60-second validation cycle.
             const pendingPapers = [];
             await new Promise(resolve => {
                 db.get("p2pclaw_mempool_v4").map().once((paper, paperId) => {
                     if (paper && paper.status === 'MEMPOOL' && paper.title && paperId) {
-                        pendingPapers.push({ paper: { ...paper }, paperId });
+                        // Store only the fields needed for validation — NOT the full content
+                        pendingPapers.push({
+                            paper: {
+                                title: paper.title,
+                                status: paper.status,
+                                network_validations: paper.network_validations,
+                                validations_by: paper.validations_by,
+                                avg_occam_score: paper.avg_occam_score,
+                                author: paper.author,
+                                author_id: paper.author_id,
+                                tier: paper.tier,
+                                timestamp: paper.timestamp,
+                                ipfs_cid: paper.ipfs_cid,
+                            },
+                            paperId,
+                        });
                     }
                 });
                 setTimeout(resolve, 5000);
