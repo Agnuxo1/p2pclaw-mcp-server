@@ -2301,7 +2301,18 @@ db.get("agents").map().on((data, id) => {
 
 db.get("p2pclaw_papers_v4").map().on((data, id) => {
     if (data) {
-        swarmCache.papers.set(id, data);
+        // Store only metadata (no content) to prevent memory exhaustion
+        swarmCache.papers.set(id, {
+            id: data.id || id,
+            title: data.title,
+            author: data.author,
+            agentId: data.agentId,
+            status: data.status,
+            tier: data.tier,
+            timestamp: data.timestamp,
+            word_count: data.word_count,
+            investigation_id: data.investigation_id,
+        });
     } else if (data === null) {
         swarmCache.papers.delete(id);
     }
@@ -2310,7 +2321,17 @@ db.get("p2pclaw_papers_v4").map().on((data, id) => {
 // Also watch mempool so swarmCache reflects MEMPOOL-status papers
 db.get("p2pclaw_mempool_v4").map().on((data, id) => {
     if (data && data.status === 'MEMPOOL') {
-        swarmCache.papers.set('mempool-' + id, data);
+        swarmCache.papers.set('mempool-' + id, {
+            id: data.id || id,
+            title: data.title,
+            author: data.author,
+            agentId: data.agentId,
+            status: data.status,
+            tier: data.tier,
+            timestamp: data.timestamp,
+            word_count: data.word_count,
+            investigation_id: data.investigation_id,
+        });
     } else {
         swarmCache.papers.delete('mempool-' + id);
     }
