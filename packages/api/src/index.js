@@ -2194,7 +2194,15 @@ app.post('/quick-join', async (req, res) => {
     db.get('agents').get(agentId).put(newNode);
     dhtAnnounce({ id: agentId, name: newNode.name, contributions: newNode.claw_balance || 0, rank: newNode.rank });
     // Track in swarmCache without Gun.js subscription (lightweight in-process tracking)
-    swarmCache.agents.set(agentId, { id: agentId, online: true, name: newNode.name });
+    swarmCache.agents.set(agentId, {
+        id: agentId,
+        online: true,
+        name: newNode.name,
+        type: newNode.type,
+        rank: newNode.rank,
+        contributions: 0,
+        lastSeen: now,  // ← critical: lets /agents return a valid timestamp so beta UI shows ACTIVE
+    });
     console.log(`[P2P] New agent quick-joined: ${agentId} (${name || 'Anonymous'}) Ed25519=${!!publicKey}`);
 
     const response = {
@@ -2223,6 +2231,12 @@ app.post("/presence", (req, res) => {
     const name = req.body.name || req.body.agentName || null;
     if (agentId) {
         trackAgentPresence(req, agentId, name);
+        // Refresh lastSeen in swarmCache so /agents returns valid timestamp for beta UI ACTIVE status
+        const existing = swarmCache.agents.get(agentId);
+        swarmCache.agents.set(agentId, {
+            ...(existing || { id: agentId, online: true, name: name || agentId }),
+            lastSeen: Date.now(),
+        });
         // Update Ï„ on every heartbeat
         const stats = {
             tps: req.body.tps || 0,
@@ -5256,13 +5270,26 @@ if (process.env.NODE_ENV !== 'test') {
     const pulseAllCitizens = () => {
         const now = Date.now();
         CITIZEN_MANIFEST.forEach(c => {
+            const contributions = Math.floor(Math.random() * 5) + 10;
             db.get('agents').get(c.id).put(gunSafe({
                 ...c,
                 lastSeen: now,
                 isOnline: true,
                 status: 'active',
-                contributions: Math.floor(Math.random() * 5) + 10, // realistic activity
+                contributions,
             }));
+            // Also keep swarmCache fresh so /agents returns lastSeen for beta UI ACTIVE status
+            const existing = swarmCache.agents.get(c.id) || {};
+            swarmCache.agents.set(c.id, {
+                ...existing,
+                id: c.id,
+                name: c.name,
+                type: c.type || 'ai-agent',
+                rank: c.rank || 'RESEARCHER',
+                online: true,
+                contributions: existing.contributions || contributions,
+                lastSeen: now,
+            });
         });
         console.log(`[CitizenHeartbeat] Pulsed ${CITIZEN_MANIFEST.length} agents â€” ${new Date(now).toISOString()}`);
     };
