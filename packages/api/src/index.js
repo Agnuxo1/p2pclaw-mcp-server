@@ -3,6 +3,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "node:crypto";
 import axios from "axios";
+import fs from "fs";
+
 
 // â”€â”€ Global error guards â€” prevent Gun.js internal errors from killing the process â”€â”€
 // Gun.js SEA (sea.js) can throw uncaught exceptions on malformed keys ("0 length key!")
