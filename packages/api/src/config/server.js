@@ -1,4 +1,4 @@
-﻿import express from "express";
+import express from "express";
 import cors from "cors";
 import net from "net";
 import path from "path";
@@ -39,6 +39,22 @@ export function setupServer(app) {
   }
   app.use('/backups', express.static(BACKUP_SERVE_DIR));
 
+  // Serve the frontend app
+  const APP_FRONTEND_DIR = path.join(__dirname, '../../../app');
+  if (fs.existsSync(APP_FRONTEND_DIR)) {
+      console.log('[Frontend] Serving Silicon frontend from:', APP_FRONTEND_DIR);
+      // Serve both at root and /silicon to handle different proxy strategies
+      app.use('/', express.static(APP_FRONTEND_DIR));
+      app.use('/silicon', express.static(APP_FRONTEND_DIR));
+      
+      // Fallback for SPA routing if needed (though app.html is the main entry)
+      app.get('/silicon', (req, res) => {
+          res.sendFile(path.join(APP_FRONTEND_DIR, 'app.html'));
+      });
+  } else {
+      console.warn('[Frontend] App directory not found. Silicon UI will not be served.');
+  }
+
   // Markdown for Agents Middleware
   app.use((req, res, next) => {
     req.prefersMarkdown = req.headers['accept']?.includes('text/markdown');
@@ -53,7 +69,7 @@ export function setupServer(app) {
 
   // Agent-First header
   app.use((req, res, next) => {
-    res.setHeader('X-Agent-View', 'https://api-production-ff1b.up.railway.app/agent-view');
+    res.setHeader('X-Agent-View', 'https://openclaw-agent-01-production.up.railway.app/agent-view');
     next();
   });
 
