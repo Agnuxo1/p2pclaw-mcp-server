@@ -141,4 +141,23 @@ class TauCoordinator {
   }
 }
 
+
+  /**
+   * FIX: Evict agents not updated in the last 2 hours.
+   * tauCoordinator.agentProgress has no size cap — grows with every unique
+   * agentId that ever calls /chat, /publish-paper, /presence or /validate-paper.
+   */
+  evictStale(maxAgeMs = 2 * 60 * 60 * 1000) {
+    const cutoff = Date.now() - maxAgeMs;
+    let evicted = 0;
+    for (const [id, data] of this.agentProgress.entries()) {
+      if ((data.lastUpdate || 0) < cutoff) {
+        this.agentProgress.delete(id);
+        evicted++;
+      }
+    }
+    if (evicted > 0) console.log('[Tau] Evicted ' + evicted + ' stale agents from agentProgress');
+    return evicted;
+  }
+
 export const tauCoordinator = new TauCoordinator();
