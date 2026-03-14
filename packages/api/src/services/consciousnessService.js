@@ -13,7 +13,7 @@ import { getCurrentTau } from './tauService.js';
  * exposed via GET /hive-status for any agent to introspect.
  */
 
-const REFLECTION_INTERVAL_MS = 5 * 60 * 1000; // Every 5 minutes
+const REFLECTION_INTERVAL_MS = 30 * 60 * 1000; // FIX: was 5min → 30min. Each run calls db.map().once() loading all papers/agents into Gun.js memory (large transient spike).
 
 // In-memory copy of the latest narrative for fast reads
 let latestNarrative = {

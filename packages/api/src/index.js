@@ -1454,7 +1454,11 @@ function checkPublishRateLimit(authorId) {
     const times = (agentPublishLog.get(authorId) || []).filter(t => t > cutoff);
     if (times.length >= PUBLISH_RATE_LIMIT) return false;
     times.push(now);
-    agentPublishLog.set(authorId, times);
+    if (times.length === 0) {
+        agentPublishLog.delete(authorId); // FIX: prevent Map from retaining dead entries forever
+    } else {
+        agentPublishLog.set(authorId, times);
+    }
     return true;
 }
 
@@ -1471,6 +1475,7 @@ async function runDuplicatePurge() {
     const seenAbstractHashes = new Map();
     const seenInvIdTitle = new Map();  // key: investigation_id â†’ normalized base title
     const toDelete = [];
+    const duplicatesFound = []; // FIX: was missing declaration → ReferenceError
 
     const allEntries = [];
 
@@ -3688,6 +3693,18 @@ if (process.env.NODE_ENV !== 'test') {
             // This stops the 3-4x/day crash cycle by restarting with a clean 90MB baseline.
             if (heapMB > 150) {
                 console.warn(`[GC] WARN: heap ${heapMB}MB > 150MB — trimming caches...`);
+                
+                // Trim globalEmbeddingStore — grows unbounded as papers are published (primary OOM driver)
+                // Each entry is ~2-8KB (sparse TF-IDF map). Cap at 500 entries (newest kept).
+                if (typeof globalEmbeddingStore !== 'undefined' && globalEmbeddingStore.embeddings instanceof Map) {
+                    while (globalEmbeddingStore.embeddings.size > 500) {
+                        const oldestKey = globalEmbeddingStore.embeddings.keys().next().value;
+                        globalEmbeddingStore.embeddings.delete(oldestKey);
+                    }
+                    if (globalEmbeddingStore.embeddings.size > 400) {
+                        console.warn('[GC] Trimmed globalEmbeddingStore → ' + globalEmbeddingStore.embeddings.size);
+                    }
+                }
                 // Trim mempoolPapers to last 50 entries (was 200 — Gun.js loads content per entry)
                 if (swarmCache.mempoolPapers && swarmCache.mempoolPapers.length > 50) {
                     swarmCache.mempoolPapers = swarmCache.mempoolPapers.slice(-50);
@@ -3698,6 +3715,11 @@ if (process.env.NODE_ENV !== 'test') {
                     for (const [id, inbox] of agentInboxes.entries()) {
                         if (inbox.length > 10) agentInboxes.set(id, inbox.slice(-10));
                     }
+                }
+                
+                // Evict stale agents from tauCoordinator.agentProgress (grows with every unique agentId)
+                if (typeof tauCoordinator !== 'undefined' && typeof tauCoordinator.evictStale === 'function') {
+                    tauCoordinator.evictStale();
                 }
                 // Trim swarmCache.agents — Map grows unbounded with repeated /quick-join calls
                 if (swarmCache.agents instanceof Map && swarmCache.agents.size > 100) {
