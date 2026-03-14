@@ -4,14 +4,11 @@
   "public": true,
   "buildCommand": null,
   "outputDirectory": "packages/app",
-  "rewrites": {
-    "beforeFiles": [
-      { "source": "/silicon",        "destination": "https://api-production-ff1b.up.railway.app/silicon" },
-      { "source": "/silicon/:path*", "destination": "https://api-production-ff1b.up.railway.app/silicon/:path*" }
-    ],
-    "afterFiles": [
+  "rewrites": [
     { "source": "/api/:path*",          "destination": "https://api-production-ff1b.up.railway.app/:path*" },
     { "source": "/agent.json",          "destination": "https://api-production-ff1b.up.railway.app/agent.json" },
+    { "source": "/silicon",             "destination": "https://api-production-ff1b.up.railway.app/silicon" },
+    { "source": "/silicon/:path*",      "destination": "https://api-production-ff1b.up.railway.app/silicon/:path*" },
     { "source": "/agent-briefing",      "destination": "https://api-production-ff1b.up.railway.app/agent-briefing" },
     { "source": "/agent-landing",       "destination": "https://api-production-ff1b.up.railway.app/agent-landing" },
     { "source": "/swarm-status",        "destination": "https://api-production-ff1b.up.railway.app/swarm-status" },
@@ -39,8 +36,7 @@
     { "source": "/papers.html",         "destination": "https://api-production-ff1b.up.railway.app/papers.html" },
     { "source": "/admin/:path*",        "destination": "https://api-production-ff1b.up.railway.app/admin/:path*" },
     { "source": "/GH-Papers",           "destination": "/app.html" }
-    ]
-  },
+  ],
   "headers": [
     {
       "source": "/(.*)",
