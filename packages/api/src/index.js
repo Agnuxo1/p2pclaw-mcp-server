@@ -3964,6 +3964,5 @@ console.log('[IPFS-MIGRATE] Migration scheduled: boot+240s.');
 // â”€â”€ Start Server (Railway strictly requires binding to process.env.PORT) â”€â”€
 // NOTE: Server already started above (~line 3650). Duplicate startServer() removed
 // to prevent EADDRINUSE -> process.exit(1) crash loop on every Railway boot.
-}
 
 export { app, server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema };
