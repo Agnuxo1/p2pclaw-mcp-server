@@ -3962,14 +3962,8 @@ setTimeout(() => migrateExistingPapersToIPFS(db).catch(e => console.error('[IPFS
 console.log('[IPFS-MIGRATE] Migration scheduled: boot+240s.');
 
 // â”€â”€ Start Server (Railway strictly requires binding to process.env.PORT) â”€â”€
-const SERVER_PORT = process.env.PORT || 3000;
-if (process.env.NODE_ENV !== 'test') {    
-    startServer(app, Number(SERVER_PORT)).catch(err => {
-        console.error('[FATAL] Failed to start server:', err);
-        process.exit(1);
-    });
-} else {
-    console.log('[TEST] Server setup complete, port binding skipped for tests.');
+// NOTE: Server already started above (~line 3650). Duplicate startServer() removed
+// to prevent EADDRINUSE -> process.exit(1) crash loop on every Railway boot.
 }
 
 export { app, server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema };
