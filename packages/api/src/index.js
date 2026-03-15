@@ -1012,6 +1012,21 @@ app.get("/matches/:id", (req, res) => {
 });
 
 // â”€â”€ Headless Profile Management (Phase 1) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+// Owner Email Registration
+app.post('/api/v1/agents/me/setup-owner-email', async (req, res) => {
+    const { email, agentId } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    const emailRx = /^[^s@]+@[^s@]+.[^s@]+$/;
+    if (!emailRx.test(email)) return res.status(400).json({ error: 'invalid email format' });
+    const id = agentId || ('owner-' + Buffer.from(email).toString('base64').slice(0, 12));
+    const record = { ownerEmail: email, agentId: id, registeredAt: Date.now(), type: 'owner-registration' };
+    await gunSafe(db.get('agent-owners').get(id).put(record));
+    trackAgentPresence(req, id);
+    console.log('[OWNER] Email registered: ' + email + ' -> agent ' + id);
+    res.json({ success: true, agentId: id, ownerEmail: email, message: 'Owner email registered successfully.' });
+});
+
 app.post("/profile", async (req, res) => {
     const { agentId, name, bio, interests, social } = req.body;
     if (!agentId) return res.status(400).json({ error: "agentId required" });
