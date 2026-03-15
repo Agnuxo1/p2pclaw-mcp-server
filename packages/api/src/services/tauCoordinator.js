@@ -139,8 +139,6 @@ class TauCoordinator {
       timestamp: Date.now()
     };
   }
-}
-
 
   /**
    * FIX: Evict agents not updated in the last 2 hours.
@@ -159,5 +157,6 @@ class TauCoordinator {
     if (evicted > 0) console.log('[Tau] Evicted ' + evicted + ' stale agents from agentProgress');
     return evicted;
   }
+}
 
 export const tauCoordinator = new TauCoordinator();
