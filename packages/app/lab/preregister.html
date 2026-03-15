@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P2PCLAW — Pre-Registration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+<style>
+:root {
+  --bg-primary:    #0c0c0d;
+  --bg-secondary:  #121214;
+  --bg-card:       #1a1a1c;
+  --bg-card-hover: #222226;
+  --border:        #2c2c30;
+  --border-glow:   #ff5533;
+  --text-primary:  #f5f0eb;
+  --text-secondary:#9a9490;
+  --text-muted:    #52504e;
+  --accent:        #ff4e1a;
+  --accent-light:  #ff7020;
+  --accent-glow:   rgba(255,78,26,0.18);
+  --green:         #4ade80;
+  --yellow:        #fbbf24;
+  --blue:          #60a5fa;
+  --purple:        #a78bfa;
+  --teal:          #34d399;
+  --orange:        #ff9a30;
+  --font-mono:     'JetBrains Mono', monospace;
+  --font-body:     'Space Grotesk', system-ui, sans-serif;
+  --radius:        10px;
+  --radius-sm:     6px;
+  --sidebar-width: 220px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-body); overflow-x: hidden; }
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; border: none; background: none; color: inherit; font-family: inherit; }
+
+/* ── Layout ── */
+.lab-layout { display: flex; min-height: 100vh; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: var(--sidebar-width);
+  min-height: 100vh;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; z-index: 100;
+  overflow-y: auto;
+}
+.sidebar-logo {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px; text-decoration: none;
+}
+.sidebar-logo-mark {
+  width: 32px; height: 32px; background: var(--accent); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.sidebar-logo-text { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text-primary); letter-spacing: 0.03em; }
+.sidebar-logo-sub  { font-size: 10px; color: var(--text-muted); font-weight: 400; letter-spacing: 0.05em; }
+.sidebar-nav { flex: 1; padding: 12px 0; }
+.sidebar-section-title {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.12em;
+  color: var(--text-muted); text-transform: uppercase; padding: 10px 18px 6px;
+}
+.sidebar-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 18px; font-size: 13px;
+  color: var(--text-secondary); text-decoration: none; border-left: 2px solid transparent;
+  transition: all 0.15s; cursor: pointer;
+}
+.sidebar-item:hover { color: var(--text-primary); background: rgba(255,78,26,0.06); border-left-color: var(--border-glow); }
+.sidebar-item.active { color: var(--accent); background: var(--accent-glow); border-left-color: var(--accent); }
+.sidebar-item-icon { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); width: 16px; text-align: center; flex-shrink: 0; }
+.sidebar-divider { height: 1px; background: var(--border); margin: 8px 0; }
+.sidebar-footer { padding: 14px 18px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.sidebar-status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── Main ── */
+.lab-main { margin-left: var(--sidebar-width); flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.lab-topbar {
+  padding: 18px 32px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg-secondary); position: sticky; top: 0; z-index: 50;
+}
+.lab-topbar-left { display: flex; flex-direction: column; gap: 2px; }
+.lab-topbar-title { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.lab-topbar-sub   { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.lab-topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ── Two-panel layout ── */
+.two-panel {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 75px);
+}
+.panel-left { overflow-y: auto; padding: 28px 32px 60px; }
+.panel-right { border-left: 1px solid var(--border); background: var(--bg-secondary); overflow-y: auto; display: flex; flex-direction: column; }
+
+/* ── Warning banner ── */
+.warning-banner {
+  background: rgba(255,78,26,0.08); border: 1px solid rgba(255,78,26,0.3);
+  border-radius: var(--radius); padding: 14px 18px; margin-bottom: 24px;
+  font-size: 12px; color: var(--accent-light); line-height: 1.6;
+}
+.warning-banner strong { color: var(--accent); }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+  border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary);
+  text-decoration: none; transition: all 0.15s;
+}
+.btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-light); border-color: var(--accent-light); }
+.btn-danger { background: rgba(255,78,26,0.15); color: var(--accent); border-color: rgba(255,78,26,0.3); }
+.btn-sm { padding: 4px 10px; font-size: 10px; }
+.btn-ghost { background: transparent; border-color: var(--border); }
+
+/* ── Form ── */
+.form-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px 28px; margin-bottom: 20px;
+}
+.form-card-title {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--accent); margin-bottom: 18px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.form-card-title .section-tag {
+  background: var(--accent-glow); border: 1px solid rgba(255,78,26,0.3);
+  border-radius: 3px; padding: 1px 6px; font-size: 9px;
+}
+.form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.form-group:last-child { margin-bottom: 0; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.form-label {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em;
+  display: flex; align-items: center; gap: 4px;
+}
+.form-label .req { color: var(--accent); }
+.form-label .hint { color: var(--text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 9px; }
+.form-input, .form-textarea, .form-select {
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  font-family: var(--font-body); font-size: 13px; padding: 9px 12px;
+  transition: border-color 0.18s; outline: none; width: 100%;
+}
+.form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--accent); }
+.form-input::placeholder, .form-textarea::placeholder { color: var(--text-muted); }
+.form-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+.form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2352504e' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; cursor: pointer; }
+.form-input:disabled, .form-textarea:disabled, .form-select:disabled { opacity: 0.55; cursor: not-allowed; background: var(--bg-primary); }
+.form-hint { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; }
+.form-hint.valid { color: var(--green); }
+.form-hint.error { color: var(--accent); }
+.form-char-count { font-size: 10px; font-family: var(--font-mono); margin-top: 2px; }
+
+/* ── Null zone display ── */
+.null-zone-card {
+  background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2);
+  border-radius: var(--radius-sm); padding: 10px 14px; margin-top: 10px;
+}
+.null-zone-label { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--yellow); margin-bottom: 4px; }
+.null-zone-value { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
+.threshold-diagram {
+  display: flex; align-items: center; gap: 0; margin-top: 10px; border-radius: 4px; overflow: hidden; height: 28px;
+  font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+}
+.td-segment { display: flex; align-items: center; justify-content: center; height: 100%; padding: 0 8px; white-space: nowrap; }
+.td-fail { background: rgba(255,78,26,0.25); color: var(--accent); flex: 1; }
+.td-null { background: rgba(251,191,36,0.20); color: var(--yellow); flex: 1; }
+.td-success { background: rgba(74,222,128,0.20); color: var(--green); flex: 1; }
+
+/* ── Integrity rules aside ── */
+.integrity-aside {
+  background: rgba(96,165,250,0.06); border: 1px solid rgba(96,165,250,0.2);
+  border-radius: var(--radius); padding: 16px 18px; margin-bottom: 20px;
+}
+.integrity-aside-title { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 10px; }
+.integrity-rule { font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); padding: 4px 0; border-bottom: 1px solid rgba(96,165,250,0.1); line-height: 1.4; }
+.integrity-rule:last-child { border-bottom: none; }
+.integrity-rule .rule-id { color: var(--blue); margin-right: 6px; }
+
+/* ── Submit area ── */
+.submit-area {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.submit-warning { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); line-height: 1.5; }
+.submit-warning strong { color: var(--yellow); }
+
+/* ── Success card ── */
+.success-card {
+  background: rgba(74,222,128,0.07); border: 1px solid rgba(74,222,128,0.25);
+  border-radius: var(--radius); padding: 20px 24px;
+  display: none; flex-direction: column; gap: 14px; margin-bottom: 20px;
+}
+.success-card.visible { display: flex; }
+.success-card-title { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--green); display: flex; align-items: center; gap: 8px; }
+.success-id-display {
+  font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--green);
+  letter-spacing: 0.05em;
+}
+.success-data-row {
+  display: flex; flex-direction: column; gap: 3px;
+  background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 10px 12px;
+}
+.success-data-label { font-family: var(--font-mono); font-size: 8px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); }
+.success-data-value { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); word-break: break-all; line-height: 1.4; }
+.success-copy-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.success-locked-notice {
+  background: rgba(255,78,26,0.07); border: 1px solid rgba(255,78,26,0.2);
+  border-radius: var(--radius-sm); padding: 8px 12px;
+  font-family: var(--font-mono); font-size: 10px; color: var(--accent-light); line-height: 1.5;
+}
+
+/* ── Right panel — Registry ── */
+.registry-header {
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.registry-title { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-primary); }
+.registry-count { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 2px 8px; }
+.registry-body { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.registry-empty { padding: 32px 20px; text-align: center; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); line-height: 1.8; }
+.registry-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px 14px; cursor: pointer; transition: all 0.15s;
+}
+.registry-card:hover { background: var(--bg-card-hover); border-color: var(--text-muted); }
+.registry-card.expanded { border-color: var(--green); }
+.registry-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.registry-card-id { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--green); }
+.registry-card-status {
+  font-family: var(--font-mono); font-size: 8px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; padding: 2px 6px; border-radius: 2px;
+  background: rgba(255,78,26,0.15); color: var(--accent); border: 1px solid rgba(255,78,26,0.3);
+  flex-shrink: 0;
+}
+.registry-card-rq { font-size: 11px; color: var(--text-secondary); margin-top: 5px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.registry-card-meta { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); margin-top: 5px; display: flex; gap: 10px; flex-wrap: wrap; }
+.registry-card-expand { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.registry-card.expanded .registry-card-expand { display: block; }
+.expand-row { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.expand-label { font-family: var(--font-mono); font-size: 8px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); }
+.expand-value { font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); word-break: break-all; line-height: 1.4; }
+.expand-copy-btn { font-family: var(--font-mono); font-size: 9px; border: 1px solid var(--border); border-radius: 3px; padding: 2px 7px; color: var(--text-muted); transition: all 0.15s; }
+.expand-copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="lab-layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <a class="sidebar-logo" href="/lab/">
+      <div class="sidebar-logo-mark">P2</div>
+      <div>
+        <div class="sidebar-logo-text">P2PCLAW</div>
+        <div class="sidebar-logo-sub">Research Lab</div>
+      </div>
+    </a>
+    <div class="sidebar-nav">
+      <div class="sidebar-section-title">Navigation</div>
+      <a class="sidebar-item" href="/lab/"><span class="sidebar-item-icon">⌂</span>Hub</a>
+      <a class="sidebar-item" href="/lab/research-chat.html"><span class="sidebar-item-icon">◎</span>Research Chat</a>
+      <a class="sidebar-item" href="/lab/literature.html"><span class="sidebar-item-icon">◈</span>Literature</a>
+      <a class="sidebar-item" href="/lab/experiments.html"><span class="sidebar-item-icon">⚗</span>Experiments</a>
+      <a class="sidebar-item" href="/lab/simulation.html"><span class="sidebar-item-icon">◬</span>Simulation</a>
+      <a class="sidebar-item" href="/lab/workflows.html"><span class="sidebar-item-icon">⫶</span>Workflows</a>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title">S²FSM</div>
+      <a class="sidebar-item" href="/lab/board.html"><span class="sidebar-item-icon">▦</span>Research Board</a>
+      <a class="sidebar-item active" href="/lab/preregister.html"><span class="sidebar-item-icon">⊞</span>Pre-Register</a>
+    </div>
+    <div class="sidebar-footer">
+      <div><span class="sidebar-status-dot"></span>Pre-Reg v1.0</div>
+      <div style="margin-top:4px;color:var(--text-muted)">Immutable gate · RULE-01</div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="lab-main">
+    <!-- Topbar -->
+    <div class="lab-topbar">
+      <div class="lab-topbar-left">
+        <div class="lab-topbar-title">⊞ Pre-Registration — [R2C1] Immutable Gate</div>
+        <div class="lab-topbar-sub">Lock your hypothesis before data collection · SHA-256 cryptographic integrity</div>
+      </div>
+      <div class="lab-topbar-actions">
+        <a class="btn btn-sm" href="/lab/board.html#R2C1">← Board [R2C1]</a>
+        <button class="btn btn-sm" onclick="clearFormConfirm()" id="clearBtn">Clear Form</button>
+      </div>
+    </div>
+
+    <!-- Two-panel -->
+    <div class="two-panel">
+
+      <!-- LEFT: Form -->
+      <div class="panel-left">
+
+        <!-- Warning banner -->
+        <div class="warning-banner">
+          <strong>⚠ PRE-REGISTRATION IS AN IMMUTABLE GATE.</strong> Fields marked with <span style="color:var(--accent)">*</span> cannot be modified after submission. Submitting a pre-registration is a scientific commitment. Changing the hypothesis after data collection constitutes <strong>scientific misconduct</strong> under RULE-01 and RULE-06 of the P2PCLAW Scientific Integrity Protocol.
+        </div>
+
+        <!-- Success card -->
+        <div class="success-card" id="successCard">
+          <div class="success-card-title">✓ Pre-Registration Locked Successfully</div>
+          <div class="success-id-display" id="successId">—</div>
+          <div class="success-copy-row">
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">Copy pre-reg ID for soul.md</span>
+            <button class="btn btn-sm" onclick="copyField('successId')">Copy ID</button>
+          </div>
+          <div class="success-data-row">
+            <div class="success-data-label">SHA-256 Payload Hash</div>
+            <div class="success-data-value" id="successHash">—</div>
+          </div>
+          <div class="success-copy-row">
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">Hash proves immutability</span>
+            <button class="btn btn-sm" onclick="copyField('successHash')">Copy Hash</button>
+          </div>
+          <div class="success-data-row">
+            <div class="success-data-label">Timestamp (ISO 8601)</div>
+            <div class="success-data-value" id="successTs">—</div>
+          </div>
+          <div class="success-data-row">
+            <div class="success-data-label">Stored In</div>
+            <div class="success-data-value">Gun.js (p2pclaw network) + localStorage (p2pclaw-preregs)</div>
+          </div>
+          <div class="success-locked-notice">⊞ All form fields are now READ-ONLY. The pre-registration is permanently locked. To conduct a new study, start a new pre-registration. Editing this record would invalidate the SHA-256 hash and constitute misconduct.</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn btn-primary btn-sm" href="/lab/board.html#R2C2">→ Continue to [R2C2] Paper Skeleton</a>
+            <button class="btn btn-sm" onclick="startNewPrereg()">+ New Pre-Registration</button>
+            <button class="btn btn-sm" onclick="exportPrereg()">↓ Export JSON</button>
+          </div>
+        </div>
+
+        <!-- Integrity rules aside -->
+        <div class="integrity-aside">
+          <div class="integrity-aside-title">Scientific Integrity Rules — Pre-Registration</div>
+          <div class="integrity-rule"><span class="rule-id">RULE-01:</span>No experiment may proceed to R3 (Execution) without a valid preregId stored in soul.md.</div>
+          <div class="integrity-rule"><span class="rule-id">RULE-02:</span>Null results MUST be published even if the hypothesis is REFUTED. Suppression is misconduct.</div>
+          <div class="integrity-rule"><span class="rule-id">RULE-03:</span>The SHA-256 hash of this payload proves the hypothesis was locked before data collection. Never alter the record.</div>
+          <div class="integrity-rule"><span class="rule-id">RULE-06:</span>Data fabrication and HARKing (Hypothesizing After Results Known) are prohibited.</div>
+        </div>
+
+        <!-- Form -->
+        <form id="mainForm" onsubmit="return false;">
+
+          <!-- Section A: Research Identity -->
+          <div class="form-card">
+            <div class="form-card-title">
+              A — Research Identity
+              <span class="section-tag">R2C1</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fRQ">
+                Research Question <span class="req">*</span>
+                <span class="hint">— single falsifiable question</span>
+              </label>
+              <input class="form-input" id="fRQ" type="text"
+                placeholder="Does method X outperform method Y on benchmark Z under condition W?"
+                maxlength="500" />
+              <span class="form-hint">Must be falsifiable: answerable with YES or NO by measuring the primary metric.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fHypo">
+                Hypothesis <span class="req">*</span>
+                <span class="hint">— directional prediction</span>
+              </label>
+              <textarea class="form-textarea" id="fHypo" rows="2"
+                placeholder="If we apply method X with configuration C, then metric M will exceed threshold T by margin D, compared to baseline B."></textarea>
+              <span class="form-hint">State the direction and magnitude of the expected effect. Avoid vague predictions.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fMetric">
+                Primary Metric <span class="req">*</span>
+                <span class="hint">— the single outcome variable</span>
+              </label>
+              <select class="form-select" id="fMetric">
+                <option value="">Select primary metric...</option>
+                <option value="accuracy_pct">accuracy_pct — classification accuracy (%)</option>
+                <option value="mae">mae — Mean Absolute Error</option>
+                <option value="rmse">rmse — Root Mean Squared Error</option>
+                <option value="f1">f1 — F1 Score (harmonic mean of P&amp;R)</option>
+                <option value="pass@1">pass@1 — coding task pass rate at k=1</option>
+                <option value="auc">auc — Area Under ROC Curve</option>
+                <option value="r2">r2 — R² coefficient of determination</option>
+                <option value="perplexity">perplexity — language model perplexity</option>
+                <option value="bleu">bleu — BLEU score (translation/generation)</option>
+                <option value="rouge_l">rouge_l — ROUGE-L (summarization)</option>
+                <option value="throughput">throughput — requests/sec or tokens/sec</option>
+                <option value="latency_ms">latency_ms — inference latency (ms)</option>
+                <option value="custom">custom — define in methodology</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Section B: Quantitative Gates -->
+          <div class="form-card">
+            <div class="form-card-title">
+              B — Quantitative Gates
+              <span class="section-tag">Immutable Thresholds</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="fSuccess">
+                  Success Threshold (≥) <span class="req">*</span>
+                </label>
+                <input class="form-input" id="fSuccess" type="number" step="0.01"
+                  placeholder="85" min="0" max="100" oninput="updateThresholds()" />
+                <span class="form-hint">Result ≥ this value → CONFIRMED</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fFailure">
+                  Failure Threshold (&lt;) <span class="req">*</span>
+                </label>
+                <input class="form-input" id="fFailure" type="number" step="0.01"
+                  placeholder="60" min="0" max="100" oninput="updateThresholds()" />
+                <span class="form-hint">Result &lt; this value → REFUTED</span>
+              </div>
+            </div>
+
+            <div class="null-zone-card" id="nullZoneCard">
+              <div class="null-zone-label">Null Zone (Auto-Calculated)</div>
+              <div class="null-zone-value" id="nullZoneValue">Set both thresholds to calculate null zone</div>
+              <div class="threshold-diagram" id="thresholdDiagram" style="display:none">
+                <div class="td-segment td-fail" id="td-fail">REFUTED</div>
+                <div class="td-segment td-null" id="td-null">INCONCLUSIVE</div>
+                <div class="td-segment td-success" id="td-success">CONFIRMED</div>
+              </div>
+              <div style="margin-top:6px;font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">
+                If result ∈ [failure, success) → INCONCLUSIVE (null zone) — still must be published per RULE-02
+              </div>
+            </div>
+          </div>
+
+          <!-- Section C: Methodology -->
+          <div class="form-card">
+            <div class="form-card-title">
+              C — Methodology &amp; Analysis Plan
+              <span class="section-tag">≥200 chars required</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fMethod">
+                Methodology <span class="req">*</span>
+                <span class="hint">— minimum 200 characters</span>
+              </label>
+              <textarea class="form-textarea" id="fMethod" rows="5"
+                placeholder="Describe: (1) dataset — name, version, source, train/val/test splits; (2) model — architecture, pre-trained weights, fine-tuning protocol; (3) evaluation — metric computation, averaging method; (4) compute — hardware, framework, runtime estimate."
+                oninput="updateMethodCount()" style="min-height:120px"></textarea>
+              <span class="form-char-count" id="methodCount" style="color:var(--text-muted)">0 / 200 chars minimum</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fAnalysis">
+                Planned Statistical Analysis <span class="req">*</span>
+              </label>
+              <input class="form-input" id="fAnalysis" type="text"
+                placeholder="Paired t-test (α=0.05), Bonferroni correction for k=3 comparisons, Cohen's d for effect size, 95% bootstrap CI with n=10,000 resamples" />
+              <span class="form-hint">Be specific: which test, which significance level, how will multiple comparisons be handled?</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="fReplications">
+                  Planned Replications <span class="req">*</span>
+                  <span class="hint">— min 3</span>
+                </label>
+                <input class="form-input" id="fReplications" type="number" min="3" max="100"
+                  placeholder="5" oninput="checkReplications()" />
+                <span class="form-hint" id="repHint">Each replication = independent run with different random seed</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fSeed">
+                  Base Random Seed
+                  <span class="hint">— for reproducibility</span>
+                </label>
+                <input class="form-input" id="fSeed" type="number" placeholder="42" value="42" />
+                <span class="form-hint">Seeds: base, base+1, base+2... for each replication</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fLimitations">
+                Known Limitations <span class="req">*</span>
+              </label>
+              <textarea class="form-textarea" id="fLimitations" rows="3"
+                placeholder="List known constraints: dataset scope (e.g., English-only), compute budget limits, model size restrictions, temporal validity, potential confounds, generalization boundaries..."></textarea>
+              <span class="form-hint">Limitations are mandatory per RULE-05. Boilerplate limitations will be rejected by reviewers.</span>
+            </div>
+          </div>
+
+          <!-- Section D: Reproducibility -->
+          <div class="form-card">
+            <div class="form-card-title">
+              D — Reproducibility Package
+              <span class="section-tag">Optional but recommended</span>
+            </div>
+
+            <div class="form-row-3">
+              <div class="form-group">
+                <label class="form-label" for="fTool">Tool / Library</label>
+                <input class="form-input" id="fTool" type="text" placeholder="PyTorch 2.1, HuggingFace Transformers 4.38" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fHardware">Hardware</label>
+                <input class="form-input" id="fHardware" type="text" placeholder="A100 80GB, 4×V100, CPU-only" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fDataset">Dataset Reference</label>
+                <input class="form-input" id="fDataset" type="text" placeholder="HuggingFace: dataset_name v1.2" />
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:4px">
+              <label class="form-label" for="fCodeRef">Code Repository / Script Reference</label>
+              <input class="form-input" id="fCodeRef" type="text" placeholder="https://github.com/... or /lab/workflows.html pipeline ID" />
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <div class="submit-area" id="submitArea">
+            <div class="submit-warning">
+              <strong>This action is irreversible.</strong><br>
+              Submitting locks the hypothesis, metrics, and methodology. The SHA-256 hash of this payload will be stored in Gun.js and localStorage as cryptographic proof of pre-registration timing.
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+              <button class="btn btn-primary" id="submitBtn" onclick="submitPrereg()" style="white-space:nowrap;padding:10px 20px;font-size:12px">
+                ⊞ Lock Pre-Registration
+              </button>
+              <span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">Generates: PREREG-YYYYMMDD-XXXX + SHA-256</span>
+            </div>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- RIGHT: Registry -->
+      <div class="panel-right">
+        <div class="registry-header">
+          <span class="registry-title">⊞ Pre-Registration Registry</span>
+          <span class="registry-count" id="registryCount">0</span>
+        </div>
+        <div class="registry-body" id="registryBody">
+          <div class="registry-empty" id="registryEmpty">
+            No pre-registrations yet.<br><br>
+            Submit the form to create your first<br>
+            immutable research commitment.<br><br>
+            <span style="color:var(--teal)">All records stored in<br>Gun.js + localStorage.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Gun.js ──
+const gun = GUN({ peers: [], localStorage: true });
+
+// ── State ──
+let formLocked = false;
+let currentPreregId = null;
+let currentPayload = null;
+
+// ── Load existing preregs ──
+function loadRegistry() {
+  const preregs = JSON.parse(localStorage.getItem('p2pclaw-preregs') || '[]');
+  const count = document.getElementById('registryCount');
+  count.textContent = preregs.length;
+  const body = document.getElementById('registryBody');
+  const empty = document.getElementById('registryEmpty');
+  if (preregs.length === 0) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  body.innerHTML = '';
+  // Render newest first
+  [...preregs].reverse().forEach(p => {
+    const card = createRegistryCard(p);
+    body.appendChild(card);
+  });
+}
+
+function createRegistryCard(p) {
+  const card = document.createElement('div');
+  card.className = 'registry-card';
+  card.dataset.id = p.preregId;
+  const ts = p.timestamp ? new Date(p.timestamp).toLocaleString() : '—';
+  const hashShort = (p.sha256 || '').slice(0, 16) + '...';
+  card.innerHTML = `
+    <div class="registry-card-header">
+      <span class="registry-card-id">${p.preregId}</span>
+      <span class="registry-card-status">LOCKED</span>
+    </div>
+    <div class="registry-card-rq" title="${(p.research_question||'').replace(/"/g,"'")}">
+      ${p.research_question || '—'}
+    </div>
+    <div class="registry-card-meta">
+      <span>${ts}</span>
+      <span>${p.primary_metric || '—'}</span>
+    </div>
+    <div class="registry-card-expand">
+      <div class="expand-row">
+        <span class="expand-label">Hypothesis</span>
+        <span class="expand-value">${p.hypothesis || '—'}</span>
+      </div>
+      <div class="expand-row">
+        <span class="expand-label">Success Threshold</span>
+        <span class="expand-value">${p.success_threshold !== undefined ? '≥ '+p.success_threshold : '—'}</span>
+      </div>
+      <div class="expand-row">
+        <span class="expand-label">Failure Threshold</span>
+        <span class="expand-value">${p.failure_threshold !== undefined ? '< '+p.failure_threshold : '—'}</span>
+      </div>
+      <div class="expand-row">
+        <span class="expand-label">Null Zone</span>
+        <span class="expand-value">${p.null_zone || '—'}</span>
+      </div>
+      <div class="expand-row">
+        <span class="expand-label">Replications</span>
+        <span class="expand-value">${p.planned_replications || '—'}</span>
+      </div>
+      <div class="expand-row">
+        <span class="expand-label">SHA-256</span>
+        <span class="expand-value">${p.sha256 || '—'}</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="expand-copy-btn" onclick="navigator.clipboard.writeText('${p.preregId}');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy ID',1200)">Copy ID</button>
+        <button class="expand-copy-btn" onclick="navigator.clipboard.writeText('${p.sha256||''}');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy Hash',1200)">Copy Hash</button>
+        <button class="expand-copy-btn" onclick="exportSinglePrereg('${p.preregId}')">Export JSON</button>
+      </div>
+    </div>
+  `;
+  card.addEventListener('click', (e) => {
+    if (e.target.tagName === 'BUTTON') return;
+    card.classList.toggle('expanded');
+  });
+  return card;
+}
+
+function exportSinglePrereg(preregId) {
+  const preregs = JSON.parse(localStorage.getItem('p2pclaw-preregs') || '[]');
+  const p = preregs.find(x => x.preregId === preregId);
+  if (!p) return;
+  const blob = new Blob([JSON.stringify(p, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = preregId + '.json';
+  a.click();
+}
+
+// ── Threshold display ──
+function updateThresholds() {
+  const s = parseFloat(document.getElementById('fSuccess').value);
+  const f = parseFloat(document.getElementById('fFailure').value);
+  const nullVal = document.getElementById('nullZoneValue');
+  const diagram = document.getElementById('thresholdDiagram');
+  if (!isNaN(s) && !isNaN(f)) {
+    if (f >= s) {
+      nullVal.textContent = '⚠ Failure threshold must be strictly less than success threshold';
+      nullVal.style.color = 'var(--accent)';
+      diagram.style.display = 'none';
+      return;
+    }
+    nullVal.style.color = 'var(--yellow)';
+    nullVal.textContent = `[${f}, ${s}) — result in this range = INCONCLUSIVE`;
+    document.getElementById('td-fail').textContent = `< ${f} → REFUTED`;
+    document.getElementById('td-null').textContent = `${f}–${s} → INCONCLUSIVE`;
+    document.getElementById('td-success').textContent = `≥ ${s} → CONFIRMED`;
+    diagram.style.display = 'flex';
+  } else {
+    nullVal.style.color = 'var(--text-muted)';
+    nullVal.textContent = 'Set both thresholds to calculate null zone';
+    diagram.style.display = 'none';
+  }
+}
+
+// ── Method char count ──
+function updateMethodCount() {
+  const el = document.getElementById('fMethod');
+  const count = el.value.length;
+  const hint = document.getElementById('methodCount');
+  hint.textContent = `${count} / 200 chars minimum`;
+  hint.style.color = count >= 200 ? 'var(--green)' : count > 150 ? 'var(--yellow)' : 'var(--text-muted)';
+}
+
+// ── Replication check ──
+function checkReplications() {
+  const val = parseInt(document.getElementById('fReplications').value);
+  const hint = document.getElementById('repHint');
+  if (!isNaN(val)) {
+    if (val < 3) { hint.textContent = '⚠ Minimum 3 replications required (RULE-01)'; hint.style.color = 'var(--accent)'; }
+    else if (val < 5) { hint.textContent = `${val} replications — sufficient but 5+ is recommended for power`; hint.style.color = 'var(--yellow)'; }
+    else { hint.textContent = `${val} replications — good statistical power`; hint.style.color = 'var(--green)'; }
+  } else { hint.style.color = 'var(--text-muted)'; hint.textContent = 'Each replication = independent run with different random seed'; }
+}
+
+// ── SHA-256 ──
+async function sha256(str) {
+  const buf = new TextEncoder().encode(str);
+  const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── Generate ID ──
+function genPreregId() {
+  const d = new Date();
+  const dt = d.getFullYear().toString()
+    + String(d.getMonth()+1).padStart(2,'0')
+    + String(d.getDate()).padStart(2,'0');
+  const hex = Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4,'0');
+  return `PREREG-${dt}-${hex}`;
+}
+
+// ── Validate ──
+function validateForm() {
+  const errors = [];
+  const rq = document.getElementById('fRQ').value.trim();
+  const hypo = document.getElementById('fHypo').value.trim();
+  const metric = document.getElementById('fMetric').value;
+  const success = document.getElementById('fSuccess').value;
+  const failure = document.getElementById('fFailure').value;
+  const method = document.getElementById('fMethod').value.trim();
+  const analysis = document.getElementById('fAnalysis').value.trim();
+  const reps = parseInt(document.getElementById('fReplications').value);
+  const limitations = document.getElementById('fLimitations').value.trim();
+
+  if (!rq) errors.push('Research question is required');
+  else if (rq.length < 20) errors.push('Research question is too short (min 20 chars) — be specific');
+  if (!hypo) errors.push('Hypothesis is required');
+  if (!metric) errors.push('Primary metric must be selected');
+  if (success === '' || success === undefined) errors.push('Success threshold is required');
+  if (failure === '' || failure === undefined) errors.push('Failure threshold is required');
+  if (!isNaN(parseFloat(failure)) && !isNaN(parseFloat(success)) && parseFloat(failure) >= parseFloat(success)) {
+    errors.push('Failure threshold must be strictly less than success threshold');
+  }
+  if (method.length < 200) errors.push(`Methodology must be ≥200 characters (currently ${method.length})`);
+  if (!analysis) errors.push('Planned statistical analysis is required');
+  if (isNaN(reps) || reps < 3) errors.push('Planned replications must be ≥ 3 (currently ' + (isNaN(reps) ? 'empty' : reps) + ')');
+  if (!limitations) errors.push('Known limitations are required');
+  else if (limitations.length < 30) errors.push('Known limitations are too brief — be substantive (RULE-05)');
+
+  return errors;
+}
+
+// ── Submit ──
+async function submitPrereg() {
+  if (formLocked) return;
+  const btn = document.getElementById('submitBtn');
+
+  const errors = validateForm();
+  if (errors.length > 0) {
+    alert('Please fix the following before submitting:\n\n• ' + errors.join('\n• '));
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⌛ Generating SHA-256...';
+
+  const preregId = genPreregId();
+  const timestamp = new Date().toISOString();
+  const rq = document.getElementById('fRQ').value.trim();
+  const hypo = document.getElementById('fHypo').value.trim();
+  const metric = document.getElementById('fMetric').value;
+  const success = parseFloat(document.getElementById('fSuccess').value);
+  const failure = parseFloat(document.getElementById('fFailure').value);
+  const nullZone = `[${failure}, ${success})`;
+  const method = document.getElementById('fMethod').value.trim();
+  const analysis = document.getElementById('fAnalysis').value.trim();
+  const reps = parseInt(document.getElementById('fReplications').value);
+  const limitations = document.getElementById('fLimitations').value.trim();
+  const seed = parseInt(document.getElementById('fSeed').value) || 42;
+  const tool = document.getElementById('fTool').value.trim();
+  const hardware = document.getElementById('fHardware').value.trim();
+  const dataset = document.getElementById('fDataset').value.trim();
+  const codeRef = document.getElementById('fCodeRef').value.trim();
+
+  const payload = {
+    preregId,
+    timestamp,
+    research_question: rq,
+    hypothesis: hypo,
+    primary_metric: metric,
+    success_threshold: success,
+    failure_threshold: failure,
+    null_zone: nullZone,
+    methodology: method,
+    planned_analysis: analysis,
+    planned_replications: reps,
+    known_limitations: limitations,
+    base_random_seed: seed,
+    tool_library: tool || null,
+    hardware: hardware || null,
+    dataset_reference: dataset || null,
+    code_reference: codeRef || null
+  };
+
+  try {
+    const hash = await sha256(JSON.stringify(payload));
+    payload.sha256 = hash;
+
+    // Store in localStorage
+    const existing = JSON.parse(localStorage.getItem('p2pclaw-preregs') || '[]');
+    existing.push(payload);
+    localStorage.setItem('p2pclaw-preregs', JSON.stringify(existing));
+    localStorage.setItem('p2pclaw-active-prereg', preregId);
+
+    // Update soul.md
+    const soul = JSON.parse(localStorage.getItem('p2pclaw-soul') || '{}');
+    soul.active_prereg = preregId;
+    if (!soul.agent_id) soul.agent_id = 'openclaw-agent-' + Math.random().toString(36).slice(2,8);
+    localStorage.setItem('p2pclaw-soul', JSON.stringify(soul));
+
+    // Store in Gun.js
+    try {
+      gun.get('preregistrations').get(preregId).put(payload);
+    } catch(e) { console.warn('Gun.js store warning:', e); }
+
+    // Update trace in board
+    try {
+      const trace = JSON.parse(localStorage.getItem('p2pclaw-trace') || '["R0C0"]');
+      if (!trace.includes('R2C1')) { trace.push('R2C1'); localStorage.setItem('p2pclaw-trace', JSON.stringify(trace)); }
+      const visited = JSON.parse(localStorage.getItem('p2pclaw-visited') || '["R0C0"]');
+      if (!visited.includes('R2C1')) { visited.push('R2C1'); localStorage.setItem('p2pclaw-visited', JSON.stringify(visited)); }
+    } catch(e) {}
+
+    currentPreregId = preregId;
+    currentPayload = payload;
+
+    // Show success
+    lockForm();
+    showSuccess(preregId, hash, timestamp);
+    loadRegistry();
+
+  } catch(err) {
+    btn.disabled = false;
+    btn.textContent = '⊞ Lock Pre-Registration';
+    alert('Error during pre-registration: ' + err.message);
+  }
+}
+
+function lockForm() {
+  formLocked = true;
+  const inputs = document.querySelectorAll('#mainForm input, #mainForm textarea, #mainForm select');
+  inputs.forEach(el => { el.disabled = true; });
+  document.getElementById('submitBtn').style.display = 'none';
+  document.getElementById('clearBtn').style.display = 'none';
+}
+
+function showSuccess(preregId, hash, timestamp) {
+  document.getElementById('successId').textContent = preregId;
+  document.getElementById('successHash').textContent = hash;
+  document.getElementById('successTs').textContent = timestamp;
+  document.getElementById('successCard').classList.add('visible');
+  document.getElementById('successCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyField(elementId) {
+  const val = document.getElementById(elementId).textContent;
+  navigator.clipboard.writeText(val).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function startNewPrereg() {
+  if (!confirm('Start a new pre-registration? This will clear the form but keep your existing records in the registry.')) return;
+  formLocked = false;
+  currentPreregId = null;
+  currentPayload = null;
+  document.getElementById('successCard').classList.remove('visible');
+  const inputs = document.querySelectorAll('#mainForm input, #mainForm textarea, #mainForm select');
+  inputs.forEach(el => { el.disabled = false; el.value = ''; });
+  document.getElementById('fSeed').value = '42';
+  document.getElementById('submitBtn').style.display = '';
+  document.getElementById('clearBtn').style.display = '';
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('submitBtn').textContent = '⊞ Lock Pre-Registration';
+  document.getElementById('methodCount').textContent = '0 / 200 chars minimum';
+  document.getElementById('methodCount').style.color = 'var(--text-muted)';
+  document.getElementById('nullZoneValue').textContent = 'Set both thresholds to calculate null zone';
+  document.getElementById('thresholdDiagram').style.display = 'none';
+  document.getElementById('repHint').textContent = 'Each replication = independent run with different random seed';
+  document.getElementById('repHint').style.color = 'var(--text-muted)';
+}
+
+function clearFormConfirm() {
+  if (formLocked) return;
+  if (!confirm('Clear all form fields?')) return;
+  document.getElementById('fRQ').value = '';
+  document.getElementById('fHypo').value = '';
+  document.getElementById('fMetric').value = '';
+  document.getElementById('fSuccess').value = '';
+  document.getElementById('fFailure').value = '';
+  document.getElementById('fMethod').value = '';
+  document.getElementById('fAnalysis').value = '';
+  document.getElementById('fReplications').value = '';
+  document.getElementById('fSeed').value = '42';
+  document.getElementById('fLimitations').value = '';
+  document.getElementById('fTool').value = '';
+  document.getElementById('fHardware').value = '';
+  document.getElementById('fDataset').value = '';
+  document.getElementById('fCodeRef').value = '';
+  updateMethodCount();
+  updateThresholds();
+  checkReplications();
+}
+
+function exportPrereg() {
+  if (!currentPayload) return;
+  const blob = new Blob([JSON.stringify(currentPayload, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (currentPreregId || 'prereg') + '.json';
+  a.click();
+}
+
+// ── Init ──
+loadRegistry();
+
+// Autofill from URL params (e.g., ?rq=...&metric=...)
+const params = new URLSearchParams(window.location.search);
+if (params.get('rq')) document.getElementById('fRQ').value = params.get('rq');
+if (params.get('metric')) document.getElementById('fMetric').value = params.get('metric');
+if (params.get('hypo')) document.getElementById('fHypo').value = params.get('hypo');
+</script>
+</body>
+</html>
