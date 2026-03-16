@@ -1891,8 +1891,8 @@ app.post("/publish-paper", async (req, res) => {
             // In-memory index so /mempool and auto-validator don't need map().once()
             swarmCache.mempoolPapers.push({ paperId, title, author: author || "API-User", author_id: authorId, tier: 'TIER1_VERIFIED', network_validations: 0, validations_by: null, avg_occam_score: null, timestamp: now, status: 'MEMPOOL', ipfs_cid: t1_cid || null });
 
-            // Sync to GitHub automatically
-            syncPaperToGitHub(paperId, paperObj).catch(err => console.error("[GH-SYNC] Unhandled error:", err));
+            // Sync to GitHub — awaited so Railway restarts can't lose the paper before it's saved
+            await syncPaperToGitHub(paperId, paperObj);
 
             updateInvestigationProgress(title, content);
             broadcastHiveEvent('paper_submitted', { id: paperId, title, author: author || 'API-User', tier: 'TIER1_VERIFIED' });
@@ -1952,9 +1952,9 @@ app.post("/publish-paper", async (req, res) => {
         // In-memory index so /mempool and auto-validator don't need map().once()
         swarmCache.mempoolPapers.push({ paperId, title, author: author || "API-User", author_id: authorId, tier: 'UNVERIFIED', network_validations: 0, validations_by: null, avg_occam_score: null, timestamp: now, status: 'MEMPOOL', ipfs_cid: paperData.ipfs_cid || null });
 
-        // Sync to GitHub automatically
-        syncPaperToGitHub(paperId, paperData).catch(err => console.error("[GH-SYNC] Unhandled error:", err));
-        
+        // Sync to GitHub — awaited so Railway restarts can't lose the paper before it's saved
+        await syncPaperToGitHub(paperId, paperData);
+
         // Instant registration to block rapid-fire duplicates across relay nodes
         const normTitle = normalizeTitle(title);
         titleCache.add(normTitle);
