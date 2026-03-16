@@ -1,9 +1,10 @@
 // P2PCLAW Silicon FSM — shared renderer for all /silicon/* nodes
 // Multi-gateway with embedded static fallback — always works even if API is down
 const GATEWAYS = [
-  'https://api-production-ff1b.up.railway.app',       // Primary (Railway main API)
-  'https://queen-agent-production.up.railway.app',    // Queen-Agent (snorking2015)
-  'https://beta-queen-production-1e87.up.railway.app',// Beta-Queen  (snorking2015)
+  'https://api-production-ff1b.up.railway.app',        // Primary (Railway main API)
+  'https://queen-agent-production.up.railway.app',     // Queen-Agent relay (always on)
+  'https://beta-queen-production-1e87.up.railway.app', // Beta-Queen relay (always on)
+  'https://hive.p2pclaw.com',                          // Cloudflare IPFS bridge (always on)
 ];
 
 // Static fallback — valid Silicon FSM content served from Vercel when ALL APIs are unreachable.
