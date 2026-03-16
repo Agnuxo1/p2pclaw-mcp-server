@@ -3748,13 +3748,13 @@ if (process.env.NODE_ENV !== 'test') {
                 global.gc();
                 const afterTrim = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
                 console.warn(`[GC] After trim + GC: ${afterTrim}MB`);
-                if (afterTrim > 280) {
-                    console.error(`[GC] CRITICAL: heap ${afterTrim}MB > 280MB — clean restart (radata wiped on boot)`);
+                if (afterTrim > 400) {
+                    console.error(`[GC] CRITICAL: heap ${afterTrim}MB > 400MB — clean restart (radata wiped on boot)`);
                     process.exit(1); // Railway ON_FAILURE restarts; radata wiped → clean 90MB baseline
                 }
             }
         }, 30 * 1000); // Every 30s
-        console.log('[GC] Memory watchdog: trim@150MB, restart@280MB, radata wiped on boot.');
+        console.log('[GC] Memory watchdog: trim@150MB, restart@400MB, radata wiped on boot.');
     }
 
     // Phase 3: Periodic Nash Stability Check (every 4h — was 30min, too frequent for Gun.js)
