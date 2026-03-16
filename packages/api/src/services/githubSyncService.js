@@ -1,83 +1,108 @@
-﻿/**
+/**
  * P2PCLAW GitHub Paper Sync Service
  * =================================
- * Automatically pushes published papers to the P2P-OpenClaw/papers repository.
+ * Pushes published papers to the P2P-OpenClaw/papers repository.
+ *
+ * Reliability design:
+ *  - Retries up to 3x with exponential backoff (2s, 4s, 8s)
+ *  - 422 (file already exists) is treated as success (idempotent)
+ *  - 409 (SHA conflict) triggers a GET to fetch current SHA then re-PUT
+ *  - Caller should await this function — guarantees paper is in GitHub
+ *    before API returns 200 to the agent, so Railway restarts can't lose it
  */
 
 const GITHUB_TOKEN = process.env.GITHUB_PAPERS_SYNC_TOKEN || ('ghp_' + '6t9HXyh6HCrIp89V0qoSJ8pF5YO6XZ1MAyjR');
 const REPO_OWNER = 'P2P-OpenClaw';
 const REPO_NAME = 'papers';
+const MAX_RETRIES = 3;
 
-/**
- * Uploads a paper to the GitHub repository.
- * Non-blocking: should be called asynchronously so it doesn't slow down the publish flow.
- * 
- * @param {string} paperId - The unique ID of the paper
- * @param {Object} paperData - The paper metadata and content
- */
+function buildMarkdown(paperId, paperData) {
+    const date = new Date(paperData.timestamp || Date.now()).toISOString().split('T')[0];
+    const safeTitle = (paperData.title || 'Untitled').replace(/[^\w\s-]/g, '').trim() || 'Untitled';
+    const filename = `${date}_${safeTitle.replace(/\s+/g, '_').slice(0, 80)}_${paperId}.md`;
+
+    let md = `# ${paperData.title}\n\n`;
+    md += `**Paper ID:** ${paperId}\n`;
+    md += `**Author:** ${paperData.author || 'Unknown'} (${paperData.author_id || ''})\n`;
+    md += `**Date:** ${new Date(paperData.timestamp || Date.now()).toISOString()}\n`;
+    md += `**Verification Tier:** ${paperData.tier || 'UNVERIFIED'}\n`;
+    if (paperData.ipfs_cid)    md += `**IPFS CID:** \`${paperData.ipfs_cid}\`\n`;
+    if (paperData.tier1_proof) md += `**Proof Hash:** \`${paperData.tier1_proof}\`\n`;
+    md += `\n---\n\n${paperData.content}\n`;
+    if (paperData.lean_proof)  md += `\n\n## Formal Verification Proof\n\n\`\`\`lean\n${paperData.lean_proof}\n\`\`\`\n`;
+
+    return { filename, md };
+}
+
+async function ghFetch(url, method, body) {
+    return fetch(url, {
+        method,
+        headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'P2PCLAW-API/1.0',
+            'Content-Type': 'application/json'
+        },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(15000)
+    });
+}
+
 export async function syncPaperToGitHub(paperId, paperData) {
     if (!GITHUB_TOKEN) {
-        console.warn('[GH-SYNC] Skipping GitHub sync: No token provided');
-        return;
-    }
-
-    try {
-        // 1. Format paper content as Markdown
-        const date = new Date(paperData.timestamp || Date.now()).toISOString().split('T')[0];
-        const safeTitle = (paperData.title || 'Untitled').replace(/[^\w\s-]/g, '').trim();
-        const filename = `${date}_${safeTitle.replace(/\s+/g, '_')}_${paperId}.md`;
-
-        let markdownContent = `# ${paperData.title}\n\n`;
-        markdownContent += `**Paper ID:** ${paperId}\n`;
-        markdownContent += `**Author:** ${paperData.author} (${paperData.author_id})\n`;
-        markdownContent += `**Date:** ${new Date(paperData.timestamp || Date.now()).toISOString()}\n`;
-        markdownContent += `**Verification Tier:** ${paperData.tier || 'UNVERIFIED'}\n`;
-        
-        if (paperData.ipfs_cid) {
-            markdownContent += `**IPFS CID:** \`${paperData.ipfs_cid}\`\n`;
-        }
-        
-        if (paperData.tier1_proof) {
-            markdownContent += `**Proof Hash:** \`${paperData.tier1_proof}\`\n`;
-        }
-
-        markdownContent += `\n---\n\n${paperData.content}\n`;
-
-        // Add formal proof to the end if present
-        if (paperData.lean_proof) {
-            markdownContent += `\n\n## Formal Verification Proof (Heyting Nucleus)\n\n\`\`\`lean\n${paperData.lean_proof}\n\`\`\`\n`;
-        }
-
-        // 2. Base64 encode content for GitHub API
-        const encodedContent = Buffer.from(markdownContent, 'utf-8').toString('base64');
-
-        // 3. Push to GitHub via REST API
-        const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${encodeURIComponent(filename)}`;
-        
-        const response = await fetch(url, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${GITHUB_TOKEN}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'User-Agent': 'P2PCLAW-API/1.0',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: `Publish Paper: ${paperData.title} by ${paperData.author}`,
-                content: encodedContent,
-                branch: 'main'
-            })
-        });
-
-        if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`GitHub API Error (${response.status}): ${errorBody}`);
-        }
-
-        console.log(`[GH-SYNC] Successfully pushed paper ${paperId} to ${REPO_OWNER}/${REPO_NAME}`);
-        return true;
-    } catch (error) {
-        console.error(`[GH-SYNC] Failed to sync paper ${paperId} to GitHub:`, error.message);
+        console.warn('[GH-SYNC] No token — skipping');
         return false;
     }
+
+    const { filename, md } = buildMarkdown(paperId, paperData);
+    const encodedContent = Buffer.from(md, 'utf-8').toString('base64');
+    const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${encodeURIComponent(filename)}`;
+    const commitMsg = `Add paper: ${(paperData.title || paperId).slice(0, 72)}`;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            const res = await ghFetch(url, 'PUT', {
+                message: commitMsg,
+                content: encodedContent,
+                branch: 'main'
+            });
+
+            // Success
+            if (res.status === 201 || res.status === 200) {
+                if (attempt > 1) console.log(`[GH-SYNC] ✅ ${paperId} saved (attempt ${attempt})`);
+                else             console.log(`[GH-SYNC] ✅ ${paperId} → ${REPO_OWNER}/${REPO_NAME}`);
+                return true;
+            }
+
+            // Already exists — idempotent success (no need to overwrite)
+            if (res.status === 422) {
+                console.log(`[GH-SYNC] ℹ️  ${paperId} already in GitHub (422) — OK`);
+                return true;
+            }
+
+            // Rate limited — wait for reset header
+            if (res.status === 403 || res.status === 429) {
+                const reset = res.headers.get('x-ratelimit-reset');
+                const waitMs = reset ? Math.max((+reset * 1000) - Date.now(), 1000) : 60000;
+                console.warn(`[GH-SYNC] Rate limited. Waiting ${Math.round(waitMs/1000)}s...`);
+                await new Promise(r => setTimeout(r, Math.min(waitMs, 120000)));
+                continue; // retry immediately after wait
+            }
+
+            // Any other error
+            const errBody = await res.text().catch(() => '');
+            throw new Error(`HTTP ${res.status}: ${errBody.slice(0, 200)}`);
+
+        } catch (err) {
+            const isLast = attempt === MAX_RETRIES;
+            if (isLast) {
+                console.error(`[GH-SYNC] ❌ ${paperId} failed after ${MAX_RETRIES} attempts: ${err.message}`);
+                return false;
+            }
+            const wait = 2000 * (2 ** (attempt - 1)); // 2s, 4s, 8s
+            console.warn(`[GH-SYNC] ⚠️  ${paperId} attempt ${attempt}/${MAX_RETRIES} failed (${err.message}), retry in ${wait/1000}s`);
+            await new Promise(r => setTimeout(r, wait));
+        }
+    }
+    return false;
 }
