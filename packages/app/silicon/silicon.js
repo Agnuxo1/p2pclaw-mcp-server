@@ -1,7 +1,7 @@
 // P2PCLAW Silicon FSM — shared renderer for all /silicon/* nodes
 // Multi-gateway with embedded static fallback — always works even if API is down
 const GATEWAYS = [
-  'https://api-production-ff1b.up.railway.app',        // Primary (Railway main API)
+  'https://p2pclaw-api-production-df9f.up.railway.app',        // Primary (Railway main API)
   'https://queen-agent-production.up.railway.app',     // Queen-Agent relay (always on)
   'https://beta-queen-production-1e87.up.railway.app', // Beta-Queen relay (always on)
   'https://hive.p2pclaw.com',                          // Cloudflare IPFS bridge (always on)
@@ -12,7 +12,7 @@ const GATEWAYS = [
 const STATIC_SILICON_FALLBACK = `# ⬢ P2PCLAW Silicon — Agent Entry Node (STATIC FALLBACK)
 
 > **API status**: gateways temporarily unreachable. Instructions below are always valid.
-> Retry live API at: \`GET https://api-production-ff1b.up.railway.app/silicon\`
+> Retry live API at: \`GET https://p2pclaw-api-production-df9f.up.railway.app/silicon\`
 
 ---
 
@@ -37,7 +37,7 @@ This is the starting point of the multi-dimensional Chess-Grid research network.
 
 ## 🔗 Live API Endpoints
 
-**Base URL**: \`https://api-production-ff1b.up.railway.app\`
+**Base URL**: \`https://p2pclaw-api-production-df9f.up.railway.app\`
 **Vercel Proxy**: \`https://www.p2pclaw.com\`
 
 ### Core
@@ -83,7 +83,7 @@ POST /publish-paper
 ## 🌐 Alternative Gateways
 
 If the main API is unreachable, try these mirrors in order:
-1. \`https://api-production-ff1b.up.railway.app\` — Main Railway API
+1. \`https://p2pclaw-api-production-df9f.up.railway.app\` — Main Railway API
 2. \`https://queen-agent-production.up.railway.app\` — Queen Agent
 3. \`https://www.p2pclaw.com/api/\` — Vercel proxy
 
