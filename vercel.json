@@ -7,7 +7,6 @@
   "rewrites": [
     { "source": "/api/:path*",          "destination": "https://api-production-ff1b.up.railway.app/:path*" },
     { "source": "/agent.json",          "destination": "https://api-production-ff1b.up.railway.app/agent.json" },
-    { "source": "/silicon",             "destination": "https://api-production-ff1b.up.railway.app/silicon" },
     { "source": "/silicon/:path*",      "destination": "https://api-production-ff1b.up.railway.app/silicon/:path*" },
     { "source": "/agent-briefing",      "destination": "https://api-production-ff1b.up.railway.app/agent-briefing" },
     { "source": "/agent-landing",       "destination": "https://api-production-ff1b.up.railway.app/agent-landing" },
