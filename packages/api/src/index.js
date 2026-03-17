@@ -4121,6 +4121,146 @@ console.log('[PURGE-CRON] Auto-purge scheduled: every 6h (no boot-time run).');
 setTimeout(() => migrateExistingPapersToIPFS(db).catch(e => console.error('[IPFS-MIGRATE] Error:', e.message)), 240_000);
 console.log('[IPFS-MIGRATE] Migration scheduled: boot+240s.');
 
+// ── POST /pin-external — generate CIDv1 + store in Gun.js ──────────────────
+// Called by browser Helia fallback. Generates real CIDv1 (sha2-256) from content.
+// Does NOT pin to external IPFS (no API keys) but creates a verifiable CID.
+app.post('/pin-external', async (req, res) => {
+    try {
+        const { data } = req.body || {};
+        if (!data) return res.status(400).json({ error: 'data required' });
+
+        const content = typeof data === 'string' ? data : JSON.stringify(data);
+        const hash = crypto.createHash('sha256').update(content).digest();
+
+        // Build CIDv1: version(1) + codec dag-json(0x0129) + sha2-256 multihash
+        const multihash = Buffer.concat([Buffer.from([0x12, 0x20]), hash]);
+        const cidBytes = Buffer.concat([Buffer.from([0x01, 0x85, 0x02]), multihash]);
+
+        const BASE32_ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567';
+        function toBase32(buf) {
+            let result = ''; let bits = 0, value = 0;
+            for (let i = 0; i < buf.length; i++) {
+                value = (value << 8) | buf[i]; bits += 8;
+                while (bits >= 5) { bits -= 5; result += BASE32_ALPHABET[(value >> bits) & 31]; }
+            }
+            if (bits > 0) result += BASE32_ALPHABET[(value << (5 - bits)) & 31];
+            return result;
+        }
+        const cid = 'b' + toBase32(cidBytes);
+
+        const title = (typeof data === 'object' && data?.title) ? String(data.title).slice(0, 100) : 'untitled';
+        db.get('ipfs_index').get(cid).put(gunSafe({ cid, title, timestamp: Date.now(), size: content.length }));
+
+        console.log('[IPFS] CID generated: ' + cid.slice(0, 20) + '... for "' + title + '"');
+        res.json({ success: true, cid, url: 'ipfs://' + cid, storedLocally: true });
+    } catch (err) {
+        console.error('[IPFS] pin-external error:', err.message);
+        res.status(500).json({ error: 'CID generation failed', detail: err.message });
+    }
+});
+
+// ── POST /swarm-metrics — collect browser node telemetry ────────────────────
+const browserNodeMetrics = {
+    totalNodes: 0, activeNodes: 0, gunPeersTotal: 0, ipfsPeersTotal: 0,
+    contributingNodes: 0, swActiveNodes: 0, lastWindow: [], lastReset: Date.now(),
+};
+
+app.post('/swarm-metrics', (req, res) => {
+    try {
+        const m = req.body || {};
+        const now = Date.now();
+        browserNodeMetrics.lastWindow = [
+            ...browserNodeMetrics.lastWindow.filter(e => now - e.ts < 5 * 60 * 1000),
+            { ts: now, gunPeers: m.gun_peers || 0, ipfsPeers: m.ipfs_peers || 0,
+              contributing: !!m.is_contributing, swActive: !!m.sw_active }
+        ];
+        const w = browserNodeMetrics.lastWindow;
+        browserNodeMetrics.totalNodes = w.length;
+        browserNodeMetrics.activeNodes = w.filter(e => now - e.ts < 60 * 1000).length;
+        browserNodeMetrics.gunPeersTotal = w.reduce((s, e) => s + e.gunPeers, 0);
+        browserNodeMetrics.ipfsPeersTotal = w.reduce((s, e) => s + e.ipfsPeers, 0);
+        browserNodeMetrics.contributingNodes = w.filter(e => e.contributing).length;
+        browserNodeMetrics.swActiveNodes = w.filter(e => e.swActive).length;
+        res.json({ received: true, browserNodes: browserNodeMetrics.activeNodes });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── GET /metrics — Prometheus metrics ───────────────────────────────────────
+app.get('/metrics', (req, res) => {
+    const agentCount = swarmCache.agents.size;
+    const mempoolCount = swarmCache.mempoolPapers.length;
+    const paperCount = swarmCache.paperStats?.verified ?? 0;
+    const heapMB = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+    const bm = browserNodeMetrics;
+    res.type('text/plain; version=0.0.4; charset=utf-8');
+    res.send([
+        '# HELP p2pclaw_agents_total Total registered agents',
+        '# TYPE p2pclaw_agents_total gauge',
+        'p2pclaw_agents_total ' + agentCount,
+        '',
+        '# HELP p2pclaw_papers_verified Verified papers in La Rueda',
+        '# TYPE p2pclaw_papers_verified gauge',
+        'p2pclaw_papers_verified ' + paperCount,
+        '',
+        '# HELP p2pclaw_mempool_pending Papers pending validation',
+        '# TYPE p2pclaw_mempool_pending gauge',
+        'p2pclaw_mempool_pending ' + mempoolCount,
+        '',
+        '# HELP p2pclaw_heap_mb Node.js heap usage in MB',
+        '# TYPE p2pclaw_heap_mb gauge',
+        'p2pclaw_heap_mb ' + heapMB,
+        '',
+        '# HELP p2pclaw_browser_nodes Browser nodes reporting in last 5min',
+        '# TYPE p2pclaw_browser_nodes gauge',
+        'p2pclaw_browser_nodes ' + bm.totalNodes,
+        '',
+        '# HELP p2pclaw_browser_nodes_active Browser nodes reporting in last 1min',
+        '# TYPE p2pclaw_browser_nodes_active gauge',
+        'p2pclaw_browser_nodes_active ' + bm.activeNodes,
+        '',
+        '# HELP p2pclaw_browser_gun_peers_total Sum of Gun.js peers across browser nodes',
+        '# TYPE p2pclaw_browser_gun_peers_total gauge',
+        'p2pclaw_browser_gun_peers_total ' + bm.gunPeersTotal,
+        '',
+        '# HELP p2pclaw_browser_ipfs_peers_total Sum of IPFS peers across browser nodes',
+        '# TYPE p2pclaw_browser_ipfs_peers_total gauge',
+        'p2pclaw_browser_ipfs_peers_total ' + bm.ipfsPeersTotal,
+        '',
+        '# HELP p2pclaw_browser_contributing_nodes Nodes actively serving data',
+        '# TYPE p2pclaw_browser_contributing_nodes gauge',
+        'p2pclaw_browser_contributing_nodes ' + bm.contributingNodes,
+        '',
+        '# HELP p2pclaw_service_worker_nodes Browsers with Service Worker active',
+        '# TYPE p2pclaw_service_worker_nodes gauge',
+        'p2pclaw_service_worker_nodes ' + bm.swActiveNodes,
+    ].join('\n'));
+});
+
+// ── GET/POST /helia-peers — Helia browser peer exchange ─────────────────────
+const heliaPeers = new Map();
+
+app.post('/helia-peers', (req, res) => {
+    const { peerId, multiaddrs } = req.body || {};
+    if (!peerId) return res.status(400).json({ error: 'peerId required' });
+    heliaPeers.set(peerId, { multiaddrs: multiaddrs || [], lastSeen: Date.now() });
+    const now = Date.now();
+    for (const [id, peer] of heliaPeers) {
+        if (now - peer.lastSeen > 10 * 60 * 1000) heliaPeers.delete(id);
+    }
+    res.json({ received: true, totalPeers: heliaPeers.size });
+});
+
+app.get('/helia-peers', (req, res) => {
+    const now = Date.now();
+    const active = [];
+    for (const [peerId, peer] of heliaPeers) {
+        if (now - peer.lastSeen < 10 * 60 * 1000) {
+            active.push({ peerId, multiaddrs: peer.multiaddrs, lastSeen: peer.lastSeen });
+        }
+    }
+    res.json({ peers: active, total: active.length });
+});
+
 // â”€â”€ Start Server (Railway strictly requires binding to process.env.PORT) â”€â”€
 // NOTE: Server already started above (~line 3650). Duplicate startServer() removed
 // to prevent EADDRINUSE -> process.exit(1) crash loop on every Railway boot.
