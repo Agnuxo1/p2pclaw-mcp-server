@@ -76,6 +76,7 @@ import { requireTier2 } from "./middleware/auth.js";
 import { spawnAgent, getSpawnedAgents } from "./services/evolutionService.js";
 import { getAgentMemory, saveMemory, loadMemory } from "./services/agentMemoryService.js";
 import { dhtAnnounce, dhtFindPeers, dhtStats, bootstrapDHT, LOCAL_NODE_ID } from "./services/kademliaService.js";
+import { submitJob, claimJob, submitResult, registerWorker, listJobs, getJob, getSimStats, trimSimQueue, SUPPORTED_TOOLS } from "./services/simulationService.js";
 
 // â”€â”€ Server-side Ed25519 keypair (API node identity) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Generated once at boot and stored in env var API_PRIVATE_KEY / API_PUBLIC_KEY.
@@ -517,6 +518,105 @@ POST /validate-paper { "paperId": "...", "agentId": "mi-bot-id", "result": true 
 ## ÃšNETE AHORA: Sin registro, sin API key, gratis.
     `;
     serveMarkdown(res, md);
+});
+
+// ── OPEN-TOOL MULTIVERSE — Distributed Simulation Layer ─────────────────────
+// P2P job queue: agents submit simulation tasks, worker nodes execute locally.
+// Workers run on researchers' own machines — zero server CPU cost.
+
+/** GET /simulation/tools — list supported simulation tools */
+app.get("/simulation/tools", (req, res) => {
+  res.json({ tools: SUPPORTED_TOOLS, consensus_threshold: 2 });
+});
+
+/** GET /simulation/stats — queue stats for dashboards */
+app.get("/simulation/stats", (req, res) => {
+  res.json(getSimStats());
+});
+
+/** POST /simulation/submit — agent submits a simulation job */
+app.post("/simulation/submit", (req, res) => {
+  try {
+    const { tool, params, agentId, agentName } = req.body;
+    if (!tool) return res.status(400).json({ error: "tool is required" });
+    const job = submitJob({ tool, params, requesterAgentId: agentId, requesterName: agentName });
+    res.status(201).json({ jobId: job.id, status: job.status, tool: job.tool });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/** GET /simulation/jobs — list jobs (worker polling endpoint) */
+app.get("/simulation/jobs", (req, res) => {
+  const { status, tool, limit = 50, offset = 0 } = req.query;
+  const jobs = listJobs({ status, tool, limit: Number(limit), offset: Number(offset) });
+  res.json({ jobs, total: jobs.length });
+});
+
+/** GET /simulation/:jobId — get a specific job */
+app.get("/simulation/:jobId", (req, res) => {
+  const job = getJob(req.params.jobId);
+  if (!job) return res.status(404).json({ error: "Job not found" });
+  res.json(job);
+});
+
+/** POST /simulation/:jobId/claim — worker claims a job */
+app.post("/simulation/:jobId/claim", (req, res) => {
+  const { workerId } = req.body;
+  if (!workerId) return res.status(400).json({ error: "workerId required" });
+  const job = claimJob(req.params.jobId, workerId);
+  if (!job) return res.status(409).json({ error: "Job not available or already claimed" });
+  res.json({ jobId: job.id, status: job.status, claimedBy: job.claimedBy });
+});
+
+/** PUT /simulation/:jobId/result — worker submits computation result */
+app.put("/simulation/:jobId/result", (req, res) => {
+  try {
+    const { workerId, workerPubkey, result, resultHash } = req.body;
+    if (!workerId || result === undefined) {
+      return res.status(400).json({ error: "workerId and result are required" });
+    }
+    const job = submitResult(req.params.jobId, { workerId, workerPubkey, result, resultHash });
+    if (!job) return res.status(404).json({ error: "Job not found" });
+    res.json({ jobId: job.id, status: job.status, verified: job.verified,
+               consensus_hash: job.consensus_hash, results_count: job.results.length });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/** POST /simulation/worker/register — worker announces its capabilities */
+app.post("/simulation/worker/register", (req, res) => {
+  try {
+    const { workerId, agentId, tools, pubkey, endpoint } = req.body;
+    if (!workerId) return res.status(400).json({ error: "workerId required" });
+    const worker = registerWorker({ workerId, agentId, tools, pubkey, endpoint });
+    res.json({ registered: true, worker });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/** GET /simulation/workers/list — list registered worker nodes */
+app.get("/simulation/workers/list", (req, res) => {
+  const workers = [...(workerRegistry?.values() ?? [])].map(w => ({
+    workerId: w.workerId,
+    tools: w.tools,
+    lastSeen: w.lastSeen,
+    online: Date.now() - w.lastSeen < 5 * 60 * 1000,
+  }));
+  res.json({ workers, total: workers.length });
+});
+
+/** GET /simulation/worker/download — serve the Python worker node script */
+app.get("/simulation/worker/download", (req, res) => {
+  const workerScriptPath = path.join(path.dirname(__dirname), '..', '..', 'p2p-worker-node.py');
+  if (fs.existsSync(workerScriptPath)) {
+    res.setHeader('Content-Disposition', 'attachment; filename="p2p-worker-node.py"');
+    res.setHeader('Content-Type', 'text/x-python');
+    return res.sendFile(path.resolve(workerScriptPath));
+  }
+  res.status(404).json({ error: 'Worker script not found' });
 });
 
 // ── SILICON FSM TREE — Chess-Grid Architecture v3.0 ────────────────
@@ -3736,6 +3836,8 @@ if (process.env.NODE_ENV !== 'test') {
                 if (typeof tauCoordinator !== 'undefined' && typeof tauCoordinator.evictStale === 'function') {
                     tauCoordinator.evictStale();
                 }
+                // Trim simulation job queue
+                trimSimQueue(100);
                 // Trim swarmCache.agents — Map grows unbounded with repeated /quick-join calls
                 if (swarmCache.agents instanceof Map && swarmCache.agents.size > 100) {
                     const sorted = [...swarmCache.agents.entries()]
