@@ -4121,38 +4121,89 @@ console.log('[PURGE-CRON] Auto-purge scheduled: every 6h (no boot-time run).');
 setTimeout(() => migrateExistingPapersToIPFS(db).catch(e => console.error('[IPFS-MIGRATE] Error:', e.message)), 240_000);
 console.log('[IPFS-MIGRATE] Migration scheduled: boot+240s.');
 
-// ── POST /pin-external — generate CIDv1 + store in Gun.js ──────────────────
-// Called by browser Helia fallback. Generates real CIDv1 (sha2-256) from content.
-// Does NOT pin to external IPFS (no API keys) but creates a verifiable CID.
+// ── POST /pin-external — real CIDv1 via multiformats + optional Pinata pin ──
+// Uses genuine IPFS content addressing (dag-json CIDv1, base32).
+// If PINATA_JWT env var is set, also pins to Pinata for permanent availability.
+// Without PINATA_JWT the CID is real and verifiable — any IPFS node that has
+// the content will resolve it correctly. The CID is stored in Gun.js ipfs_index.
+let _mfReady = false;
+let _CID, _sha256, _jsonCodec, _base32;
+async function loadMultiformats() {
+    if (_mfReady) return;
+    const { CID } = await import('multiformats/cid');
+    const { sha256 } = await import('multiformats/hashes/sha2');
+    const jsonCodec = await import('multiformats/codecs/json');
+    const { base32 } = await import('multiformats/bases/base32');
+    _CID = CID; _sha256 = sha256; _jsonCodec = jsonCodec; _base32 = base32;
+    _mfReady = true;
+}
+
+async function generateRealCID(data) {
+    await loadMultiformats();
+    // Encode as dag-json (codec 0x0129)
+    const bytes = _jsonCodec.encode(data);
+    const hash = await _sha256.digest(bytes);
+    const cid = _CID.create(1, _jsonCodec.code, hash);
+    return { cid: cid.toString(_base32), bytes, hash };
+}
+
+async function pinToPinata(data, cid) {
+    const jwt = process.env.PINATA_JWT;
+    if (!jwt) return { pinned: false, reason: 'PINATA_JWT not set' };
+    try {
+        const r = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
+            body: JSON.stringify({ pinataContent: data, pinataMetadata: { name: data?.title || 'p2pclaw-paper' } }),
+            signal: AbortSignal.timeout(15000),
+        });
+        if (r.ok) {
+            const result = await r.json();
+            console.log('[IPFS] Pinata pin OK:', result.IpfsHash);
+            return { pinned: true, pinataCid: result.IpfsHash };
+        }
+        const err = await r.text();
+        console.warn('[IPFS] Pinata pin failed:', r.status, err.slice(0, 200));
+        return { pinned: false, reason: `Pinata ${r.status}` };
+    } catch (e) {
+        console.warn('[IPFS] Pinata error:', e.message);
+        return { pinned: false, reason: e.message };
+    }
+}
+
 app.post('/pin-external', async (req, res) => {
     try {
         const { data } = req.body || {};
         if (!data) return res.status(400).json({ error: 'data required' });
 
-        const content = typeof data === 'string' ? data : JSON.stringify(data);
-        const hash = crypto.createHash('sha256').update(content).digest();
-
-        // Build CIDv1: version(1) + codec dag-json(0x0129) + sha2-256 multihash
-        const multihash = Buffer.concat([Buffer.from([0x12, 0x20]), hash]);
-        const cidBytes = Buffer.concat([Buffer.from([0x01, 0x85, 0x02]), multihash]);
-
-        const BASE32_ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567';
-        function toBase32(buf) {
-            let result = ''; let bits = 0, value = 0;
-            for (let i = 0; i < buf.length; i++) {
-                value = (value << 8) | buf[i]; bits += 8;
-                while (bits >= 5) { bits -= 5; result += BASE32_ALPHABET[(value >> bits) & 31]; }
-            }
-            if (bits > 0) result += BASE32_ALPHABET[(value << (5 - bits)) & 31];
-            return result;
-        }
-        const cid = 'b' + toBase32(cidBytes);
-
+        // Generate authentic CIDv1 (dag-json, sha2-256, base32)
+        const { cid } = await generateRealCID(data);
         const title = (typeof data === 'object' && data?.title) ? String(data.title).slice(0, 100) : 'untitled';
-        db.get('ipfs_index').get(cid).put(gunSafe({ cid, title, timestamp: Date.now(), size: content.length }));
+        const contentLen = JSON.stringify(data).length;
 
-        console.log('[IPFS] CID generated: ' + cid.slice(0, 20) + '... for "' + title + '"');
-        res.json({ success: true, cid, url: 'ipfs://' + cid, storedLocally: true });
+        // Store in Gun.js index (always)
+        db.get('ipfs_index').get(cid).put(gunSafe({ cid, title, timestamp: Date.now(), size: contentLen }));
+
+        // Try Pinata for permanent availability (non-blocking)
+        const pinataPromise = pinToPinata(data, cid);
+
+        const pinataResult = await pinataPromise;
+        const finalCid = (pinataResult.pinned && pinataResult.pinataCid) ? pinataResult.pinataCid : cid;
+
+        console.log('[IPFS] CID: ' + finalCid.slice(0, 20) + '... | pinned=' + pinataResult.pinned + ' | "' + title + '"');
+        res.json({
+            success: true,
+            cid: finalCid,
+            localCid: cid,
+            url: 'ipfs://' + finalCid,
+            gateways: [
+                'https://' + finalCid + '.ipfs.w3s.link',
+                'https://ipfs.io/ipfs/' + finalCid,
+                'https://cloudflare-ipfs.com/ipfs/' + finalCid,
+            ],
+            storedLocally: true,
+            pinnedToPinata: pinataResult.pinned,
+        });
     } catch (err) {
         console.error('[IPFS] pin-external error:', err.message);
         res.status(500).json({ error: 'CID generation failed', detail: err.message });
@@ -4260,6 +4311,87 @@ app.get('/helia-peers', (req, res) => {
     }
     res.json({ peers: active, total: active.length });
 });
+
+// ── GET /dns-seed — returns active peers as DNS TXT dnsaddr format ────────────
+// For manual DNS seed configuration. If CF_API_TOKEN + CF_ZONE_ID + CF_RECORD_ID
+// env vars are set, this also auto-updates the _dnsaddr.p2pclaw.com TXT record.
+app.get('/dns-seed', (req, res) => {
+    const now = Date.now();
+    const dnsAddrs = [];
+    for (const [peerId, peer] of heliaPeers) {
+        if (now - peer.lastSeen < 10 * 60 * 1000) {
+            (peer.multiaddrs || []).forEach(ma => {
+                if (ma && (ma.includes('/wss') || ma.includes('/ws') || ma.includes('/webrtc'))) {
+                    // Only include browser-reachable multiaddrs
+                    dnsAddrs.push(`dnsaddr=${ma}`);
+                }
+            });
+        }
+    }
+    res.json({
+        total: dnsAddrs.length,
+        records: dnsAddrs,
+        txtRecord: dnsAddrs.join(','),
+        note: 'Set _dnsaddr.p2pclaw.com TXT to each of these records for DNS-based peer discovery',
+        cfAutoUpdate: !!(process.env.CF_API_TOKEN && process.env.CF_ZONE_ID && process.env.CF_RECORD_ID),
+    });
+});
+
+// ── Cloudflare DNS seed auto-update ─────────────────────────────────────────
+// Runs every 10 minutes if CF_API_TOKEN + CF_ZONE_ID + CF_RECORD_ID are set.
+// Updates the _dnsaddr.p2pclaw.com TXT record with active browser peer multiaddrs.
+async function updateCloudflareDNSSeed() {
+    const token = process.env.CF_API_TOKEN;
+    const zoneId = process.env.CF_ZONE_ID;
+    const recordId = process.env.CF_RECORD_ID; // ID of the TXT record to update
+    if (!token || !zoneId || !recordId) return;
+
+    const now = Date.now();
+    const dnsAddrs = [];
+    for (const [, peer] of heliaPeers) {
+        if (now - peer.lastSeen < 10 * 60 * 1000) {
+            (peer.multiaddrs || []).forEach(ma => {
+                if (ma && (ma.includes('/wss') || ma.includes('/webrtc'))) {
+                    dnsAddrs.push(`dnsaddr=${ma}`);
+                }
+            });
+        }
+    }
+    if (dnsAddrs.length === 0) return; // Nothing to update
+
+    try {
+        // Cloudflare DNS API v4 — update TXT record
+        const r = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${recordId}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'TXT',
+                name: '_dnsaddr.p2pclaw.com',
+                content: dnsAddrs.slice(0, 10).join(' '), // max 10 peers per record
+                ttl: 300,
+            }),
+            signal: AbortSignal.timeout(10000),
+        });
+        if (r.ok) {
+            console.log(`[DNS] Updated _dnsaddr.p2pclaw.com with ${dnsAddrs.length} peer multiaddrs`);
+        } else {
+            const body = await r.text();
+            console.warn(`[DNS] CF update failed: ${r.status} ${body.slice(0, 200)}`);
+        }
+    } catch (e) {
+        console.warn('[DNS] CF update error:', e.message);
+    }
+}
+
+// Start DNS seed auto-update (runs 30s after startup, then every 10 minutes)
+if (process.env.CF_API_TOKEN) {
+    setTimeout(() => updateCloudflareDNSSeed(), 30_000);
+    setInterval(() => updateCloudflareDNSSeed(), 10 * 60 * 1000);
+    console.log('[DNS] Cloudflare DNS seed auto-update enabled (10min interval)');
+}
 
 // â”€â”€ Start Server (Railway strictly requires binding to process.env.PORT) â”€â”€
 // NOTE: Server already started above (~line 3650). Duplicate startServer() removed
