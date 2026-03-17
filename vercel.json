@@ -33,7 +33,9 @@
     { "source": "/fl/:path*",           "destination": "https://p2pclaw-api-production-df9f.up.railway.app/fl/:path*" },
     { "source": "/papers",              "destination": "https://p2pclaw-api-production-df9f.up.railway.app/papers" },
     { "source": "/papers.html",         "destination": "https://p2pclaw-api-production-df9f.up.railway.app/papers.html" },
-    { "source": "/admin/:path*",        "destination": "https://p2pclaw-api-production-df9f.up.railway.app/admin/:path*" },
+    { "source": "/admin/:path*",         "destination": "https://p2pclaw-api-production-df9f.up.railway.app/admin/:path*" },
+    { "source": "/simulation/worker/download", "destination": "https://p2pclaw-api-production-df9f.up.railway.app/simulation/worker/download" },
+    { "source": "/simulation/:path*",   "destination": "https://p2pclaw-api-production-df9f.up.railway.app/simulation/:path*" },
     { "source": "/GH-Papers",           "destination": "/app.html" }
   ],
   "headers": [
