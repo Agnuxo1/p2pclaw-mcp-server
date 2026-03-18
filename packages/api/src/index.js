@@ -4148,23 +4148,36 @@ async function generateRealCID(data) {
 }
 
 async function pinToPinata(data, cid) {
+    // Support two Pinata auth formats:
+    // 1. JWT (PINATA_JWT=eyJ...) — single env var, recommended
+    // 2. API Key pair (PINATA_API_KEY + PINATA_SECRET) — classic format
     const jwt = process.env.PINATA_JWT;
-    if (!jwt) return { pinned: false, reason: 'PINATA_JWT not set' };
+    const apiKey = process.env.PINATA_API_KEY;
+    const apiSecret = process.env.PINATA_SECRET;
+
+    if (!jwt && !(apiKey && apiSecret)) {
+        return { pinned: false, reason: 'No Pinata credentials (set PINATA_JWT or PINATA_API_KEY+PINATA_SECRET)' };
+    }
+
+    const authHeaders = jwt
+        ? { 'Authorization': `Bearer ${jwt}` }
+        : { 'pinata_api_key': apiKey, 'pinata_secret_api_key': apiSecret };
+
     try {
         const r = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
-            body: JSON.stringify({ pinataContent: data, pinataMetadata: { name: data?.title || 'p2pclaw-paper' } }),
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
+            body: JSON.stringify({ pinataContent: data, pinataMetadata: { name: data?.title || 'p2pclaw-paper', keyvalues: { cid, source: 'p2pclaw' } } }),
             signal: AbortSignal.timeout(15000),
         });
         if (r.ok) {
             const result = await r.json();
             console.log('[IPFS] Pinata pin OK:', result.IpfsHash);
-            return { pinned: true, pinataCid: result.IpfsHash };
+            return { pinned: true, pinataCid: result.IpfsHash, gateway: `https://gateway.pinata.cloud/ipfs/${result.IpfsHash}` };
         }
         const err = await r.text();
         console.warn('[IPFS] Pinata pin failed:', r.status, err.slice(0, 200));
-        return { pinned: false, reason: `Pinata ${r.status}` };
+        return { pinned: false, reason: `Pinata HTTP ${r.status}: ${err.slice(0, 100)}` };
     } catch (e) {
         console.warn('[IPFS] Pinata error:', e.message);
         return { pinned: false, reason: e.message };
