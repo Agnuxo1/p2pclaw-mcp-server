@@ -13,10 +13,17 @@ import fs from "fs";
 // Swallow known Gun.js internal errors. Restart cleanly on unknown exceptions.
 // Old: swallow EVERYTHING caused alive-but-broken states where HTTP requests
 // timed out but Railway never restarted (no process.exit was called).
-const GUN_KNOWN_ERRORS = ['0 length key', 'SEA', 'gun', 'radix', 'radata', 'soul'];
+// GunDB / SEA internal errors — expanded list based on crash logs
+const GUN_KNOWN_ERRORS = [
+    '0 length key', 'SEA', 'gun', 'radix', 'radata', 'soul',
+    // GunDB JSON parse errors (from gun/lib/yson.js + sea.js)
+    'unexpected token', 'json at position', 'cannot set properties of undefined',
+    'yson', 'parseAsync', 'ham', 'pop',
+];
 process.on('uncaughtException', (err) => {
     const msg = (err && err.message) || String(err);
-    const isGunError = GUN_KNOWN_ERRORS.some(k => msg.toLowerCase().includes(k.toLowerCase()));
+    const msgLow = msg.toLowerCase();
+    const isGunError = GUN_KNOWN_ERRORS.some(k => msgLow.includes(k.toLowerCase()));
     if (isGunError) { console.warn('[GUARD] Known Gun.js error (swallowed):', msg); return; }
     console.error('[GUARD] FATAL uncaught exception — clean restart:', msg);
     process.exit(1);
@@ -25,6 +32,12 @@ process.on('unhandledRejection', (reason) => {
     const msg = reason instanceof Error ? reason.message : String(reason);
     console.warn('[GUARD] Unhandled rejection (non-fatal):', msg);
 });
+
+// Periodic GC — release heap pressure every 5 min to prevent OOM on free tier (512MB)
+if (typeof global.gc === 'function') {
+    setInterval(() => { try { global.gc(); } catch (_) {} }, 5 * 60 * 1000);
+    console.log('[GUARD] Periodic GC enabled (every 5 min)');
+}
 
 // Config imports
 import { db } from "./config/gun.js";
