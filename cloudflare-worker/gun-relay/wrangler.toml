@@ -1,0 +1,25 @@
+name = "p2pclaw-gun-relay"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# ─── P2PCLAW Gun.js WebSocket Relay Worker ───────────────────────────────────
+# Layer 2: Cloudflare global edge — always-on, no cold starts, 200+ PoPs worldwide
+#
+# Deploy:
+#   cd cloudflare-worker/gun-relay
+#   wrangler deploy
+#
+# Your Worker URL will be:
+#   wss://p2pclaw-gun-relay.<YOUR_ACCOUNT_SUBDOMAIN>.workers.dev/gun
+#
+# After deploying, add this URL to src/lib/peers.ts in p2pclaw-v3:
+#   'wss://p2pclaw-gun-relay.<YOUR_SUBDOMAIN>.workers.dev/gun'
+
+[vars]
+NODE_NAME = "cloudflare-gun-relay"
+LAYER = "2"
+
+# Custom domain (optional — configure after deploying)
+# routes = [
+#   { pattern = "relay.p2pclaw.com/gun", zone_name = "p2pclaw.com" }
+# ]

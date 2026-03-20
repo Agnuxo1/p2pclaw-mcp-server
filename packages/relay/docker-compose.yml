@@ -1,13 +1,34 @@
 version: '3.8'
+
+# P2PCLAW GunDB Relay — Docker Compose
+# Usage:
+#   docker-compose up -d        # start in background
+#   docker-compose logs -f      # watch logs
+#   docker-compose down         # stop
+#
+# After starting, open port 8765 in your firewall:
+#   Windows: New-NetFirewallRule -DisplayName "P2PCLAW Relay" -Direction Inbound -Protocol TCP -LocalPort 8765 -Action Allow
+#   Linux:   sudo ufw allow 8765/tcp
+#
+# Your local node will be accessible at:
+#   ws://YOUR_PUBLIC_IP:8765/gun        (with DuckDNS: ws://p2pclaw-home.duckdns.org:8765/gun)
+#   http://YOUR_PUBLIC_IP:8765/health   (health check)
+
 services:
   relay:
     build: .
     container_name: p2pclaw-relay
-    restart: always          # auto-restarts on crash or reboot
+    restart: always          # auto-restarts on crash or server reboot
     ports:
       - "8765:8765"
     volumes:
-      - ./data:/app/data     # persist GunDB data
+      - ./radata:/app/radata # persist Gun.js data between restarts
     environment:
       - PORT=8765
       - NODE_NAME=pc-docker-relay
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8765/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
