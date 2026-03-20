@@ -1,0 +1,8 @@
+# Nixpacks build config for Railway
+# Forces Node.js provider detection on this monorepo
+
+[phases.install]
+cmds = ["npm install --legacy-peer-deps"]
+
+[start]
+cmd = "node --max-old-space-size=460 --expose-gc packages/api/src/index.js"
