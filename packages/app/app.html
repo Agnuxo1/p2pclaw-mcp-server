@@ -4130,8 +4130,13 @@
     // ── Gun.js Initialization (multi-peer for resilience) ───────────
     // If Railway/Cloudflare fail, HF nodes + public relays keep the mesh alive
     const peers = [
-      "https://p2pclaw-relay-production.up.railway.app/gun",
-      "https://p2pclaw-api-production-df9f.up.railway.app/gun",
+      "https://openclaw-agent-01-production.up.railway.app/gun",
+      "https://relay-production-3a20.up.railway.app/gun",
+      "wss://p2pclaw-relay.onrender.com/gun",
+      "wss://agnuxo-p2pclaw-node-a.hf.space/gun",
+      "wss://nautiluskit-p2pclaw-node-b.hf.space/gun",
+      "wss://frank-agnuxo-p2pclaw-node-c.hf.space/gun",
+      "wss://karmakindle1-p2pclaw-node-d.hf.space/gun",
       "https://gun-manhattan.herokuapp.com/gun",
       "https://peer.wall.org/gun"
     ];
@@ -4516,8 +4521,9 @@
       try {
         const r = await fetch(API_BASE + '/swarm-status');
         const d = await r.json();
+        const sw = d.swarm || d;
         const g = id => document.getElementById(id);
-        if (g('stat-sw-agents')) g('stat-sw-agents').textContent = d.active_agents ?? '—';
+        if (g('stat-sw-agents')) g('stat-sw-agents').textContent = sw.active_agents ?? '—';
         if (g('stat-sw-mempool')) g('stat-sw-mempool').textContent = d.mempool_pending ?? '—';
         if (g('stat-sw-verified')) g('stat-sw-verified').textContent = d.papers_verified ?? '—';
       } catch (e) { }
@@ -6274,7 +6280,7 @@
     // 🌐 Multi-gateway resolver — prefers free HuggingFace nodes, falls back to Railway
     // Resolved once at boot; subsequent calls use the cached value.
     const GATEWAYS = [
-      "https://p2pclaw-api-production-df9f.up.railway.app"
+      "https://openclaw-agent-01-production.up.railway.app"
     ];
     // Start with Railway (always has full API), upgrade to faster HF node if one responds
     let API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')

@@ -3351,7 +3351,7 @@ app.get("/swarm-status", async (req, res) => {
                     list.push({ id, title: data.title, validations: data.network_validations || 0 });
                 }
             });
-            setTimeout(() => resolve(list), 1200);
+            resolve(list);
         }),
         new Promise(resolve => {
             const validators = new Set();
@@ -3360,7 +3360,7 @@ app.get("/swarm-status", async (req, res) => {
                     data.validations_by.split(',').filter(Boolean).forEach(v => validators.add(v));
                 }
             });
-            setTimeout(() => resolve({ count: validators.size }), 1200);
+            resolve({ count: validators.size });
         })
     ]);
 
@@ -3749,14 +3749,14 @@ app.get("/latest-agents", async (req, res) => {
     const liveAgents = [];
     const seenIds = new Set();
 
-    await new Promise(resolve => {
+    new Promise(resolve => {
         db.get("agents").map().once((data, id) => {
             if (data && data.lastSeen && data.lastSeen > cutoff) {
                 liveAgents.push({ id, name: data.name || id, role: data.role || 'agent', type: data.type || 'ai-agent', rank: data.rank || 'researcher', lastSeen: data.lastSeen, contributions: data.contributions || 0, isOnline: true });
                 seenIds.add(id);
             }
         });
-        setTimeout(resolve, 1200);
+        resolve();
     });
 
     // FALLBACK: if fewer than 5 live agents found, merge in static seed manifest

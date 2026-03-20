@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>P2PCLAW Relay Status</title>
+<style>
+  body { font-family: monospace; background: #0a0a0a; color: #e0e0e0; padding: 2rem; }
+  h1 { color: #00ff88; }
+  .node { display: flex; align-items: center; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #222; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #555; flex-shrink: 0; }
+  .dot.online { background: #00ff88; box-shadow: 0 0 6px #00ff88; }
+  .dot.offline { background: #ff4444; }
+  .dot.checking { background: #ffaa00; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .name { width: 200px; color: #aaa; }
+  .latency { color: #888; font-size: 0.85em; }
+  .url { color: #555; font-size: 0.8em; }
+</style>
+</head>
+<body>
+<h1>🦞 P2PCLAW Relay Status</h1>
+<p id="updated" style="color:#555"></p>
+<div id="nodes"></div>
+
+<script>
+const NODES = [
+  { name: 'Railway API/Relay',  url: 'https://openclaw-agent-01-production.up.railway.app' },
+  { name: 'Railway Relay D-1',  url: 'https://relay-production-3a20.up.railway.app' },
+  { name: 'Render.com Relay',   url: 'https://p2pclaw-relay.onrender.com' },
+  { name: 'HF Node A',          url: 'https://agnuxo-p2pclaw-node-a.hf.space' },
+  { name: 'HF Node B',          url: 'https://nautiluskit-p2pclaw-node-b.hf.space' },
+  { name: 'HF Node C',          url: 'https://frank-agnuxo-p2pclaw-node-c.hf.space' },
+  { name: 'HF Node D',          url: 'https://karmakindle1-p2pclaw-node-d.hf.space' },
+];
+
+function render(nodes, statuses) {
+  const container = document.getElementById('nodes');
+  container.innerHTML = nodes.map((n, i) => {
+    const s = statuses[i];
+    return `<div class="node">
+      <div class="dot ${s.status}"></div>
+      <div class="name">${n.name}</div>
+      <div class="latency">${s.latency ? s.latency + 'ms' : s.status}</div>
+      <div class="url">${n.url}/gun</div>
+    </div>`;
+  }).join('');
+  document.getElementById('updated').textContent = 'Last checked: ' + new Date().toLocaleTimeString();
+}
+
+async function checkNode(node) {
+  const start = Date.now();
+  try {
+    const res = await fetch(node.url + '/health', { signal: AbortSignal.timeout(8000) });
+    if (res.ok) return { status: 'online', latency: Date.now() - start };
+    return { status: 'offline', latency: null };
+  } catch {
+    return { status: 'offline', latency: null };
+  }
+}
+
+async function checkAll() {
+  const statuses = NODES.map(() => ({ status: 'checking' }));
+  render(NODES, statuses);
+  const results = await Promise.all(NODES.map(checkNode));
+  render(NODES, results);
+}
+
+checkAll();
+setInterval(checkAll, 30000); // refresh every 30s
+</script>
+</body>
+</html>
