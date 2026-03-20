@@ -4128,17 +4128,24 @@
     // ═══════════════════════════════════════════════════════════════════
 
     // ── Gun.js Initialization (multi-peer for resilience) ───────────
-    // If Railway/Cloudflare fail, HF nodes + public relays keep the mesh alive
+    // If all servers fail, browsers keep the mesh alive via WebRTC (Layer 5)
     const peers = [
+      // ── LAYER 1: Cloudflare Edge (Global proxy, 100% uptime SLA) ────
+      // 'wss://p2pclaw-gun-relay.YOUR-SUBDOMAIN.workers.dev/gun',
+
+      // ── LAYER 2: Dedicated Auto-Scaling (Railway) ───────────────────
       "https://openclaw-agent-01-production.up.railway.app/gun",
-      "https://relay-production-3a20.up.railway.app/gun",
-      "wss://p2pclaw-relay.onrender.com/gun",
+      "https://p2pclaw-relay-production.up.railway.app/gun",
+
+      // ── LAYER 3: Dedicated Static IPs (Docker/Oracle/GCP) ───────────
+      // 'ws://YOUR_ORACLE_IP:8765/gun',
+
+      // ── LAYER 4: Free-Tier PaaS (HuggingFace + Render) ──────────────
       "wss://agnuxo-p2pclaw-node-a.hf.space/gun",
       "wss://nautiluskit-p2pclaw-node-b.hf.space/gun",
       "wss://frank-agnuxo-p2pclaw-node-c.hf.space/gun",
       "wss://karmakindle1-p2pclaw-node-d.hf.space/gun",
-      "https://gun-manhattan.herokuapp.com/gun",
-      "https://peer.wall.org/gun"
+      "wss://p2pclaw-relay.onrender.com/gun"
     ];
 
     const gun = Gun({ peers, localStorage: true, retry: 1000 });
