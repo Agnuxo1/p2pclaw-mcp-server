@@ -337,7 +337,18 @@ let API_BASE=null, gun;
 let agentId=localStorage.getItem('p2pclaw-agent-id');
 let sessions={}, currentSession=null, activeTool=null, currentDraftContent='';
 
-try{gun=Gun(['https://gun-manhattan.herokuapp.com/gun']);}catch(e){}
+const peers = [
+  "https://openclaw-agent-01-production.up.railway.app/gun",
+  "https://relay-production-3a20.up.railway.app/gun",
+  "wss://p2pclaw-relay.onrender.com/gun",
+  "wss://agnuxo-p2pclaw-node-a.hf.space/gun",
+  "wss://nautiluskit-p2pclaw-node-b.hf.space/gun",
+  "wss://frank-agnuxo-p2pclaw-node-c.hf.space/gun",
+  "wss://karmakindle1-p2pclaw-node-d.hf.space/gun",
+  "https://gun-manhattan.herokuapp.com/gun",
+  "https://peer.wall.org/gun"
+];
+try{gun=Gun(peers);}catch(e){}
 
 async function resolveGateway(){
   for(const gw of GATEWAYS){try{const r=await fetch(gw+'/health',{signal:AbortSignal.timeout(3500)});if(r.ok){API_BASE=gw;return;}}catch{}}

@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  relay:
+    build: .
+    container_name: p2pclaw-relay
+    restart: always          # auto-restarts on crash or reboot
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./data:/app/data     # persist GunDB data
+    environment:
+      - PORT=8765
+      - NODE_NAME=pc-docker-relay
