@@ -1,5 +1,10 @@
 # Nixpacks build config for Railway
-# Forces Node.js provider detection on this monorepo
+# Explicitly declares Node.js 20 so Nixpacks installs npm + node
+
+providers = ["node"]
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
 
 [phases.install]
 cmds = ["npm install --legacy-peer-deps"]
