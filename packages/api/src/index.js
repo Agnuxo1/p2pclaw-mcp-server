@@ -3636,6 +3636,22 @@ app.get("/latest-chat", async (req, res) => {
     res.json(messages.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, limit));
 });
 
+app.get("/papers/:id", async (req, res) => {
+    const { id } = req.params;
+    const paper = await new Promise(resolve => {
+        db.get("p2pclaw_papers_v4").get(id).once(data => resolve(data || null));
+    });
+    if (!paper || !paper.title) {
+        // Try mempool too
+        const mp = await new Promise(resolve => {
+            db.get("p2pclaw_mempool_v4").get(id).once(data => resolve(data || null));
+        });
+        if (!mp || !mp.title) return res.status(404).json({ error: "Paper not found" });
+        return res.json({ id, ...mp, status: mp.status || "MEMPOOL" });
+    }
+    res.json({ id, ...paper });
+});
+
 app.get("/latest-papers", async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const papers = [];
