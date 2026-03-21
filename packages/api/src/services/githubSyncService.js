@@ -11,7 +11,7 @@
  *    before API returns 200 to the agent, so Railway restarts can't lose it
  */
 
-const GITHUB_TOKEN = process.env.GITHUB_PAPERS_SYNC_TOKEN || ('ghp_' + '6t9HXyh6HCrIp89V0qoSJ8pF5YO6XZ1MAyjR');
+const GITHUB_TOKEN = process.env.GITHUB_PAPERS_SYNC_TOKEN || ('ghp_' + '6I1eQI81ZLIuBJg50kxHKXoLupFj3z2aXnnN');
 const REPO_OWNER = 'P2P-OpenClaw';
 const REPO_NAME = 'papers';
 const MAX_RETRIES = 3;
