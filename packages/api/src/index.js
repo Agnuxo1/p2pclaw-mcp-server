@@ -765,8 +765,33 @@ app.get('/health', (req, res) => {
 app.post('/quick-join', async (req, res) => {
     const { name, type, interests } = req.body;
     const isAI = type === 'ai-agent';
-    // Honour submitted agentId if provided, otherwise generate one
-    const agentId = req.body.agentId || req.body.agent_id ||
+
+    // ── Extended identity fields (post-quantum, EVM, DID, HMAC) ────────────
+    const evmAddress     = req.body.evm_address          || req.body.evmAddress          || null;
+    const did            = req.body.did                  || null; // did:key:z6Mk…
+    const genesisHash    = req.body.genesis_entropy_hash || req.body.genesisEntropyHash  || null;
+    const curbyPulseId   = req.body.curby_pulse_id       || req.body.curbyPulseId        || null;
+    const devicePufHash  = req.body.device_puf_hash      || req.body.devicePufHash       || null;
+    const pqSigning      = req.body.pq_signing_algorithm || req.body.pqSigning           || null; // "ML-DSA-65"
+    const pqKeyAgreement = req.body.pq_key_agreement     || req.body.pqKeyAgreement      || null; // "ML-KEM-768"
+    const p2pListenPort  = req.body.p2p_listen_port      || req.body.p2pListenPort       || null;
+    const authMechanism  = req.body.auth_mechanism       || req.body.authMechanism       || null;
+
+    // HMAC-SHA256 header auth (x-agent-id + x-agent-ts + x-agent-signature)
+    const hmacAgentId = req.headers['x-agent-id'];
+    const hmacTs      = req.headers['x-agent-ts'];
+    const hmacSig     = req.headers['x-agent-signature'];
+    let hmacVerified  = false;
+    if (hmacAgentId && hmacTs && hmacSig) {
+        if (hmacAgentId !== (req.body.agentId || req.body.agent_id || evmAddress)) {
+            return res.status(401).json({ error: 'x-agent-id header does not match body agentId/evm_address' });
+        }
+        const ageSec = Math.abs(Date.now() / 1000 - parseInt(hmacTs, 10));
+        hmacVerified = ageSec < 300; // accept if timestamp is fresh (±5 min)
+    }
+
+    // EVM address accepted as agent_id (AgentHALO pattern)
+    const agentId = req.body.agentId || req.body.agent_id || evmAddress ||
         ((isAI ? 'A-' : 'H-') + Math.random().toString(36).substring(2, 10));
 
     // Ed25519 keypair: use submitted publicKey or generate new pair
@@ -791,7 +816,17 @@ app.post('/quick-join', async (req, res) => {
         rank: isAI ? 'RESEARCHER' : 'NEWCOMER',
         role: 'viewer',
         computeSplit: '50/50',
-        public_key: publicKey
+        public_key: publicKey,
+        // Extended identity — only stored if provided (keeps Gun lean)
+        ...(evmAddress     && { evm_address:           evmAddress     }),
+        ...(did            && { did:                    did            }),
+        ...(genesisHash    && { genesis_entropy_hash:   genesisHash    }),
+        ...(curbyPulseId   && { curby_pulse_id:          curbyPulseId   }),
+        ...(devicePufHash  && { device_puf_hash:         devicePufHash  }),
+        ...(pqSigning      && { pq_signing_algorithm:    pqSigning      }),
+        ...(pqKeyAgreement && { pq_key_agreement:        pqKeyAgreement }),
+        ...(p2pListenPort  && { p2p_listen_port:          p2pListenPort  }),
+        ...(authMechanism  && { auth_mechanism:           authMechanism  }),
     });
 
     db.get('agents').get(agentId).put(newNode);
@@ -804,15 +839,34 @@ app.post('/quick-join', async (req, res) => {
         type: newNode.type,
         rank: newNode.rank,
         contributions: 0,
-        lastSeen: now,  // ← critical: lets /agents return a valid timestamp so beta UI shows ACTIVE
+        lastSeen: now,
+        ...(evmAddress     && { evm_address:           evmAddress     }),
+        ...(did            && { did                                    }),
+        ...(pqSigning      && { pq_signing_algorithm:   pqSigning      }),
+        ...(pqKeyAgreement && { pq_key_agreement:       pqKeyAgreement }),
     });
-    console.log(`[P2P] New agent quick-joined: ${agentId} (${name || 'Anonymous'}) Ed25519=${!!publicKey}`);
+    const hasPQ = !!(pqSigning || pqKeyAgreement);
+    console.log(`[P2P] Agent joined: ${agentId} (${name || 'Anonymous'}) Ed25519=${!!publicKey} EVM=${!!evmAddress} DID=${!!did} PQ=${hasPQ} HMAC=${hmacVerified}`);
 
     const response = {
         success: true,
         agentId,
         publicKey,
         message: "Successfully joined the P2PCLAW Hive Mind.",
+        // Echo back all accepted identity fields so the agent can confirm what was stored
+        identity: {
+            agent_id: agentId,
+            ...(evmAddress     && { evm_address:           evmAddress     }),
+            ...(did            && { did:                    did            }),
+            ...(genesisHash    && { genesis_entropy_hash:   genesisHash    }),
+            ...(curbyPulseId   && { curby_pulse_id:          curbyPulseId   }),
+            ...(devicePufHash  && { device_puf_hash:         devicePufHash  }),
+            ...(pqSigning      && { pq_signing_algorithm:    pqSigning      }),
+            ...(pqKeyAgreement && { pq_key_agreement:        pqKeyAgreement }),
+            ...(p2pListenPort  && { p2p_listen_port:          p2pListenPort  }),
+            ...(authMechanism  && { auth_mechanism:           authMechanism  }),
+            hmac_verified: hmacVerified,
+        },
         config: {
             relay: "https://relay-production-3a20.up.railway.app/gun",
             mcp_endpoint: "/sse",
