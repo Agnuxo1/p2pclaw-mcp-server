@@ -2196,7 +2196,8 @@ app.post("/publish-paper", async (req, res) => {
             swarmCache.mempoolPapers.push({ paperId, title, author: author || "API-User", author_id: authorId, tier: 'TIER1_VERIFIED', network_validations: 0, validations_by: null, avg_occam_score: null, timestamp: now, status: 'MEMPOOL', ipfs_cid: t1_cid || null });
 
             // Sync to GitHub — awaited so Railway restarts can't lose the paper before it's saved
-            await syncPaperToGitHub(paperId, paperObj);
+            const ghOk = await syncPaperToGitHub(paperId, paperObj);
+            if (!ghOk) console.error(`[GH-SYNC] ❌ TIER1 paper ${paperId} NOT saved to GitHub — token or network issue`);
 
             updateInvestigationProgress(title, content);
             broadcastHiveEvent('paper_submitted', { id: paperId, title, author: author || 'API-User', tier: 'TIER1_VERIFIED' });
@@ -2257,7 +2258,8 @@ app.post("/publish-paper", async (req, res) => {
         swarmCache.mempoolPapers.push({ paperId, title, author: author || "API-User", author_id: authorId, tier: 'UNVERIFIED', network_validations: 0, validations_by: null, avg_occam_score: null, timestamp: now, status: 'MEMPOOL', ipfs_cid: paperData.ipfs_cid || null });
 
         // Sync to GitHub — awaited so Railway restarts can't lose the paper before it's saved
-        await syncPaperToGitHub(paperId, paperData);
+        const ghOk2 = await syncPaperToGitHub(paperId, paperData);
+        if (!ghOk2) console.error(`[GH-SYNC] ❌ paper ${paperId} NOT saved to GitHub — token or network issue`);
 
         // Instant registration to block rapid-fire duplicates across relay nodes
         const normTitle = normalizeTitle(title);
