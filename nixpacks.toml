@@ -7,7 +7,10 @@ providers = ["node"]
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["npm install --legacy-peer-deps"]
+cmds = [
+  "npm install --legacy-peer-deps",
+  "npm install got@11.8.6 --no-save"
+]
 
 [start]
-cmd = "node --max-old-space-size=460 --expose-gc packages/api/src/index.js"
+cmd = "node --max-old-space-size=380 --expose-gc packages/api/src/index.js"
