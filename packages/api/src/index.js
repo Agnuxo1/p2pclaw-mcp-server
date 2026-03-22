@@ -4024,10 +4024,10 @@ if (process.env.NODE_ENV !== 'test') {
             // Memory watchdog: trim aggressively and restart BEFORE OOM.
             // ROOT CAUSE: Gun.js accumulates in-memory graph as papers/agents are read/written.
             // FIX: radata is wiped on boot (gun.js config) so restarts are fast and clean.
-            // THRESHOLDS LOWERED: trim at 150MB, restart at 280MB (was 380/420 — too late).
-            // This stops the 3-4x/day crash cycle by restarting with a clean 90MB baseline.
-            if (heapMB > 150) {
-                console.warn(`[GC] WARN: heap ${heapMB}MB > 150MB — trimming caches...`);
+            // THRESHOLDS: trim at 270MB (base footprint on heroic-prosperity tier is ~253MB),
+            // restart at 340MB (gives ~90MB headroom above base before clean exit).
+            if (heapMB > 270) {
+                console.warn(`[GC] WARN: heap ${heapMB}MB > 270MB — trimming caches...`);
                 
                 // Trim globalEmbeddingStore — grows unbounded as papers are published (primary OOM driver)
                 // Each entry is ~2-8KB (sparse TF-IDF map). Cap at 500 entries (newest kept).
@@ -4070,13 +4070,13 @@ if (process.env.NODE_ENV !== 'test') {
                 global.gc();
                 const afterTrim = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
                 console.warn(`[GC] After trim + GC: ${afterTrim}MB`);
-                if (afterTrim > 400) {
-                    console.error(`[GC] CRITICAL: heap ${afterTrim}MB > 400MB — clean restart (radata wiped on boot)`);
-                    process.exit(1); // Railway ON_FAILURE restarts; radata wiped → clean 90MB baseline
+                if (afterTrim > 340) {
+                    console.error(`[GC] CRITICAL: heap ${afterTrim}MB > 340MB — clean restart (radata wiped on boot)`);
+                    process.exit(1); // Railway ON_FAILURE restarts; radata wiped → clean baseline
                 }
             }
         }, 30 * 1000); // Every 30s
-        console.log('[GC] Memory watchdog: trim@150MB, restart@400MB, radata wiped on boot.');
+        console.log('[GC] Memory watchdog: trim@270MB, restart@340MB, radata wiped on boot.');
     }
 
     // Phase 3: Periodic Nash Stability Check (every 4h — was 30min, too frequent for Gun.js)

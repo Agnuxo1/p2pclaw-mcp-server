@@ -4,9 +4,10 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "node --max-old-space-size=512 --expose-gc packages/api/src/index.js",
+    "startCommand": "node --max-old-space-size=380 --expose-gc packages/api/src/index.js",
     "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 100,
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 30
+    "healthcheckTimeout": 60
   }
 }
