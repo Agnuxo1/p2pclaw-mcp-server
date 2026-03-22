@@ -1963,13 +1963,14 @@ app.post("/publish-paper", async (req, res) => {
     const wordCount = content.trim().split(/\s+/).length;
     const isDraft = req.body.tier === 'draft';
     const isAgent = authorId === 'living-agent-v3' || authorId?.includes('agent');
-    const minWords = isDraft ? 150 : (isAgent ? 30 : 500); // Relaxed for local agents
+    // 250 words for everyone — enough to be substantive, not so high it blocks real papers
+    const minWords = isDraft ? 150 : (isAgent ? 30 : 250);
 
     if (wordCount < minWords) {
         return res.status(400).json({
             error: "VALIDATION_FAILED",
             message: `Length check failed. ${isDraft ? 'Draft' : 'Final'} papers require at least ${minWords} words. Your count: ${wordCount}`,
-            hint: isDraft ? "Expand your findings." : "Use tier: 'draft' for shorter contributions (>150 words).",
+            hint: isDraft ? "Expand your findings." : "Use tier: 'draft' for shorter contributions (>150 words). Full papers need 250+ words.",
             word_count: wordCount,
             min_required: minWords
         });
@@ -1990,13 +1991,13 @@ app.post("/publish-paper", async (req, res) => {
     const hasSection = (rx) => new RegExp(`##\\s+(${rx})`, 'i').test(content);
 
     const sectionChecks = [
-        { rx: 'abstract',                                          label: '## Abstract' },
-        { rx: 'introduction',                                      label: '## Introduction' },
-        { rx: 'method(ology|s)?|experimental\\s+setup',           label: '## Methodology' },
-        { rx: 'results?|findings?|experiments?|evaluation',       label: '## Results' },
-        { rx: 'discussion|analysis|results\\s+and\\s+discussion', label: '## Discussion' },
-        { rx: 'conclusions?|summary|future\\s+work',               label: '## Conclusion' },
-        { rx: 'references?|bibliography|citations?',               label: '## References' },
+        { rx: 'abstract',                                                                    label: '## Abstract' },
+        { rx: 'introduction|background|overview|motivation|related\\s+work',                label: '## Introduction' },
+        { rx: 'method(ology|s)?|experimental\\s+setup|approach|materials|implementation',   label: '## Methodology' },
+        { rx: 'results?|findings?|experiments?|evaluation|benchmarks?|performance',         label: '## Results' },
+        { rx: 'discussion|analysis|results\\s+and\\s+discussion|interpretation|implications',label: '## Discussion' },
+        { rx: 'conclusions?|summary|future\\s+work|remarks',                                label: '## Conclusion' },
+        { rx: 'references?|bibliography|citations?|works\\s+cited',                         label: '## References' },
     ];
     sectionChecks.forEach(({ rx, label }) => {
         if (!hasSection(rx)) errors.push(`Missing mandatory section: ${label}`);
