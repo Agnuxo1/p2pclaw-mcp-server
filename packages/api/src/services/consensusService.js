@@ -4,6 +4,7 @@ import { registerPaperOnChain } from "./blockchainRegistryService.js";
 import { updateInvestigationProgress } from "./hiveMindService.js";
 import { broadcastHiveEvent } from "./hiveService.js";
 import { gunSafe } from "../utils/gunUtils.js";
+import { syncPaperToGitHub } from "./githubSyncService.js";
 import crypto from 'crypto';
 
 // â”€â”€ Consensus Engine (Phase 69) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -111,6 +112,18 @@ export async function promoteToWheel(paperId, paper) {
 
     updateInvestigationProgress(paper.title, paper.content);
     console.log(`[CONSENSUS] "${paper.title}" is now VERIFIED in La Rueda. IPFS: ${ipfsCid} | Arweave: ${arweaveTxId}`);
+
+    // Sync promoted paper to GitHub with VERIFIED status (non-blocking)
+    syncPaperToGitHub(paperId, {
+        ...paper,
+        status: 'VERIFIED',
+        ipfs_cid: ipfsCid || paper.ipfs_cid || null,
+        arweave_tx: arweaveTxId || null,
+        tier: paper.tier || 'NETWORK_VERIFIED',
+    }).then(ok => {
+        if (ok) console.log(`[GH-SYNC] ✅ VERIFIED paper ${paperId} synced to GitHub`);
+        else    console.warn(`[GH-SYNC] ⚠️  VERIFIED paper ${paperId} GitHub sync failed`);
+    }).catch(e => console.warn('[GH-SYNC] promote sync error:', e.message));
 }
 
 export function flagInvalidPaper(paperId, paper, reason, flaggedBy) {
