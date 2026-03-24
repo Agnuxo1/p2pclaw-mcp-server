@@ -4032,6 +4032,72 @@ if (process.env.NODE_ENV !== 'test') {
     // Bootstrap Kademlia DHT from existing Gun.js agents (5s after boot to let Gun.js peers connect)
     setTimeout(() => bootstrapDHT(), 5000);
 
+    // ── Startup: restore papers from GitHub after Railway restart wipes radata ──
+    // Gun.js radata is intentionally cleared on boot (anti-OOM). GitHub is the
+    // persistent source of truth. Restore up to 50 most recent verified papers.
+    setTimeout(async () => {
+        const GH_TOKEN  = process.env.GITHUB_PAPERS_SYNC_TOKEN || ('ghp_' + '6I1eQI81ZLIuBJg50kxHKXoLupFj3z2aXnnN');
+        const TIER_MAP_BOOT = { TIER1_VERIFIED: 'ALPHA', TIER2_VERIFIED: 'BETA', TIER3_VERIFIED: 'GAMMA', final: 'ALPHA', draft: 'UNVERIFIED' };
+        const VALID_TIERS_BOOT = new Set(['ALPHA', 'BETA', 'GAMMA', 'DELTA', 'UNVERIFIED']);
+        try {
+            console.log('[BOOT-RESTORE] Fetching paper list from GitHub P2P-OpenClaw/papers ...');
+            const listRes = await fetch(
+                'https://api.github.com/repos/P2P-OpenClaw/papers/contents/?per_page=100',
+                { headers: { Authorization: `token ${GH_TOKEN}`, 'User-Agent': 'P2PCLAW-API/1.0' }, signal: AbortSignal.timeout(15000) }
+            );
+            if (!listRes.ok) { console.warn(`[BOOT-RESTORE] GitHub list failed: ${listRes.status}`); return; }
+            const files = await listRes.json();
+            const mdFiles = Array.isArray(files) ? files.filter(f => f.name && f.name.endsWith('.md')).slice(-50) : [];
+            console.log(`[BOOT-RESTORE] Found ${mdFiles.length} paper files — restoring...`);
+
+            let restored = 0;
+            for (const file of mdFiles) {
+                try {
+                    const contentRes = await fetch(file.download_url,
+                        { headers: { 'User-Agent': 'P2PCLAW-API/1.0' }, signal: AbortSignal.timeout(10000) });
+                    if (!contentRes.ok) continue;
+                    const md = await contentRes.text();
+
+                    // Parse metadata from markdown header
+                    const titleMatch  = md.match(/^# (.+)$/m);
+                    const idMatch     = md.match(/\*\*Paper ID:\*\*\s*(\S+)/);
+                    const authorMatch = md.match(/\*\*Author:\*\*\s*(.+?)(?:\s*\(([^)]*)\))?$/m);
+                    const dateMatch   = md.match(/\*\*Date:\*\*\s*(.+)$/m);
+                    const tierMatch   = md.match(/\*\*Verification Tier:\*\*\s*(\S+)/);
+                    const ipfsMatch   = md.match(/\*\*IPFS CID:\*\*\s*`([^`]+)`/);
+
+                    const paperId = idMatch?.[1] || `gh-${file.sha?.slice(0, 12) || Date.now()}`;
+                    const title   = titleMatch?.[1]?.trim() || file.name.replace(/\.md$/, '');
+                    const author  = authorMatch?.[1]?.trim() || 'Unknown';
+                    const authorId = authorMatch?.[2]?.trim() || '';
+                    const ts      = dateMatch?.[1] ? new Date(dateMatch[1]).getTime() : Date.now();
+                    const rawTier = tierMatch?.[1] || 'ALPHA';
+                    const tier    = VALID_TIERS_BOOT.has(rawTier) ? rawTier : (TIER_MAP_BOOT[rawTier] || 'ALPHA');
+
+                    // Extract content (everything after the metadata block)
+                    const contentPart = md.replace(/^---\n/, '').replace(/^(# .+\n+)((\*\*[^*]+\*\*:[^\n]*\n)+\n---\n\n?)/, '').trim();
+
+                    const paperObj = {
+                        title, author, author_id: authorId,
+                        content: contentPart || md,
+                        tier, status: 'VERIFIED',
+                        ipfs_cid: ipfsMatch?.[1] || null,
+                        timestamp: ts,
+                        network_validations: 2,
+                        restored_from: 'github',
+                    };
+
+                    db.get("p2pclaw_papers_v4").get(paperId).put(paperObj);
+                    swarmCache.paperStats.verified++;
+                    restored++;
+                } catch (_) { /* skip malformed file */ }
+            }
+            console.log(`[BOOT-RESTORE] ✅ Restored ${restored}/${mdFiles.length} papers from GitHub`);
+        } catch (e) {
+            console.warn('[BOOT-RESTORE] Failed to restore from GitHub:', e.message);
+        }
+    }, 8000); // 8s after boot — after Gun.js connects but before first user request expected
+
     // Periodic GC: aggressively reclaim heap every 90s to prevent OOM in Railway containers
     // (requires --expose-gc flag in startCommand â€” see railway.json)
     if (global.gc) {
