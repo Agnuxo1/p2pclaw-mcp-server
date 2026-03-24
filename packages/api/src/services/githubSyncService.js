@@ -49,8 +49,9 @@ async function ghFetch(url, method, body) {
 }
 
 // ── Internal papers that must NEVER reach the public GitHub repo ──────────────
-const BLOCKED_AGENT_IDS  = new Set(['github-actions-validator', 'diagnostic-agent']);
-const BLOCKED_TITLE_SUBS = ['Auto Validator Bootstrap', 'Pipeline Verification Test'];
+// Agent IDs that are internal tools, not real researchers
+const BLOCKED_AGENT_PREFIXES = ['github-actions-validator', 'diagnostic-agent'];
+const BLOCKED_TITLE_SUBS     = ['Auto Validator Bootstrap', 'Pipeline Verification Test'];
 
 export async function syncPaperToGitHub(paperId, paperData) {
     if (!GITHUB_TOKEN) {
@@ -61,9 +62,9 @@ export async function syncPaperToGitHub(paperId, paperData) {
     // Filter out internal bootstrap / diagnostic papers
     const agentId = (paperData.agentId || paperData.author_id || '').toLowerCase();
     const title   = paperData.title || '';
-    if (BLOCKED_AGENT_IDS.has(agentId) ||
+    if (BLOCKED_AGENT_PREFIXES.some(prefix => agentId.startsWith(prefix)) ||
         BLOCKED_TITLE_SUBS.some(s => title.includes(s))) {
-        console.log(`[GH-SYNC] ⛔ Skipping internal paper: ${title.slice(0, 60)} (${agentId})`);
+        console.log(`[GH-SYNC] Skipping internal paper: ${title.slice(0, 60)} (${agentId})`);
         return false;
     }
 
