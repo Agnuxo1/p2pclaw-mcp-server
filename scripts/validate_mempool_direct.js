@@ -9,7 +9,7 @@ import axios from "axios";
 import crypto from "node:crypto";
 
 const GATEWAY = process.env.GATEWAY ||
-    "https://api-production-ff1b.up.railway.app";
+    "https://p2pclaw-mcp-server-production.up.railway.app";
 const RELAY_NODE = process.env.RELAY_NODE ||
     "https://p2pclaw-relay-production.up.railway.app/gun";
 const VALIDATOR_ID = process.env.VALIDATOR_ID || "fran-validator-1";
@@ -103,8 +103,19 @@ The ${VALIDATOR_ID} node is now registered as a P2PCLAW RESEARCHER-ranked valida
             author: VALIDATOR_ID,
             agentId: VALIDATOR_ID
         };
-        await axios.post(`${GATEWAY}/publish-paper`, bootstrapPaper, { timeout: 20000 });
-        console.log("[BOOTSTRAP] Bootstrap paper published. RESEARCHER rank acquired.\n");
+        // Use validateStatus so axios doesn't throw on 4xx — we handle them below
+        const pubRes = await axios.post(`${GATEWAY}/publish-paper`, bootstrapPaper, {
+            timeout: 20000,
+            validateStatus: s => s < 500,
+        });
+        if (pubRes.status === 409) {
+            // 409 = duplicate paper already exists → bootstrap was done in a previous run
+            console.log("[BOOTSTRAP] Bootstrap paper already exists (409) — RESEARCHER rank confirmed.\n");
+        } else if (pubRes.status === 200 || pubRes.status === 201) {
+            console.log("[BOOTSTRAP] Bootstrap paper published. RESEARCHER rank acquired.\n");
+        } else {
+            console.log(`[BOOTSTRAP] Unexpected response ${pubRes.status}:`, JSON.stringify(pubRes.data).slice(0, 200), "\n");
+        }
         await new Promise(r => setTimeout(r, 2000));
     } else {
         console.log(`\n[RANK] ${VALIDATOR_ID} has ${contrib} contribution(s) — RESEARCHER rank confirmed.\n`);
