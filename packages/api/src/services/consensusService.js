@@ -84,18 +84,25 @@ export async function promoteToWheel(paperId, paper) {
         console.warn(`[CONSENSUS] IPFS archive failed for "${paper.title}" â€” paper is still VERIFIED in DB. Error: ${ipfsErr.message}`);
     }
 
-    // Non-blocking Polygon Blockchain Registry
+    // Non-blocking multi-chain blockchain anchoring (Polygon + Ethereum Sepolia + Base)
     try {
-        if (process.env.PUBLISHED_PAPER_POLYGON_REGISTRY_ENABLED === 'true') {
-            const authorId = paper.author_id || paper.author;
-            const polygonTxId = await registerPaperOnChain(paper.title, arweaveTxId || "pending", paper.lean_proof || "none", authorId);
-            if (polygonTxId) {
-                db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ polygon_tx: polygonTxId }));
-                console.log(`[CONSENSUS] Polygon registry OK: ${polygonTxId}`);
+        const authorId = paper.author_id || paper.author;
+        const chainResult = await registerPaperOnChain(
+            paperId, paper.title, paper.content, ipfsCid, authorId
+        );
+        if (chainResult) {
+            const update = {};
+            if (chainResult.polygon) update.polygon_tx  = chainResult.polygon;
+            if (chainResult.sepolia)  update.eth_tx      = chainResult.sepolia;
+            if (chainResult.base)     update.base_tx     = chainResult.base;
+            if (chainResult.sha256)   update.content_sha256 = chainResult.sha256;
+            if (Object.keys(update).length > 0) {
+                db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe(update));
+                console.log(`[CONSENSUS] ⛓️  Blockchain anchors saved:`, JSON.stringify(update).slice(0,120));
             }
         }
-    } catch (polyErr) {
-        console.warn(`[CONSENSUS] Polygon registry failed. Error: ${polyErr.message}`);
+    } catch (chainErr) {
+        console.warn(`[CONSENSUS] Blockchain anchoring failed (non-fatal): ${chainErr.message}`);
     }
 
     // Auto-promote author rank
