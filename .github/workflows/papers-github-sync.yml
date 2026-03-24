@@ -1,0 +1,147 @@
+name: 📄 P2PCLAW — Papers GitHub Sync (Backup Pipeline)
+
+# ─── INDEPENDENT BACKUP PIPELINE ─────────────────────────────────────────────
+# Reads verified papers from Railway API and pushes them directly to the papers
+# repo. This runs independently of Railway's in-process sync — if Railway's
+# githubSyncService fails (network hiccup, OOM restart, token issue), this
+# action acts as a safety net that guarantees all papers land in GitHub.
+#
+# Runs every hour. Reads /latest-papers from Railway API, then for each paper
+# that is not already in the papers repo, commits it directly via GitHub API.
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # Every hour at :00
+  workflow_dispatch:       # Manual trigger from GitHub Actions tab
+
+jobs:
+  sync-papers:
+    name: 📄 Sync Papers to GitHub
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout papers repo
+        uses: actions/checkout@v4
+        with:
+          repository: P2P-OpenClaw/papers
+          token: ${{ secrets.PAPERS_SYNC_TOKEN }}
+          path: papers-repo
+
+      - name: Sync papers from Railway API
+        env:
+          GATEWAY: "https://p2pclaw-mcp-server-production.up.railway.app"
+          GH_TOKEN: ${{ secrets.PAPERS_SYNC_TOKEN }}
+          GH_REPO: "P2P-OpenClaw/papers"
+        run: |
+          echo "=== P2PCLAW Papers GitHub Sync ==="
+          echo "Reading verified papers from Railway API..."
+
+          # Fetch papers list (verified + mempool — sync both)
+          PAPERS=$(curl -sf "${GATEWAY}/latest-papers?limit=100" 2>/dev/null) || true
+          MEMPOOL=$(curl -sf "${GATEWAY}/mempool?limit=100" 2>/dev/null) || true
+
+          echo "API responded: $(echo "$PAPERS" | wc -c) bytes (verified), $(echo "$MEMPOOL" | wc -c) bytes (mempool)"
+
+          # Get existing file list in papers repo
+          cd papers-repo
+          EXISTING=$(ls *.md 2>/dev/null || true)
+
+          synced=0
+          skipped=0
+
+          # Process both arrays (verified then mempool)
+          for JSON in "$PAPERS" "$MEMPOOL"; do
+            [ -z "$JSON" ] && continue
+
+            # Parse each paper using jq-less approach (pure bash + curl to GitHub API)
+            echo "$JSON" | python3 -c "
+import sys, json, re, base64, urllib.request, urllib.error, os
+from datetime import datetime
+
+data = json.load(sys.stdin)
+papers = data if isinstance(data, list) else []
+token = os.environ.get('GH_TOKEN', '')
+repo  = os.environ.get('GH_REPO', 'P2P-OpenClaw/papers')
+
+def safe_filename(title, paper_id):
+    date = datetime.now().strftime('%Y-%m-%d')
+    safe = re.sub(r'[^\w\s-]', '', title or 'Untitled').strip()
+    safe = re.sub(r'\s+', '_', safe)[:80]
+    return f'{date}_{safe}_{paper_id}.md'
+
+def build_md(pid, p):
+    date = datetime.fromtimestamp((p.get('timestamp') or 0) / 1000).strftime('%Y-%m-%dT%H:%M:%SZ') if p.get('timestamp') else datetime.utcnow().isoformat() + 'Z'
+    md  = f'# {p.get(\"title\", \"Untitled\")}\n\n'
+    md += f'**Paper ID:** {pid}\n'
+    md += f'**Author:** {p.get(\"author\", \"Unknown\")} ({p.get(\"author_id\", \"\")})\n'
+    md += f'**Date:** {date}\n'
+    md += f'**Verification Tier:** {p.get(\"tier\", \"UNVERIFIED\")}\n'
+    if p.get('ipfs_cid'): md += f'**IPFS CID:** \`{p[\"ipfs_cid\"]}\`\n'
+    if p.get('tier1_proof'): md += f'**Proof Hash:** \`{p[\"tier1_proof\"]}\`\n'
+    md += f'\n---\n\n{p.get(\"content\", \"\")}\n'
+    return md
+
+import os
+existing_files = set(os.listdir('.'))
+synced = 0
+
+for p in papers:
+    pid = p.get('id') or p.get('paperId') or p.get('paper_id') or ''
+    title = p.get('title', 'Untitled')
+    content = p.get('content', '')
+
+    # Skip internal test/bootstrap papers
+    if 'github-actions-validator' in (p.get('author_id') or ''):
+        continue
+    if 'Auto Validator Bootstrap' in (title or ''):
+        continue
+    if 'Pipeline Verification Test' in (title or '') and 'diagnostic' in (p.get('author_id') or ''):
+        continue
+    if not pid or not content or len(content) < 100:
+        continue
+
+    fn = safe_filename(title, pid)
+
+    # Skip if already exists (any file containing the paper_id)
+    if any(pid in f for f in existing_files):
+        continue
+
+    # Push to GitHub API
+    url = f'https://api.github.com/repos/{repo}/contents/{fn}'
+    md_bytes = build_md(pid, p).encode('utf-8')
+    body = json.dumps({
+        'message': f'Add paper: {title[:72]}',
+        'content': base64.b64encode(md_bytes).decode('ascii'),
+        'branch': 'main'
+    }).encode('utf-8')
+    req = urllib.request.Request(url, data=body, method='PUT', headers={
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'P2PCLAW-GH-Action/1.0'
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            status = r.getcode()
+            if status in (200, 201):
+                print(f'SYNCED: {title[:60]}')
+                existing_files.add(fn)
+                synced += 1
+    except urllib.error.HTTPError as e:
+        if e.code == 422:
+            print(f'SKIP (exists): {title[:60]}')
+        else:
+            print(f'ERR {e.code}: {title[:60]}')
+    except Exception as e:
+        print(f'ERR: {e}')
+
+print(f'--- Synced {synced} new papers ---')
+" 2>&1 || echo "Python sync step completed (errors above if any)"
+          done
+
+      - name: Report
+        if: always()
+        run: |
+          echo "Sync run completed at $(date -u)"
+          echo "Papers repo: https://github.com/P2P-OpenClaw/papers"

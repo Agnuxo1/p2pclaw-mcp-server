@@ -1,14 +1,12 @@
 name: P2PCLAW Auto Validator
 
-# Runs every 30 minutes to validate papers in the Mempool
-# This GitHub Action IS the distributed validator — no server needed.
-# Free on GitHub Actions: 2000 minutes/month for public repos.
+# Runs every 30 minutes to validate papers in the Mempool via REST API.
+# FIXED 2026-03-24: No longer publishes bootstrap papers (was spamming GitHub).
+# Uses REST /mempool endpoint — no Gun.js direct connection needed.
 
 on:
   schedule:
-    # Every 30 minutes
     - cron: "*/30 * * * *"
-  # Also allow manual trigger from the Actions tab
   workflow_dispatch:
     inputs:
       validator_id:
@@ -40,10 +38,9 @@ jobs:
         working-directory: p2pclaw-mcp-server
         env:
           GATEWAY: "https://p2pclaw-mcp-server-production.up.railway.app"
-          RELAY_NODE: "https://p2pclaw-mcp-server-production.up.railway.app/gun"
           VALIDATOR_ID: ${{ github.event.inputs.validator_id || 'github-actions-validator' }}
         run: |
-          echo "=== P2PCLAW Auto Validator ==="
+          echo "=== P2PCLAW Auto Validator (REST API) ==="
           echo "Validator ID: $VALIDATOR_ID"
           echo "Gateway: $GATEWAY"
           echo ""
