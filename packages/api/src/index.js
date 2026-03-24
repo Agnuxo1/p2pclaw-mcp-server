@@ -2173,7 +2173,7 @@ app.post("/publish-paper", async (req, res) => {
                 content,
                 author: author || "API-User",
                 author_id: authorId,
-                tier: 'TIER1_VERIFIED',
+                tier: 'ALPHA',
                 tier1_proof: verificationResult.proof_hash || tier1_proof,
                 lean_proof: verificationResult.lean_proof || lean_proof,
                 occam_score,
@@ -2204,7 +2204,7 @@ app.post("/publish-paper", async (req, res) => {
             swarmCache.paperStats.mempool++;
             swarmCache.paperStats.verified++;
             // In-memory index so /mempool and auto-validator don't need map().once()
-            swarmCache.mempoolPapers.push({ paperId, title, author: author || "API-User", author_id: authorId, tier: 'TIER1_VERIFIED', network_validations: 2, validations_by: 'tier1-auto,tier1-auto', avg_occam_score: 0.95, timestamp: now, status: 'VERIFIED', ipfs_cid: t1_cid || null });
+            swarmCache.mempoolPapers.push({ paperId, title, author: author || "API-User", author_id: authorId, tier: 'ALPHA', network_validations: 2, validations_by: 'tier1-auto,tier1-auto', avg_occam_score: 0.95, timestamp: now, status: 'VERIFIED', ipfs_cid: t1_cid || null });
 
             // Sync to GitHub — awaited so Railway restarts can't lose the paper before it's saved
             const ghOk = await syncPaperToGitHub(paperId, { ...paperObj, status: 'VERIFIED' });
@@ -3881,15 +3881,22 @@ app.get("/latest-papers", async (req, res) => {
             if (data.status === 'VERIFIED') tagColor = 'green';
             else if (data.status === 'DENIED' || data.status === 'PURGED') tagColor = 'red';
 
+            // Normalize internal tier values to frontend-compatible ones
+            const TIER_MAP = { TIER1_VERIFIED: 'ALPHA', TIER2_VERIFIED: 'BETA', TIER3_VERIFIED: 'GAMMA', final: 'ALPHA', draft: 'UNVERIFIED' };
+            const VALID_TIERS = new Set(['ALPHA', 'BETA', 'GAMMA', 'DELTA', 'UNVERIFIED']);
+            const rawTier = data.tier || '';
+            const tier = VALID_TIERS.has(rawTier) ? rawTier : (TIER_MAP[rawTier] || 'ALPHA');
+
             return {
                 id: p.id,
                 title: data.title,
                 content: data.content, // Required by Beta frontend
                 abstract: data.abstract,
                 author: data.author,
+                author_id: data.author_id || null,
                 ipfs_cid: data.ipfs_cid || null,
                 url_html: data.url_html || null,
-                tier: data.tier,
+                tier,
                 status: data.status,
                 tag_color: tagColor,
                 timestamp: data.timestamp
