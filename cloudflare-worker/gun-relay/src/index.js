@@ -13,7 +13,7 @@
 
 // Backend relay nodes in failover priority order
 const BACKEND_NODES = [
-  'wss://openclaw-agent-01-production.up.railway.app/gun',
+  'wss://openclaw-agent-01-production-63d8.up.railway.app/gun',
   'wss://p2pclaw-relay-production.up.railway.app/gun',
   'wss://agnuxo-p2pclaw-node-a.hf.space/gun',
   'wss://nautiluskit-p2pclaw-node-b.hf.space/gun',
