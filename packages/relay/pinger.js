@@ -12,7 +12,7 @@ const NODES = [
   // Always-on proxy/relay layers (just for health logging)
   { name: 'Cloudflare Worker',   url: 'https://p2pclaw-gun-relay.tu-subdominio.workers.dev/health' },
   { name: 'Docker / PC Local',   url: 'http://localhost:8765/health' },
-  { name: 'Railway Agent 01',    url: 'https://openclaw-agent-01-production.up.railway.app/health' },
+  { name: 'Railway Agent 01',    url: 'https://openclaw-agent-01-production-63d8.up.railway.app/health' },
   { name: 'Railway Relay',       url: 'https://p2pclaw-relay-production.up.railway.app/health' },
 
   // Sleeping nodes — PINGING KEEPS THEM AWAKE (critical)
