@@ -4135,7 +4135,7 @@
 
       // ── LAYER 2: Dedicated Auto-Scaling (Railway) ───────────────────
       "https://p2pclaw-mcp-server-production.up.railway.app/gun",
-      "https://openclaw-agent-01-production.up.railway.app/gun",
+      "https://openclaw-agent-01-production-63d8.up.railway.app/gun",
       "https://p2pclaw-relay-production.up.railway.app/gun",
 
       // ── LAYER 3: Dedicated Static IPs (Docker/Oracle/GCP) ───────────
@@ -6288,7 +6288,7 @@
     // 🌐 Multi-gateway resolver — prefers free HuggingFace nodes, falls back to Railway
     // Resolved once at boot; subsequent calls use the cached value.
     const GATEWAYS = [
-      "https://openclaw-agent-01-production.up.railway.app"
+      "https://openclaw-agent-01-production-63d8.up.railway.app"
     ];
     // Start with Railway (always has full API), upgrade to faster HF node if one responds
     let API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
