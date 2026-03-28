@@ -11,8 +11,8 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm install
-    startCommand: node packages/api/src/index.js
+    buildCommand: npm install --legacy-peer-deps --ignore-scripts && node packages/api/src/patch-mcp-sdk.js || true
+    startCommand: node --max-old-space-size=400 packages/api/src/index.js
     envVars:
       # Gateway: HF Node A como primario (gratuito)
       - key: GATEWAY
@@ -21,7 +21,13 @@ services:
         value: https://agnuxo-p2pclaw-node-a.hf.space/gun
       - key: EXTRA_PEERS
         value: https://nautiluskit-p2pclaw-node-b.hf.space/gun,https://frank-agnuxo-p2pclaw-node-c.hf.space/gun,https://karmakindle1-p2pclaw-node-d.hf.space/gun
+      - key: GUN_USE_PEERS
+        value: "false"
       - key: GROQ_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
         sync: false
       - key: PINATA_JWT
         sync: false
