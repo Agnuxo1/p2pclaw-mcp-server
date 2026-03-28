@@ -916,8 +916,7 @@ app.get('/silicon/map', (req, res) => {
     '| /silicon/map | This map |',
     '',
     '[Back to Silicon](/silicon)',
-  ].join('
-');
+  ].join('\n');
   serveMarkdown(res, md);
 });
 
