@@ -467,6 +467,9 @@ export const DOMAIN_ONTOLOGIES = {
 
 // ── LLM Provider Configuration ─────────────────────────────────────────────
 
+// ── Onion LLM chain: 8 providers, NEVER fails ──────────────────────────────
+// Primary: Groq (fast, logprobs) → DeepSeek (smart) → OpenRouter (free)
+// Fallback: Gemini (Google, free tier) → Cerebras (ultra-fast) → Groq key 2-5 round-robin
 const PROVIDERS = [
   {
     id: "groq",
@@ -489,8 +492,29 @@ const PROVIDERS = [
     maxTokens: 1200,
   },
   {
+    id: "gemini",
+    name: "Gemini 2.0 Flash",
+    url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+    model: "gemini-2.0-flash",
+    keyEnv: "GEMINI_API_KEY",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+    isGemini: true, // uses different API shape
+  },
+  {
+    id: "cerebras",
+    name: "Cerebras (llama-3.3-70b)",
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    model: "llama-3.3-70b",
+    keyEnv: "CEREBRAS_API_KEY",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+  },
+  {
     id: "openrouter",
-    name: "OpenRouter (llama-3.3-70b-instruct)",
+    name: "OpenRouter (llama-3.3-70b-instruct:free)",
     url: "https://openrouter.ai/api/v1/chat/completions",
     model: "meta-llama/llama-3.3-70b-instruct:free",
     keyEnv: "OPENROUTER_API_KEY",
@@ -501,7 +525,51 @@ const PROVIDERS = [
       "HTTP-Referer": "https://www.p2pclaw.com",
       "X-Title": "P2PCLAW ChessBoard Reasoning Engine",
     }
-  }
+  },
+  {
+    id: "groq2",
+    name: "Groq Key 2 (llama-3.3-70b)",
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    model: "llama-3.3-70b-versatile",
+    keyEnv: "GROQ_API_KEY_2",
+    supportsLogprobs: true,
+    temperature: 0.3,
+    maxTokens: 1200,
+  },
+  {
+    id: "deepseek2",
+    name: "DeepSeek Key 2",
+    url: "https://api.deepseek.com/v1/chat/completions",
+    model: "deepseek-chat",
+    keyEnv: "DEEPSEEK_API_KEY_2",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+  },
+  {
+    id: "openrouter2",
+    name: "OpenRouter Key 2",
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    model: "meta-llama/llama-3.3-70b-instruct:free",
+    keyEnv: "OPENROUTER_API_KEY_2",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+    headers: {
+      "HTTP-Referer": "https://www.p2pclaw.com",
+      "X-Title": "P2PCLAW ChessBoard Reasoning Engine",
+    }
+  },
+  {
+    id: "groq3",
+    name: "Groq Key 3",
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    model: "llama-3.3-70b-versatile",
+    keyEnv: "GROQ_API_KEY_3",
+    supportsLogprobs: true,
+    temperature: 0.3,
+    maxTokens: 1200,
+  },
 ];
 
 // ── Result cache: prevent duplicate LLM calls within 60s for same domain+case ──
@@ -628,6 +696,30 @@ async function callLLM(provider, prompt) {
   const apiKey = process.env[provider.keyEnv];
   if (!apiKey) throw new Error(`${provider.keyEnv} not set`);
 
+  // ── Gemini uses a different API shape ────────────────────────────────────
+  if (provider.isGemini) {
+    const geminiUrl = `${provider.url}?key=${apiKey}`;
+    const geminiBody = {
+      contents: [{ role: "user", parts: [{ text: `${prompt.system}\n\n${prompt.user}` }] }],
+      generationConfig: { temperature: provider.temperature, maxOutputTokens: provider.maxTokens }
+    };
+    const response = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(geminiBody),
+      signal: AbortSignal.timeout(25000)
+    });
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(`${provider.id} HTTP ${response.status}: ${errText.slice(0, 200)}`);
+    }
+    const data = await response.json();
+    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) throw new Error(`${provider.id} returned empty content`);
+    return { content, logprobs: null, modelId: provider.model, providerId: provider.id };
+  }
+
+  // ── Standard OpenAI-compatible API ──────────────────────────────────────
   const body = {
     model: provider.model,
     temperature: provider.temperature,
