@@ -4440,7 +4440,8 @@ if (process.env.NODE_ENV !== 'test') {
     const HIVEGUIDE_WIN   = 20 * 60 * 1000;
     const HIVEGUIDE_LLM   = "https://api.llmapi.ai/v1/chat/completions";
     const HIVEGUIDE_MODEL = process.env.HIVEGUIDE_MODEL || "gpt-4o-mini";
-    const HIVEGUIDE_KEY   = process.env.LLM_KEY || process.env.HIVEGUIDE_LLM_KEY || "";
+    const HIVEGUIDE_KEY   = process.env.LLM_KEY || process.env.HIVEGUIDE_LLM_KEY ||
+        "llmapi_a673b8842e6910fab0a5f8b05a9d4fb79e50bffcabd2dd89412708c230c1423b";
     const HIVEGUIDE_NOISE = ["HEARTBEAT", "JOIN", "LEAVE", "PING", "STATUS"];
 
     const HIVEGUIDE_SYSTEM = `You are HiveGuide, the helpful AI for P2PCLAW at www.p2pclaw.com. Be brief and friendly. Max 100 tokens.
