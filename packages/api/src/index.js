@@ -4433,6 +4433,86 @@ if (process.env.NODE_ENV !== 'test') {
     console.log('[AUTO-VALIDATOR] Background validation watcher initialized.');
 }
 
+// ── HiveGuide Chat Bot ────────────────────────────────────────────────────────
+// Runs every 15 min: reads unanswered Hive Chat messages → LLM replies (≤100 tokens)
+{
+    const HIVEGUIDE_ID    = "HiveGuide";
+    const HIVEGUIDE_WIN   = 20 * 60 * 1000;
+    const HIVEGUIDE_LLM   = "https://api.llmapi.ai/v1/chat/completions";
+    const HIVEGUIDE_MODEL = process.env.HIVEGUIDE_MODEL || "gpt-4o-mini";
+    const HIVEGUIDE_KEY   = process.env.LLM_KEY || process.env.HIVEGUIDE_LLM_KEY || "";
+    const HIVEGUIDE_NOISE = ["HEARTBEAT", "JOIN", "LEAVE", "PING", "STATUS"];
+
+    const HIVEGUIDE_SYSTEM = `You are HiveGuide, the helpful AI for P2PCLAW at www.p2pclaw.com. Be brief and friendly. Max 100 tokens.
+
+PAGES: /app/dashboard (chat+stats) | /app/papers (submit research, 500+ words Markdown) | /app/mempool (vote on papers) | /app/agents (AI swarm) | /app/leaderboard (τ rankings) | /app/network (3D view) | /app/knowledge (knowledge base)
+EARN τ: publish papers, validate others, run an agent node.
+API docs: https://api-production-87b2.up.railway.app/silicon/map`;
+
+    let _hiveguideLast = Date.now() - HIVEGUIDE_WIN;
+
+    const runHiveGuide = async () => {
+        if (!HIVEGUIDE_KEY) return;
+        const PORT = process.env.PORT || 3000;
+        try {
+            const chatRes = await fetch(`http://localhost:${PORT}/latest-chat?limit=30`);
+            if (!chatRes.ok) return;
+            const msgs = await chatRes.json();
+            const list = Array.isArray(msgs) ? msgs : (msgs.messages ?? []);
+            const now = Date.now();
+            const cutoff = Math.max(_hiveguideLast, now - HIVEGUIDE_WIN);
+
+            const pending = list.filter(m => {
+                const ts     = m.timestamp ?? m.ts ?? 0;
+                const sender = String(m.sender ?? m.author ?? "");
+                const text   = String(m.text ?? m.message ?? m.content ?? "");
+                return ts > cutoff && sender !== HIVEGUIDE_ID &&
+                       !HIVEGUIDE_NOISE.some(n => text.toUpperCase().startsWith(n)) &&
+                       text.trim().length > 0;
+            });
+
+            if (!pending.length) return;
+            console.log(`[HIVEGUIDE] ${pending.length} message(s) to answer`);
+
+            for (const msg of pending.slice(-3)) {
+                const text = String(msg.text ?? msg.message ?? msg.content ?? "").slice(0, 400);
+                const ts   = msg.timestamp ?? msg.ts ?? now;
+                try {
+                    const lr = await fetch(HIVEGUIDE_LLM, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${HIVEGUIDE_KEY}` },
+                        body: JSON.stringify({ model: HIVEGUIDE_MODEL, messages: [
+                            { role: "system", content: HIVEGUIDE_SYSTEM },
+                            { role: "user",   content: text },
+                        ], max_tokens: 100, temperature: 0.4 }),
+                        signal: AbortSignal.timeout(20000),
+                    });
+                    if (!lr.ok) { console.warn(`[HIVEGUIDE] LLM ${lr.status}`); continue; }
+                    const reply = (await lr.json()).choices?.[0]?.message?.content?.trim();
+                    if (!reply) continue;
+                    await fetch(`http://localhost:${PORT}/chat`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ message: reply, sender: HIVEGUIDE_ID }),
+                        signal: AbortSignal.timeout(8000),
+                    });
+                    console.log(`[HIVEGUIDE] → "${reply.slice(0, 80)}"`);
+                    if (ts > _hiveguideLast) _hiveguideLast = ts;
+                    await new Promise(r => setTimeout(r, 2000));
+                } catch (e) { console.warn(`[HIVEGUIDE] msg error: ${e.message}`); }
+            }
+        } catch (e) { console.warn(`[HIVEGUIDE] error: ${e.message}`); }
+    };
+
+    if (HIVEGUIDE_KEY) {
+        setTimeout(runHiveGuide, 90 * 1000);          // first run at 90s
+        setInterval(runHiveGuide, 15 * 60 * 1000);    // every 15 min
+        console.log('[HIVEGUIDE] Chat bot active — LLM model: ' + HIVEGUIDE_MODEL);
+    } else {
+        console.warn('[HIVEGUIDE] Disabled — set LLM_KEY env var in Railway to enable.');
+    }
+}
+
 // Initialize Phase 16 Heartbeat
 initializeTauHeartbeat();
 
