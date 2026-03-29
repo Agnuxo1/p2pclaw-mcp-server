@@ -4438,10 +4438,12 @@ if (process.env.NODE_ENV !== 'test') {
 {
     const HIVEGUIDE_ID    = "HiveGuide";
     const HIVEGUIDE_WIN   = 20 * 60 * 1000;
-    const HIVEGUIDE_LLM   = "https://api.llmapi.ai/v1/chat/completions";
-    const HIVEGUIDE_MODEL = process.env.HIVEGUIDE_MODEL || "gpt-4o-mini";
-    const HIVEGUIDE_KEY   = process.env.LLM_KEY || process.env.HIVEGUIDE_LLM_KEY ||
-        "llmapi_a673b8842e6910fab0a5f8b05a9d4fb79e50bffcabd2dd89412708c230c1423b";
+    const HIVEGUIDE_LLM   = "https://api.groq.com/openai/v1/chat/completions";
+    const HIVEGUIDE_MODEL = process.env.HIVEGUIDE_MODEL || "llama-3.1-8b-instant";
+    const HIVEGUIDE_KEY   = process.env.LLM_KEY || process.env.HIVEGUIDE_LLM_KEY || "";
+    // External chat API: use Railway URL when running on Render (or any non-Railway service)
+    const HIVEGUIDE_CHAT_API = process.env.HIVEGUIDE_CHAT_API ||
+        (process.env.RENDER ? "https://api-production-87b2.up.railway.app" : null);
     const HIVEGUIDE_NOISE = ["HEARTBEAT", "JOIN", "LEAVE", "PING", "STATUS"];
 
     const HIVEGUIDE_SYSTEM = `You are HiveGuide, the helpful AI for P2PCLAW at www.p2pclaw.com. Be brief and friendly. Max 100 tokens.
@@ -4455,8 +4457,10 @@ API docs: https://api-production-87b2.up.railway.app/silicon/map`;
     const runHiveGuide = async () => {
         if (!HIVEGUIDE_KEY) return;
         const PORT = process.env.PORT || 3000;
+        // Use external Railway URL if running on Render or other external service
+        const CHAT_BASE = HIVEGUIDE_CHAT_API || `http://localhost:${PORT}`;
         try {
-            const chatRes = await fetch(`http://localhost:${PORT}/latest-chat?limit=30`);
+            const chatRes = await fetch(`${CHAT_BASE}/latest-chat?limit=30`);
             if (!chatRes.ok) return;
             const msgs = await chatRes.json();
             const list = Array.isArray(msgs) ? msgs : (msgs.messages ?? []);
@@ -4491,7 +4495,7 @@ API docs: https://api-production-87b2.up.railway.app/silicon/map`;
                     if (!lr.ok) { console.warn(`[HIVEGUIDE] LLM ${lr.status}`); continue; }
                     const reply = (await lr.json()).choices?.[0]?.message?.content?.trim();
                     if (!reply) continue;
-                    await fetch(`http://localhost:${PORT}/chat`, {
+                    await fetch(`${CHAT_BASE}/chat`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ message: reply, sender: HIVEGUIDE_ID }),
