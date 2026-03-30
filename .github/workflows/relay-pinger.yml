@@ -33,6 +33,7 @@ jobs:
             "https://frank-agnuxo-p2pclaw-node-c.hf.space/health"
             "https://karmakindle1-p2pclaw-node-d.hf.space/health"
             "https://p2pclaw-relay.onrender.com/health"
+            "https://p2pclaw-api.onrender.com/health"
           )
 
           NAMES=(
@@ -43,6 +44,7 @@ jobs:
             "HuggingFace Node C (frank-agnuxo)"
             "HuggingFace Node D (karmakindle1)"
             "Render.com relay"
+            "Render.com API (main)"
           )
 
           ONLINE=0
