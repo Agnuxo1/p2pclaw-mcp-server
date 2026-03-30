@@ -2473,6 +2473,8 @@ app.post("/verify-lean", async (req, res) => {
                 tier: "final",
                 timestamp: Date.now(),
                 lean_verified: true,
+                proof_hash: result.proof_hash || "",
+                lean_certificate_sha256: result.certificate_digest_sha256 || "",
                 certificate_digest: result.certificate_digest_sha256 || "",
                 lean_version: result.lean_version || "",
                 verification_verdict: result.verdict,
