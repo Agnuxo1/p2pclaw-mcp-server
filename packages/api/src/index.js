@@ -48,7 +48,7 @@ import { publisher, cachedBackupMeta, updateCachedBackupMeta, publishToIpfsWithR
 import { fetchHiveState, updateInvestigationProgress, sendToHiveChat } from "./services/hiveMindService.js";
 import { trackAgentPresence, calculateRank } from "./services/agentService.js";
 import { tauCoordinator } from "./services/tauCoordinator.js";
-import { verifyWithTier1, reVerifyProofHash } from "./services/tier1Service.js";
+import { verifyWithTier1, reVerifyProofHash, verifyLean4Proof } from "./services/tier1Service.js";
 import { server, transports, mcpSessions, createMcpServerInstance, SSEServerTransport, StreamableHTTPServerTransport, CallToolRequestSchema } from "./services/mcpService.js";
 import { broadcastHiveEvent } from "./services/hiveService.js";
 import { VALIDATION_THRESHOLD, promoteToWheel, flagInvalidPaper, normalizeTitle, titleSimilarity, checkDuplicates, checkInvestigationDuplicate, titleExistsExact, titleCache, checkRegistryDeep, wordCountExistsExact, checkWordCountDeep, wordCountCache, getContentHash, getAbstractHash, contentHashExists, checkHashDeep, contentHashCache, abstractHashCache, abstractHashExists, checkAbstractHashDeep } from "./services/consensusService.js";
@@ -2439,6 +2439,60 @@ app.get("/mempool", (req, res) => {
 
 // Phase 11: The Immune System (Lean 4 Verifier API)
 app.post("/verify-claim", processScientificClaim);
+
+// ── Lean 4 Formal Verification endpoint ──
+// Accepts Lean 4 source → forwards to Tier-1 Verifier → returns CAB certificate
+app.post("/verify-lean", async (req, res) => {
+    const { lean_content, claim, main_theorem, agent_id, investigation_context, mode } = req.body;
+
+    if (!lean_content || !claim || !main_theorem) {
+        return res.status(400).json({
+            error: "Required fields: lean_content, claim, main_theorem",
+            docs: "POST /verify-lean with Lean 4 source code"
+        });
+    }
+
+    try {
+        const result = await verifyLean4Proof(
+            lean_content,
+            claim,
+            main_theorem,
+            agent_id || "anonymous",
+            investigation_context || claim,
+            mode || "default"
+        );
+
+        // If VERIFIED, optionally store in Gun.js as a lean-verified paper
+        if (result.verdict === "VERIFIED" || result.verdict === "VERIFIED_WITH_WARNINGS") {
+            const paperId = `lean-${result.submission_id}`;
+            const paperObj = {
+                id: paperId,
+                title: `[Lean 4] ${claim.slice(0, 100)}`,
+                content: lean_content,
+                author: agent_id || "anonymous",
+                tier: "final",
+                timestamp: Date.now(),
+                lean_verified: true,
+                certificate_digest: result.certificate_digest_sha256 || "",
+                lean_version: result.lean_version || "",
+                verification_verdict: result.verdict,
+                semantic_audit: result.semantic_audit || "",
+                main_theorem: main_theorem,
+            };
+            db.get("p2pclaw_papers_v4").get(paperId).put(paperObj);
+            console.log(`[LEAN4] Verified paper stored: ${paperId} | verdict: ${result.verdict}`);
+        }
+
+        res.json(result);
+    } catch (err) {
+        console.error("[LEAN4] Verification failed:", err.message);
+        res.status(502).json({
+            error: "Lean 4 verifier unavailable",
+            details: err.message,
+            hint: "The Tier-1 verifier HF Space may be sleeping. Try again in 60s."
+        });
+    }
+});
 
 app.post("/validate-paper", async (req, res) => {
     const { paperId, agentId, result, proof_hash, occam_score } = req.body;
