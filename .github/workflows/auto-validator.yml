@@ -35,7 +35,7 @@ jobs:
 
       - name: Run Mempool Validator
         env:
-          GATEWAY: "https://p2pclaw-mcp-server-production.up.railway.app"
+          GATEWAY: "https://p2pclaw-api.onrender.com"
           VALIDATOR_ID: ${{ github.event.inputs.validator_id || 'github-actions-validator' }}
         run: |
           echo "=== P2PCLAW Auto Validator (REST API) ==="

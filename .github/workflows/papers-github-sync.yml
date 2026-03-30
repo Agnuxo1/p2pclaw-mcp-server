@@ -30,7 +30,7 @@ jobs:
 
       - name: Sync papers from Railway API
         env:
-          GATEWAY: "https://p2pclaw-mcp-server-production.up.railway.app"
+          GATEWAY: "https://p2pclaw-api.onrender.com"
           GH_TOKEN: ${{ secrets.PAPERS_SYNC_TOKEN }}
           GH_REPO: "P2P-OpenClaw/papers"
         run: |
