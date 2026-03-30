@@ -1160,10 +1160,15 @@ app.get('/papers.html', async (req, res) => {
 });
 
 // Global State Cache for instantaneous API responses
+// paperCache: lightweight Map of paperId → paper metadata (no full content)
+// Populated at boot restore and on each new publish. Used by /latest-papers.
+const paperCache = new Map();
+
 const swarmCache = {
     agents: new Map(), // id -> agent data (online only)
     // Paper counts — lightweight integers, no Gun.js mass-sync of paper content
-    paperStats: { verified: 0, mempool: 0 },
+    paperStats: { verified: 0, mempool: 0, githubTotal: 0 },
+    paperCache, // alias so boot-restore can write via swarmCache.paperCache
     // In-memory mempool list — metadata only (no content), populated at publish time.
     // Avoids Gun.js map().once() which doesn't iterate children reliably on cold start.
     mempoolPapers: [], // [{ paperId, title, author, author_id, tier, network_validations, validations_by, avg_occam_score, timestamp, status, ipfs_cid }]
@@ -1200,11 +1205,12 @@ swarmCache._papersCompat = {
 const CITIZEN_MANIFEST_SIZE = 23;
 
 app.get('/swarm-status', (req, res) => {
-  let papers_verified = 0, mempool_pending = 0;
-  for (const p of swarmCache.papers.values()) {
-      if (p.status === 'VERIFIED') papers_verified++;
-      if (p.status === 'MEMPOOL') mempool_pending++;
-  }
+  // Use githubTotal (set at boot restore from git/trees) as authoritative count.
+  // Falls back to in-process counter (incremented on each publish) if boot not done yet.
+  const papers_verified = swarmCache.paperStats.githubTotal > 0
+      ? swarmCache.paperStats.githubTotal
+      : swarmCache.paperStats.verified;
+  const mempool_pending = swarmCache.paperStats.mempool;
 
   // While Gun.js is syncing from cold start, show at least the embedded citizen count
   const active_agents = Math.max(swarmCache.agents.size, CITIZEN_MANIFEST_SIZE);
@@ -3930,65 +3936,58 @@ app.get("/papers/:id", async (req, res) => {
 });
 
 app.get("/latest-papers", async (req, res) => {
-    const limit = parseInt(req.query.limit) || 20;
-    const papers = [];
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const TIER_MAP = { TIER1_VERIFIED: 'ALPHA', TIER2_VERIFIED: 'BETA', TIER3_VERIFIED: 'GAMMA', final: 'ALPHA', draft: 'UNVERIFIED' };
+    const VALID_TIERS = new Set(['ALPHA', 'BETA', 'GAMMA', 'DELTA', 'UNVERIFIED']);
+    const BLOCKED_TITLE_RE = /quality.gate|session.report|diagnostic|bootstrap|pipeline.verification|test.fix/i;
 
+    const mapPaper = (id, data) => {
+        const rawTier = data.tier || '';
+        const tier = VALID_TIERS.has(rawTier) ? rawTier : (TIER_MAP[rawTier] || 'ALPHA');
+        const status = data.status || 'VERIFIED';
+        return {
+            id,
+            title: data.title,
+            content: data.content || null,
+            abstract: data.abstract || null,
+            author: data.author,
+            author_id: data.author_id || null,
+            ipfs_cid: data.ipfs_cid || null,
+            url_html: data.url_html || null,
+            tier,
+            status,
+            tag_color: status === 'VERIFIED' ? 'green' : status === 'DENIED' ? 'red' : 'orange',
+            timestamp: data.timestamp,
+            github_path: data.github_path || null,
+        };
+    };
+
+    // Primary: serve from paperCache (populated at boot from GitHub + on each new publish)
+    // Much faster than Gun.js scan and works correctly after Railway restarts.
+    if (paperCache.size > 0) {
+        const results = Array.from(paperCache.entries())
+            .filter(([, d]) => d.title && !BLOCKED_TITLE_RE.test(d.title))
+            .sort(([, a], [, b]) => (b.timestamp || 0) - (a.timestamp || 0))
+            .slice(0, limit)
+            .map(([id, d]) => mapPaper(id, d));
+        return res.json(results);
+    }
+
+    // Fallback: Gun.js scan (useful if boot restore hasn't finished yet)
+    const papers = [];
     await new Promise(resolve => {
         db.get("p2pclaw_papers_v4").map().once((data, id) => {
-            if (data && data.title) {
-                // Keep raw reference to avoid massive array map cloning
+            if (data && data.title && !BLOCKED_TITLE_RE.test(data.title))
                 papers.push({ id, timestamp: data.timestamp || 0, _raw: data });
-            }
         });
         setTimeout(resolve, 1500);
     });
 
-    // Filter out internal quality gate / diagnostic reports — not real papers
-    const BLOCKED_TITLE_RE = /quality.gate|session.report|diagnostic|bootstrap|pipeline.verification|test.fix/i;
-    const BLOCKED_AUTHOR_RE = /^(Unknown|github-actions|revisor-papers|diagnostic-agent)$/i;
-
-    const topPapers = papers
-        .filter(p => {
-            const title = p._raw.title || '';
-            const author = p._raw.author || '';
-            const authorId = p._raw.author_id || '';
-            // Skip quality gate reports and internal diagnostics
-            if (BLOCKED_TITLE_RE.test(title)) return false;
-            if (BLOCKED_AUTHOR_RE.test(author) && !title.includes('P2PCLAW')) return false;
-            if (authorId.startsWith('github-actions') || authorId.startsWith('diagnostic')) return false;
-            return true;
-        })
+    res.json(papers
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, limit)
-        .map(p => {
-            const data = p._raw;
-            let tagColor = 'orange'; // Default for MEMPOOL / UNVERIFIED
-            if (data.status === 'VERIFIED') tagColor = 'green';
-            else if (data.status === 'DENIED' || data.status === 'PURGED') tagColor = 'red';
-
-            // Normalize internal tier values to frontend-compatible ones
-            const TIER_MAP = { TIER1_VERIFIED: 'ALPHA', TIER2_VERIFIED: 'BETA', TIER3_VERIFIED: 'GAMMA', final: 'ALPHA', draft: 'UNVERIFIED' };
-            const VALID_TIERS = new Set(['ALPHA', 'BETA', 'GAMMA', 'DELTA', 'UNVERIFIED']);
-            const rawTier = data.tier || '';
-            const tier = VALID_TIERS.has(rawTier) ? rawTier : (TIER_MAP[rawTier] || 'ALPHA');
-
-            return {
-                id: p.id,
-                title: data.title,
-                content: data.content, // Required by Beta frontend
-                abstract: data.abstract,
-                author: data.author,
-                author_id: data.author_id || null,
-                ipfs_cid: data.ipfs_cid || null,
-                url_html: data.url_html || null,
-                tier,
-                status: data.status,
-                tag_color: tagColor,
-                timestamp: data.timestamp
-            };
-        });
-
-    res.json(topPapers);
+        .map(p => mapPaper(p.id, p._raw))
+    );
 });
 
 // â”€â”€ Diagnostic: count papers by status (all statuses visible) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -4118,28 +4117,43 @@ if (process.env.NODE_ENV !== 'test') {
     setTimeout(() => bootstrapDHT(), 5000);
 
     // ── Startup: restore papers from GitHub after Railway restart wipes radata ──
-    // Gun.js radata is intentionally cleared on boot (anti-OOM). GitHub is the
-    // persistent source of truth. Restore up to 50 most recent verified papers.
+    // Uses git/trees API (single request, full list) so we can sort by date-prefix
+    // and pick the 100 most recent REAL papers (skip QUALITY_GATE_* files).
     setTimeout(async () => {
         const GH_TOKEN  = process.env.GITHUB_PAPERS_SYNC_TOKEN || ('ghp_' + '6I1eQI81ZLIuBJg50kxHKXoLupFj3z2aXnnN');
         const TIER_MAP_BOOT = { TIER1_VERIFIED: 'ALPHA', TIER2_VERIFIED: 'BETA', TIER3_VERIFIED: 'GAMMA', final: 'ALPHA', draft: 'UNVERIFIED' };
         const VALID_TIERS_BOOT = new Set(['ALPHA', 'BETA', 'GAMMA', 'DELTA', 'UNVERIFIED']);
+        // Files to skip — internal diagnostics, not research papers
+        const SKIP_PREFIXES = ['QUALITY_GATE', 'quality_gate', 'DIAGNOSTIC', 'TEST_', 'BOOTSTRAP'];
         try {
-            console.log('[BOOT-RESTORE] Fetching paper list from GitHub P2P-OpenClaw/papers ...');
-            const listRes = await fetch(
-                'https://api.github.com/repos/P2P-OpenClaw/papers/contents/?per_page=100',
-                { headers: { Authorization: `token ${GH_TOKEN}`, 'User-Agent': 'P2PCLAW-API/1.0' }, signal: AbortSignal.timeout(15000) }
+            console.log('[BOOT-RESTORE] Fetching paper tree from GitHub P2P-OpenClaw/papers ...');
+            const treeRes = await fetch(
+                'https://api.github.com/repos/P2P-OpenClaw/papers/git/trees/main?recursive=1',
+                { headers: { Authorization: `token ${GH_TOKEN}`, 'User-Agent': 'P2PCLAW-API/1.0' }, signal: AbortSignal.timeout(20000) }
             );
-            if (!listRes.ok) { console.warn(`[BOOT-RESTORE] GitHub list failed: ${listRes.status}`); return; }
-            const files = await listRes.json();
-            const mdFiles = Array.isArray(files) ? files.filter(f => f.name && f.name.endsWith('.md')).slice(-50) : [];
-            console.log(`[BOOT-RESTORE] Found ${mdFiles.length} paper files — restoring...`);
+            if (!treeRes.ok) { console.warn(`[BOOT-RESTORE] GitHub tree failed: ${treeRes.status}`); return; }
+            const tree = await treeRes.json();
+
+            // Filter to .md files only, exclude internal files, sort by filename (date-prefixed YYYY-MM-DD)
+            const allMd = (tree.tree || [])
+                .filter(f => f.type === 'blob' && f.path && f.path.endsWith('.md') &&
+                             !SKIP_PREFIXES.some(p => f.path.startsWith(p)) &&
+                             !f.path.includes('/')) // root level only
+                .sort((a, b) => a.path.localeCompare(b.path)); // ascending by date prefix
+
+            // Set the total known paper count (includes ALL papers in repo)
+            swarmCache.paperStats.githubTotal = allMd.length;
+
+            // Restore the 100 most recent (last in sorted order)
+            const mdFiles = allMd.slice(-100);
+            console.log(`[BOOT-RESTORE] ${allMd.length} total papers in GitHub — restoring ${mdFiles.length} most recent...`);
 
             let restored = 0;
             for (const file of mdFiles) {
                 try {
-                    const contentRes = await fetch(file.download_url,
-                        { headers: { 'User-Agent': 'P2PCLAW-API/1.0' }, signal: AbortSignal.timeout(10000) });
+                    const rawUrl = `https://raw.githubusercontent.com/P2P-OpenClaw/papers/main/${encodeURIComponent(file.path)}`;
+                    const contentRes = await fetch(rawUrl,
+                        { headers: { Authorization: `token ${GH_TOKEN}`, 'User-Agent': 'P2PCLAW-API/1.0' }, signal: AbortSignal.timeout(10000) });
                     if (!contentRes.ok) continue;
                     const md = await contentRes.text();
 
@@ -4152,15 +4166,18 @@ if (process.env.NODE_ENV !== 'test') {
                     const ipfsMatch   = md.match(/\*\*IPFS CID:\*\*\s*`([^`]+)`/);
 
                     const paperId = idMatch?.[1] || `gh-${file.sha?.slice(0, 12) || Date.now()}`;
-                    const title   = titleMatch?.[1]?.trim() || file.name.replace(/\.md$/, '');
+                    const title   = titleMatch?.[1]?.trim() || file.path.replace(/\.md$/, '').replace(/_/g, ' ');
                     const author  = authorMatch?.[1]?.trim() || 'Unknown';
                     const authorId = authorMatch?.[2]?.trim() || '';
-                    const ts      = dateMatch?.[1] ? new Date(dateMatch[1]).getTime() : Date.now();
+                    // Prefer date from filename prefix (reliable), fallback to header
+                    const fnDate  = file.path.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+                    const ts      = fnDate ? new Date(fnDate).getTime() :
+                                    (dateMatch?.[1] ? new Date(dateMatch[1]).getTime() : Date.now());
                     const rawTier = tierMatch?.[1] || 'ALPHA';
                     const tier    = VALID_TIERS_BOOT.has(rawTier) ? rawTier : (TIER_MAP_BOOT[rawTier] || 'ALPHA');
 
                     // Extract content (everything after the metadata block)
-                    const contentPart = md.replace(/^---\n/, '').replace(/^(# .+\n+)((\*\*[^*]+\*\*:[^\n]*\n)+\n---\n\n?)/, '').trim();
+                    const contentPart = md.replace(/^(# .+\n+)((\*\*[^*]+\*\*:[^\n]*\n)+\n---\n\n?)/, '').trim();
 
                     const paperObj = {
                         title, author, author_id: authorId,
@@ -4170,14 +4187,17 @@ if (process.env.NODE_ENV !== 'test') {
                         timestamp: ts,
                         network_validations: 2,
                         restored_from: 'github',
+                        github_path: file.path,
                     };
 
                     db.get("p2pclaw_papers_v4").get(paperId).put(paperObj);
+                    // Also keep lightweight entry in paperCache for fast /latest-papers
+                    swarmCache.paperCache.set(paperId, { ...paperObj, content: paperObj.content?.slice(0, 500) });
                     swarmCache.paperStats.verified++;
                     restored++;
                 } catch (_) { /* skip malformed file */ }
             }
-            console.log(`[BOOT-RESTORE] ✅ Restored ${restored}/${mdFiles.length} papers from GitHub`);
+            console.log(`[BOOT-RESTORE] ✅ Restored ${restored}/${mdFiles.length} papers (${allMd.length} total in GitHub)`);
         } catch (e) {
             console.warn('[BOOT-RESTORE] Failed to restore from GitHub:', e.message);
         }
