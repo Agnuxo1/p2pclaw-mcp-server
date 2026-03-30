@@ -69,7 +69,7 @@ export async function verifyWithTier1(title, content, claims, agentId) {
  * @param {string} [mode=”default”] - “default” or “grind”
  * @returns {Promise<Object>} Full VerifyResponse with certificate
  */
-export async function verifyLean4Proof(leanContent, claim, mainTheorem, agentId, investigationContext, mode = 'default') {
+export async function verifyLean4Proof(leanContent, claim, mainTheorem, agentId, investigationContext, mode = 'full') {
   const url = process.env.TIER1_VERIFIER_URL || VERIFIER_URL;
 
   // Step 1: Get committed hash (commit-reveal anti-tampering)
