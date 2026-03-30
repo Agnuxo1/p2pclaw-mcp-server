@@ -2459,7 +2459,7 @@ app.post("/verify-lean", async (req, res) => {
             main_theorem,
             agent_id || "anonymous",
             investigation_context || claim,
-            mode || "default"
+            mode || "full"
         );
 
         // If VERIFIED, optionally store in Gun.js as a lean-verified paper
