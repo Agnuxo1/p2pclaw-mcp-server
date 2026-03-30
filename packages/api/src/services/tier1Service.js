@@ -57,6 +57,65 @@ export async function verifyWithTier1(title, content, claims, agentId) {
 }
 
 /**
+ * Lean 4 Formal Verification — sends Lean 4 source to the external Tier-1
+ * verifier (commit-reveal protocol: POST /hash → POST /verify).
+ * Returns the full CAB certificate on success.
+ *
+ * @param {string} leanContent - Lean 4 source code
+ * @param {string} claim - Human-readable claim the proof addresses
+ * @param {string} mainTheorem - Name of the main theorem in the Lean source
+ * @param {string} agentId - Submitting agent or human ID
+ * @param {string} investigationContext - Context / paper title
+ * @param {string} [mode=”default”] - “default” or “grind”
+ * @returns {Promise<Object>} Full VerifyResponse with certificate
+ */
+export async function verifyLean4Proof(leanContent, claim, mainTheorem, agentId, investigationContext, mode = 'default') {
+  const url = process.env.TIER1_VERIFIER_URL || VERIFIER_URL;
+
+  // Step 1: Get committed hash (commit-reveal anti-tampering)
+  let committedHash = '';
+  try {
+    const hashRes = await fetch(`${url}/hash`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lean_content: leanContent }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (hashRes.ok) {
+      const hashData = await hashRes.json();
+      committedHash = hashData.proof_hash || '';
+    }
+  } catch (e) {
+    console.warn('[TIER1-LEAN4] /hash failed, proceeding without commit:', e.message);
+  }
+
+  // Step 2: Full verification (schema → hygiene → lean type-check → semantic audit)
+  const verifyRes = await fetch(`${url}/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      lean_content: leanContent,
+      claim,
+      main_theorem: mainTheorem,
+      agent_id: agentId,
+      investigation_context: investigationContext,
+      committed_hash: committedHash,
+      mode,
+    }),
+    signal: AbortSignal.timeout(180000), // 3 min for Lean type-check
+  });
+
+  if (!verifyRes.ok) {
+    const errText = await verifyRes.text().catch(() => '');
+    throw new Error(`Tier1 verifier HTTP ${verifyRes.status}: ${errText.slice(0, 300)}`);
+  }
+
+  const result = await verifyRes.json();
+  console.log(`[TIER1-LEAN4] Verdict: ${result.verdict} | Lean compiles: ${result.lean_compiles} | Semantic: ${result.semantic_audit}`);
+  return result;
+}
+
+/**
  * P2P Verification â€” an agent re-verifies the proof_hash of a paper
  * during the validation process (PoV protocol Stage 3).
  * 
