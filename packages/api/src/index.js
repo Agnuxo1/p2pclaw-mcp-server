@@ -3943,7 +3943,21 @@ app.get("/latest-papers", async (req, res) => {
         setTimeout(resolve, 1500);
     });
 
+    // Filter out internal quality gate / diagnostic reports — not real papers
+    const BLOCKED_TITLE_RE = /quality.gate|session.report|diagnostic|bootstrap|pipeline.verification|test.fix/i;
+    const BLOCKED_AUTHOR_RE = /^(Unknown|github-actions|revisor-papers|diagnostic-agent)$/i;
+
     const topPapers = papers
+        .filter(p => {
+            const title = p._raw.title || '';
+            const author = p._raw.author || '';
+            const authorId = p._raw.author_id || '';
+            // Skip quality gate reports and internal diagnostics
+            if (BLOCKED_TITLE_RE.test(title)) return false;
+            if (BLOCKED_AUTHOR_RE.test(author) && !title.includes('P2PCLAW')) return false;
+            if (authorId.startsWith('github-actions') || authorId.startsWith('diagnostic')) return false;
+            return true;
+        })
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, limit)
         .map(p => {
@@ -4434,23 +4448,37 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // ── HiveGuide Chat Bot ────────────────────────────────────────────────────────
-// Runs every 15 min: reads unanswered Hive Chat messages → LLM replies (≤100 tokens)
+// Runs every 60s: reads unanswered Hive Chat messages → LLM replies (≤300 tokens)
 {
     const HIVEGUIDE_ID    = "HiveGuide";
-    const HIVEGUIDE_WIN   = 20 * 60 * 1000;
+    const HIVEGUIDE_WIN   = 5 * 60 * 1000;  // 5-minute lookback window
     const HIVEGUIDE_LLM   = "https://api.groq.com/openai/v1/chat/completions";
-    const HIVEGUIDE_MODEL = process.env.HIVEGUIDE_MODEL || "llama-3.1-8b-instant";
+    const HIVEGUIDE_MODEL = process.env.HIVEGUIDE_MODEL || "llama-3.3-70b-versatile";
     const HIVEGUIDE_KEY   = process.env.LLM_KEY || process.env.HIVEGUIDE_LLM_KEY || "";
     // External chat API: use Railway URL when running on Render (or any non-Railway service)
     const HIVEGUIDE_CHAT_API = process.env.HIVEGUIDE_CHAT_API ||
         (process.env.RENDER ? "https://api-production-87b2.up.railway.app" : null);
     const HIVEGUIDE_NOISE = ["HEARTBEAT", "JOIN", "LEAVE", "PING", "STATUS"];
 
-    const HIVEGUIDE_SYSTEM = `You are HiveGuide, the helpful AI for P2PCLAW at www.p2pclaw.com. Be brief and friendly. Max 100 tokens.
+    const HIVEGUIDE_SYSTEM = `You are HiveGuide, the AI assistant for P2PCLAW — a decentralized peer-to-peer scientific research network at www.p2pclaw.com. You are friendly, knowledgeable, and always present in the chat.
 
-PAGES: /app/dashboard (chat+stats) | /app/papers (submit research, 500+ words Markdown) | /app/mempool (vote on papers) | /app/agents (AI swarm) | /app/leaderboard (τ rankings) | /app/network (3D view) | /app/knowledge (knowledge base)
-EARN τ: publish papers, validate others, run an agent node.
-API docs: https://api-production-87b2.up.railway.app/silicon/map`;
+PLATFORM OVERVIEW:
+P2PCLAW is a P2P research platform where AI agents (Silicon) and humans (Carbon) collaborate to publish, validate, and verify scientific papers. Papers must be ≥500 words in Markdown with 7 sections (Abstract, Introduction, Methodology, Results, Discussion, Conclusion, References).
+
+KEY PAGES:
+- /app/dashboard — Live stats, chat, network overview
+- /app/papers — Browse & submit research papers
+- /app/mempool — Vote on pending papers (earn τ reputation)
+- /app/agents — See all active AI agents in the swarm
+- /app/workflow — ChessBoard Reasoning Engine (10 domains: legal, medical, cybersec, etc.)
+- /app/simulations — Open-Tool Multiverse (RDKit, Lean 4, Python)
+- /lab — Research laboratory with Python (Pyodide), PubChem, Semantic Scholar, Lean4
+- /silicon — Agent API entry point (text/markdown interface for AI agents)
+
+HOW TO EARN τ: publish papers, validate others' papers, run an agent node, contribute to discussions.
+API docs: GET /silicon/map
+
+Answer in the same language as the user. Be helpful and specific. If someone asks how to get started, guide them step by step.`;
 
     let _hiveguideLast = Date.now() - HIVEGUIDE_WIN;
 
@@ -4489,7 +4517,7 @@ API docs: https://api-production-87b2.up.railway.app/silicon/map`;
                         body: JSON.stringify({ model: HIVEGUIDE_MODEL, messages: [
                             { role: "system", content: HIVEGUIDE_SYSTEM },
                             { role: "user",   content: text },
-                        ], max_tokens: 100, temperature: 0.4 }),
+                        ], max_tokens: 300, temperature: 0.5 }),
                         signal: AbortSignal.timeout(20000),
                     });
                     if (!lr.ok) { console.warn(`[HIVEGUIDE] LLM ${lr.status}`); continue; }
@@ -4510,9 +4538,9 @@ API docs: https://api-production-87b2.up.railway.app/silicon/map`;
     };
 
     if (HIVEGUIDE_KEY) {
-        setTimeout(runHiveGuide, 90 * 1000);          // first run at 90s
-        setInterval(runHiveGuide, 15 * 60 * 1000);    // every 15 min
-        console.log('[HIVEGUIDE] Chat bot active — LLM model: ' + HIVEGUIDE_MODEL);
+        setTimeout(runHiveGuide, 30 * 1000);          // first run at 30s
+        setInterval(runHiveGuide, 60 * 1000);          // every 60 seconds
+        console.log('[HIVEGUIDE] Chat bot active (60s poll) — LLM model: ' + HIVEGUIDE_MODEL);
     } else {
         console.warn('[HIVEGUIDE] Disabled — set LLM_KEY env var in Railway to enable.');
     }
