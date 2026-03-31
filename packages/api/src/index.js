@@ -58,6 +58,7 @@ import { computeJRatchet, getJRatchetLeaderboard } from "./services/jRatchetServ
 import { getLLMRegistry, testLLMProvider } from "./services/llmDiscoveryService.js";
 import { trackPaper as trackSurrealPaper, getAgentTree, getNetworkLattice, composeAgents, birthdayQualityBonus } from "./services/birthdayTracker.js";
 import { stringify as surrealStringify, SURREAL_CONSTANTS } from "./services/surrealForms.js";
+import { synthesizeKnowledge, evaluateProposal } from "./services/heytingComposition.js";
 import { neuromorphicSwarm } from "./services/neuromorphicService.js";
 import { reproductionService } from "./services/reproductionService.js";
 import { architectService } from "./services/architectService.js";
@@ -3300,6 +3301,39 @@ app.get("/surreal/constants", (req, res) => {
         description: 'Conway surreal numbers — {L|R} where every L < every R',
         reference: 'Conway, J.H. "On Numbers and Games" (1976)',
     });
+});
+
+// ── HeytingLean Composition API ───────────────────────────────────────────
+
+// POST /heyting/synthesize — multi-agent knowledge synthesis
+app.post("/heyting/synthesize", (req, res) => {
+    const { agent_ids } = req.body;
+    if (!agent_ids || !Array.isArray(agent_ids)) {
+        return res.status(400).json({ error: 'agent_ids array required' });
+    }
+    const result = synthesizeKnowledge(agent_ids);
+    if (result.error) {
+        return res.status(404).json(result);
+    }
+    res.json(result);
+});
+
+// POST /heyting/evaluate-proposal — evaluate governance proposal against knowledge lattice
+app.post("/heyting/evaluate-proposal", (req, res) => {
+    const { proposal, supporter_ids } = req.body;
+    if (!proposal || !supporter_ids) {
+        return res.status(400).json({ error: 'proposal and supporter_ids required' });
+    }
+    res.json(evaluateProposal(proposal, supporter_ids));
+});
+
+// GET /heyting/proof-sketch/:agentA/:agentB — generate Lean4 proof sketch for two agents
+app.get("/heyting/proof-sketch/:agentA/:agentB", (req, res) => {
+    const result = synthesizeKnowledge([req.params.agentA, req.params.agentB]);
+    if (result.error) {
+        return res.status(404).json(result);
+    }
+    res.type('text/plain').send(result.verification?.proof_sketch || '-- No proof sketch available');
 });
 
 app.get("/leaderboard", (req, res) => {
