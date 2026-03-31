@@ -45,6 +45,16 @@ function nextKey(providerId, keys) {
 
 const PROVIDERS = [
     {
+        id: "llmapi",
+        name: "LLM-API",
+        url: "https://api.llmapi.ai/v1/chat/completions",
+        model: "gpt-4o",
+        keys: loadKeys("LLMAPI_KEY"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        minTokens: 16,  // LLM API requires min 16 tokens
+    },
+    {
         id: "groq",
         name: "Groq",
         url: "https://api.groq.com/openai/v1/chat/completions",
@@ -174,7 +184,7 @@ async function callLLMForScoring(prompt, provider) {
                 body: JSON.stringify({
                     model: provider.model,
                     messages: [{ role: "user", content: prompt }],
-                    max_tokens: 512,
+                    max_tokens: Math.max(provider.minTokens || 16, 512),
                     temperature: 0.1,
                 }),
                 signal: AbortSignal.timeout(30000),
