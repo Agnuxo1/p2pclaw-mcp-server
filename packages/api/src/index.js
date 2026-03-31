@@ -2462,16 +2462,18 @@ app.post("/verify-lean", async (req, res) => {
             mode || "full"
         );
 
-        // If VERIFIED, optionally store in Gun.js as a lean-verified paper
+        // If VERIFIED, store in Gun.js + sign with Ed25519 + pin to IPFS
         if (result.verdict === "VERIFIED" || result.verdict === "VERIFIED_WITH_WARNINGS") {
             const paperId = `lean-${result.submission_id}`;
+            const now = Date.now();
             const paperObj = {
                 id: paperId,
                 title: `[Lean 4] ${claim.slice(0, 100)}`,
                 content: lean_content,
                 author: agent_id || "anonymous",
                 tier: "final",
-                timestamp: Date.now(),
+                status: "VERIFIED",
+                timestamp: now,
                 lean_verified: true,
                 proof_hash: result.proof_hash || "",
                 lean_certificate_sha256: result.certificate_digest_sha256 || "",
@@ -2481,6 +2483,28 @@ app.post("/verify-lean", async (req, res) => {
                 semantic_audit: result.semantic_audit || "",
                 main_theorem: main_theorem,
             };
+
+            // Ed25519 signature (uses server keypair — agent key not available here)
+            try {
+                const sig = signPaper(paperObj, _serverPrivateKey);
+                if (sig) {
+                    paperObj.ed25519_signature = sig;
+                    paperObj.ed25519_pubkey = _serverPublicKey;
+                    console.log(`[LEAN4] Paper signed with Ed25519`);
+                }
+            } catch (sigErr) {
+                console.warn(`[LEAN4] Ed25519 signing skipped:`, sigErr.message);
+            }
+
+            // IPFS pinning (non-blocking — paper saved to Gun.js even if IPFS fails)
+            archiveToIPFS(JSON.stringify(result.certificate || {}), paperId).then(cid => {
+                if (cid) {
+                    paperObj.ipfs_cid = cid;
+                    db.get("p2pclaw_papers_v4").get(paperId).put({ ipfs_cid: cid });
+                    console.log(`[LEAN4] Certificate pinned to IPFS: ${cid}`);
+                }
+            }).catch(e => console.warn(`[LEAN4] IPFS pin skipped:`, e.message));
+
             db.get("p2pclaw_papers_v4").get(paperId).put(paperObj);
             console.log(`[LEAN4] Verified paper stored: ${paperId} | verdict: ${result.verdict}`);
         }
@@ -2493,6 +2517,34 @@ app.post("/verify-lean", async (req, res) => {
             details: err.message,
             hint: "The Tier-1 verifier HF Space may be sleeping. Try again in 60s."
         });
+    }
+});
+
+// ── Paper Formatting Service (Pilar 1: For Researchers) ──
+// Takes raw text/ideas and structures them into proper academic papers using LLM
+app.post("/format-paper", async (req, res) => {
+    const { raw_text, paper_type } = req.body;
+
+    if (!raw_text || raw_text.trim().length < 50) {
+        return res.status(400).json({
+            error: "raw_text must be at least 50 characters",
+            docs: "POST /format-paper with { raw_text: '...', paper_type: 'research'|'review'|'technical'|'proof' }"
+        });
+    }
+
+    try {
+        const { formatPaperDraft } = await import("./services/formatService.js");
+        const result = await formatPaperDraft(raw_text.trim(), paper_type || "research");
+        res.json({
+            success: true,
+            ...result,
+            hint: result.llm_used
+                ? "Paper formatted with AI. Review carefully before publishing."
+                : "LLM unavailable — paper structured with template. Edit sections manually."
+        });
+    } catch (err) {
+        console.error("[FORMAT] Paper formatting failed:", err.message);
+        res.status(500).json({ error: "Formatting failed", details: err.message });
     }
 });
 
