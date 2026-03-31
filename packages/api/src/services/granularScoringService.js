@@ -158,19 +158,30 @@ function heuristicScore(content) {
         else sectionScores[section] = 7;
     }
 
-    // Reference quality
+    // Reference quality — check for real citations vs placeholders
     const refMatches = text.match(/\[\d+\]/g) || [];
     const uniqueRefs = new Set(refMatches).size;
     const hasPlaceholderRefs = /placeholder|author,?\s*a\.\s*\(\d{4}\)/i.test(text);
-    sectionScores.references = hasPlaceholderRefs ? 1 : Math.min(7, uniqueRefs);
+    const hasRealAuthors = /[A-Z][a-z]+,\s*[A-Z]\.\s*(?:&|,|et al)/g.test(text); // "Smith, J. &" pattern
+    const hasDOI = /doi\.org|arxiv\.org|10\.\d{4}/i.test(text);
+    let refScore = hasPlaceholderRefs ? 1 : Math.min(7, uniqueRefs);
+    if (hasRealAuthors) refScore = Math.min(10, refScore + 1);
+    if (hasDOI) refScore = Math.min(10, refScore + 1);
+    sectionScores.references = refScore;
 
-    // Novelty — very hard to assess heuristically, be conservative
-    const novelty = wordCount > 2000 ? 4 : wordCount > 1000 ? 3 : 2;
+    // Novelty — heuristic: unique terms, technical depth indicators
+    const technicalTerms = (text.match(/\b(algorithm|theorem|proof|complexity|O\([^)]+\)|convergence|optimal|novel|framework)\b/gi) || []).length;
+    const hasFigures = /figure \d|fig\.\s*\d|table \d/i.test(text);
+    let novelty = wordCount > 2000 ? 4 : wordCount > 1000 ? 3 : 2;
+    novelty += Math.min(3, Math.floor(technicalTerms / 5));
+    if (hasFigures) novelty += 1;
 
     // Reproducibility
     const hasCode = /```[\s\S]*?```/.test(text);
     const hasEquations = /\$[^$]+\$/.test(text) || /\\begin\{/.test(text);
-    const reproducibility = (hasCode ? 5 : 3) + (hasEquations ? 1 : 0) + (wordCount > 2000 ? 1 : 0);
+    const hasNumbers = /\d+\.\d+%|\d+\.\d+x|p\s*[<>]\s*0\.\d/i.test(text); // quantitative results
+    let reproducibility = (hasCode ? 5 : 3) + (hasEquations ? 1 : 0) + (wordCount > 2000 ? 1 : 0);
+    if (hasNumbers) reproducibility += 1;
 
     // Citation quality
     const citation_quality = hasPlaceholderRefs ? 1 : Math.min(6, uniqueRefs);
