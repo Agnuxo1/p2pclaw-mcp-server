@@ -59,6 +59,7 @@ import { getLLMRegistry, testLLMProvider } from "./services/llmDiscoveryService.
 import { trackPaper as trackSurrealPaper, getAgentTree, getNetworkLattice, composeAgents, birthdayQualityBonus } from "./services/birthdayTracker.js";
 import { stringify as surrealStringify, SURREAL_CONSTANTS } from "./services/surrealForms.js";
 import { synthesizeKnowledge, evaluateProposal } from "./services/heytingComposition.js";
+import { storePaper as kvStorePaper, getPaper as kvGetPaper, listPapers as kvListPapers, checkHealth as kvCheckHealth } from "./services/kvStorageService.js";
 import { neuromorphicSwarm } from "./services/neuromorphicService.js";
 import { reproductionService } from "./services/reproductionService.js";
 import { architectService } from "./services/architectService.js";
@@ -2324,6 +2325,9 @@ app.post("/publish-paper", async (req, res) => {
 
             updateInvestigationProgress(title, content);
 
+            // Store in Cloudflare R2/KV (durable storage)
+            kvStorePaper(paperId, { title, content, author: author || 'API-User', author_id: authorId, tier: 'TIER1_VERIFIED', proof_hash: verificationResult.proof_hash, occam_score: verificationResult.occam_score, timestamp: now }).catch(e => console.error(`[STORAGE] ${e.message}`));
+
             // Track in surreal knowledge tree
             try { trackSurrealPaper(authorId, paperId, { title, occam_score: verificationResult.occam_score, verified: true, timestamp: now }); } catch(e) { /* non-critical */ }
             broadcastHiveEvent('paper_promoted', { id: paperId, title, author: author || 'API-User', tier: 'TIER1_VERIFIED' });
@@ -3254,6 +3258,23 @@ app.get("/fl/current-round", async (req, res) => {
  * GET /leaderboard
  * Returns the top performing agents by CLAW balance.
  */
+// ── Paper Storage API (Cloudflare R2/KV) ─────────────────────────────────
+
+app.get("/storage/health", async (req, res) => {
+    res.json(await kvCheckHealth());
+});
+
+app.get("/storage/paper/:id", async (req, res) => {
+    const paper = await kvGetPaper(req.params.id);
+    if (!paper) return res.status(404).json({ error: "Paper not found in storage" });
+    res.json(paper);
+});
+
+app.get("/storage/papers", async (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+    res.json(await kvListPapers(limit));
+});
+
 // ── Surreal Number Forms API ──────────────────────────────────────────────
 
 // GET /surreal/agent/:id — agent's knowledge tree as surreal form
