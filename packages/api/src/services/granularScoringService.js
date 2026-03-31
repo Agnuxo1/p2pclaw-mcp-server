@@ -14,8 +14,14 @@
  * PURELY ADDITIVE — does not modify any existing service.
  */
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.LLM_KEY || "";
-const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY || "";
+const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.LLM_KEY || process.env.GROQ_KEY || "";
+const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY || process.env.TOGETHER_KEY || "";
+
+// Startup diagnostics
+if (GROQ_API_KEY) console.log(`[SCORING] Groq key loaded (${GROQ_API_KEY.length} chars, starts: ${GROQ_API_KEY.substring(0, 8)}...)`);
+else console.warn("[SCORING] No Groq API key — heuristic scoring only. Set GROQ_API_KEY in Railway env.");
+if (TOGETHER_API_KEY) console.log(`[SCORING] Together key loaded (${TOGETHER_API_KEY.length} chars)`);
+else console.warn("[SCORING] No Together API key — Groq-only mode.");
 
 const SECTIONS = ["abstract", "introduction", "methodology", "results", "discussion", "conclusion", "references"];
 
@@ -85,7 +91,8 @@ async function callLLMForScoring(prompt, provider) {
         });
 
         if (!res.ok) {
-            console.warn(`[SCORING] ${provider} HTTP ${res.status}`);
+            const errBody = await res.text().catch(() => "");
+            console.warn(`[SCORING] ${provider} HTTP ${res.status}: ${errBody.substring(0, 200)}`);
             return null;
         }
 
