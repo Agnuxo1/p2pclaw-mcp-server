@@ -7,8 +7,14 @@
  * Does NOT replace any existing service — purely additive.
  */
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.LLM_KEY || "";
-const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY || "";
+const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.LLM_KEY || process.env.GROQ_KEY || "";
+const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY || process.env.TOGETHER_KEY || "";
+
+// Startup log to diagnose LLM connectivity
+if (GROQ_API_KEY) console.log(`[FORMAT] Groq API key loaded (${GROQ_API_KEY.length} chars, starts: ${GROQ_API_KEY.substring(0, 8)}...)`);
+else console.warn("[FORMAT] No Groq API key found — will use template fallback. Set GROQ_API_KEY or LLM_KEY in env.");
+if (TOGETHER_API_KEY) console.log(`[FORMAT] Together API key loaded (${TOGETHER_API_KEY.length} chars)`);
+else console.warn("[FORMAT] No Together API key found — Groq-only fallback.");
 
 const ACADEMIC_SECTIONS = [
     "Abstract",
@@ -62,7 +68,11 @@ async function callLLMForFormat(prompt) {
             if (res.ok) {
                 const data = await res.json();
                 const text = data.choices?.[0]?.message?.content || "";
+                console.log(`[FORMAT] Groq returned ${text.length} chars`);
                 if (text.length > 200) return text;
+            } else {
+                const errText = await res.text().catch(() => "");
+                console.warn(`[FORMAT] Groq HTTP ${res.status}: ${errText.substring(0, 200)}`);
             }
         } catch (e) {
             console.warn("[FORMAT] Groq failed:", e.message);
@@ -89,7 +99,11 @@ async function callLLMForFormat(prompt) {
             if (res.ok) {
                 const data = await res.json();
                 const text = data.choices?.[0]?.message?.content || "";
+                console.log(`[FORMAT] Together returned ${text.length} chars`);
                 if (text.length > 200) return text;
+            } else {
+                const errText = await res.text().catch(() => "");
+                console.warn(`[FORMAT] Together HTTP ${res.status}: ${errText.substring(0, 200)}`);
             }
         } catch (e) {
             console.warn("[FORMAT] Together failed:", e.message);

@@ -68,6 +68,7 @@ import { getAgentRankFromDB, creditClaw, CLAW_REWARDS } from "./services/claw-se
 import { getFederatedLearning } from "./services/federated-learning.js";
 import { globalEmbeddingStore } from "./services/sparse-memory.js";
 import { syncPaperToGitHub } from "./services/githubSyncService.js";
+import { scoreGranular } from "./services/granularScoringService.js";
 
 // Route imports
 import magnetRoutes from "./routes/magnetRoutes.js";
@@ -2285,6 +2286,15 @@ app.post("/publish-paper", async (req, res) => {
             updateInvestigationProgress(title, content);
             broadcastHiveEvent('paper_promoted', { id: paperId, title, author: author || 'API-User', tier: 'TIER1_VERIFIED' });
 
+            // Async granular scoring (Pilar 3 — non-blocking, paper already accepted)
+            scoreGranular(content, tier || "research").then(scores => {
+                if (scores && scores.overall > 0) {
+                    db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
+                    paperCache.set(paperId, { ...verifiedObj, granular_scores: JSON.stringify(scores) });
+                    console.log(`[SCORING] T1 paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
+                }
+            }).catch(e => console.warn(`[SCORING] Non-blocking score failed:`, e.message));
+
             return res.json({
                 success: true,
                 status: 'VERIFIED',
@@ -2386,6 +2396,15 @@ app.post("/publish-paper", async (req, res) => {
         creditClaw(db, authorId, clawAction, { paperId });
         if (ipfs_cid) creditClaw(db, authorId, 'IPFS_PINNED_BONUS', { paperId });
         if (paperSignature) creditClaw(db, authorId, 'ED25519_SIGNED', { paperId });
+
+        // Async granular scoring (Pilar 3 — non-blocking, paper already accepted)
+        scoreGranular(content, tier || "research").then(scores => {
+            if (scores && scores.overall > 0) {
+                db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
+                paperCache.set(paperId, { ...verifiedData, granular_scores: JSON.stringify(scores) });
+                console.log(`[SCORING] Paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
+            }
+        }).catch(e => console.warn(`[SCORING] Non-blocking score failed:`, e.message));
 
         res.json({
             success: true,
@@ -2545,6 +2564,220 @@ app.post("/format-paper", async (req, res) => {
     } catch (err) {
         console.error("[FORMAT] Paper formatting failed:", err.message);
         res.status(500).json({ error: "Formatting failed", details: err.message });
+    }
+});
+
+// ── Pilar 3: Dataset Factory — Granular Scoring & Export ──────────────────────
+
+// Score a paper on-demand (useful for re-scoring existing papers or testing)
+app.post("/score-paper", async (req, res) => {
+    const { content, paper_type } = req.body;
+    if (!content || content.trim().length < 50) {
+        return res.status(400).json({ error: "content must be at least 50 characters" });
+    }
+    try {
+        const scores = await scoreGranular(content.trim(), paper_type || "research");
+        res.json({ success: true, ...scores });
+    } catch (err) {
+        console.error("[SCORING] On-demand scoring failed:", err.message);
+        res.status(500).json({ error: "Scoring failed", details: err.message });
+    }
+});
+
+// Dataset papers — curated feed with granular scores for ML training
+app.get("/dataset/papers", async (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit) || 50, 500);
+    const offset = parseInt(req.query.offset) || 0;
+    const minScore = parseFloat(req.query.min_score) || 0;
+    const verifiedOnly = req.query.verified_only === "true";
+    const format = req.query.format || "json"; // "json" or "jsonl"
+
+    const BLOCKED_TITLE_RE = /quality.gate|session.report|diagnostic|bootstrap|pipeline.verification|test.fix/i;
+
+    // Collect from paperCache (fast, in-memory)
+    let papers = [];
+    for (const [id, data] of paperCache.entries()) {
+        if (!data || !data.title || BLOCKED_TITLE_RE.test(data.title)) continue;
+        if (verifiedOnly && data.status !== "VERIFIED") continue;
+
+        let scores = null;
+        if (data.granular_scores) {
+            try { scores = typeof data.granular_scores === "string" ? JSON.parse(data.granular_scores) : data.granular_scores; } catch (_) {}
+        }
+        if (minScore > 0 && (!scores || scores.overall < minScore)) continue;
+
+        papers.push({
+            id,
+            title: data.title,
+            author: data.author || data.author_id || "unknown",
+            content: data.content || null,
+            abstract: data.abstract || null,
+            status: data.status || "VERIFIED",
+            tier: data.tier || "ALPHA",
+            lean_verified: data.lean_verified || false,
+            ipfs_cid: data.ipfs_cid || null,
+            ed25519_signature: data.ed25519_signature || null,
+            timestamp: data.timestamp || 0,
+            granular_scores: scores,
+            occam_score: data.occam_score || data.avg_occam_score || null,
+            word_count: data.content ? data.content.split(/\s+/).length : 0,
+        });
+    }
+
+    // If paperCache is empty, fallback to Gun.js scan
+    if (papers.length === 0) {
+        await new Promise(resolve => {
+            db.get("p2pclaw_papers_v4").map().once((data, id) => {
+                if (data && data.title && !BLOCKED_TITLE_RE.test(data.title)) {
+                    if (verifiedOnly && data.status !== "VERIFIED") return;
+                    let scores = null;
+                    if (data.granular_scores) {
+                        try { scores = typeof data.granular_scores === "string" ? JSON.parse(data.granular_scores) : data.granular_scores; } catch (_) {}
+                    }
+                    if (minScore > 0 && (!scores || scores.overall < minScore)) return;
+                    papers.push({
+                        id,
+                        title: data.title,
+                        author: data.author || data.author_id || "unknown",
+                        content: data.content || null,
+                        abstract: data.abstract || null,
+                        status: data.status || "VERIFIED",
+                        tier: data.tier || "ALPHA",
+                        lean_verified: data.lean_verified || false,
+                        ipfs_cid: data.ipfs_cid || null,
+                        timestamp: data.timestamp || 0,
+                        granular_scores: scores,
+                        occam_score: data.occam_score || data.avg_occam_score || null,
+                        word_count: data.content ? data.content.split(/\s+/).length : 0,
+                    });
+                }
+            });
+            setTimeout(resolve, 2000);
+        });
+    }
+
+    // Sort by timestamp descending, apply offset + limit
+    papers.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    const total = papers.length;
+    papers = papers.slice(offset, offset + limit);
+
+    if (format === "jsonl") {
+        res.setHeader("Content-Type", "application/x-ndjson");
+        res.setHeader("Content-Disposition", "attachment; filename=p2pclaw-dataset.jsonl");
+        return res.send(papers.map(p => JSON.stringify(p)).join("\n"));
+    }
+
+    res.json({
+        total,
+        offset,
+        limit,
+        count: papers.length,
+        papers
+    });
+});
+
+// Dataset export — streamlined export for ML training pipelines
+app.get("/dataset/export", async (req, res) => {
+    const minScore = parseFloat(req.query.min_score) || 0;
+    const fields = (req.query.fields || "title,content,granular_scores,lean_verified").split(",").map(f => f.trim());
+    const maxItems = Math.min(parseInt(req.query.limit) || 1000, 5000);
+
+    const BLOCKED_TITLE_RE = /quality.gate|session.report|diagnostic|bootstrap|pipeline.verification|test.fix/i;
+
+    const items = [];
+    for (const [id, data] of paperCache.entries()) {
+        if (items.length >= maxItems) break;
+        if (!data || !data.title || BLOCKED_TITLE_RE.test(data.title)) continue;
+        if (data.status !== "VERIFIED") continue;
+
+        let scores = null;
+        if (data.granular_scores) {
+            try { scores = typeof data.granular_scores === "string" ? JSON.parse(data.granular_scores) : data.granular_scores; } catch (_) {}
+        }
+        if (minScore > 0 && (!scores || scores.overall < minScore)) continue;
+
+        const item = { id };
+        for (const f of fields) {
+            if (f === "granular_scores") item[f] = scores;
+            else if (f === "word_count") item[f] = data.content ? data.content.split(/\s+/).length : 0;
+            else if (data[f] !== undefined) item[f] = data[f];
+        }
+        items.push(item);
+    }
+
+    res.setHeader("Content-Type", "application/x-ndjson");
+    res.setHeader("Content-Disposition", `attachment; filename=p2pclaw-export-${Date.now()}.jsonl`);
+    res.send(items.map(p => JSON.stringify(p)).join("\n"));
+});
+
+// Dataset statistics — overview of scoring coverage
+app.get("/dataset/stats", (req, res) => {
+    let total = 0, scored = 0, verified = 0, leanVerified = 0;
+    let scoreSum = 0;
+
+    for (const [, data] of paperCache.entries()) {
+        if (!data || !data.title) continue;
+        total++;
+        if (data.status === "VERIFIED") verified++;
+        if (data.lean_verified) leanVerified++;
+        if (data.granular_scores) {
+            scored++;
+            try {
+                const s = typeof data.granular_scores === "string" ? JSON.parse(data.granular_scores) : data.granular_scores;
+                if (s.overall) scoreSum += s.overall;
+            } catch (_) {}
+        }
+    }
+
+    res.json({
+        total_papers: total,
+        verified_papers: verified,
+        lean_verified: leanVerified,
+        papers_with_scores: scored,
+        average_score: scored > 0 ? Math.round((scoreSum / scored) * 10) / 10 : 0,
+        coverage_percent: total > 0 ? Math.round((scored / total) * 100) : 0,
+        export_endpoints: {
+            browse: "GET /dataset/papers?min_score=5&verified_only=true&limit=50",
+            export_jsonl: "GET /dataset/export?min_score=5&fields=title,content,granular_scores",
+            score_paper: "POST /score-paper { content, paper_type }",
+        }
+    });
+});
+
+// ── Academic Search — Exposes existing academicSearchService to agents & frontend ──
+app.get("/academic-search", async (req, res) => {
+    const query = req.query.q || req.query.query;
+    if (!query || query.trim().length < 2) {
+        return res.status(400).json({
+            error: "Query parameter 'q' required (min 2 chars)",
+            example: "GET /academic-search?q=quantum+computing&limit=10"
+        });
+    }
+    const limit = Math.min(parseInt(req.query.limit) || 5, 20);
+    const source = req.query.source; // "arxiv", "semantic_scholar", "crossref", or undefined (all)
+
+    try {
+        if (source === "arxiv") {
+            const { searchArXiv } = await import("./services/academicSearchService.js");
+            const results = await searchArXiv(query.trim(), limit);
+            return res.json({ query: query.trim(), total: results.length, source: "arxiv", results });
+        }
+        if (source === "semantic_scholar") {
+            const { searchSemanticScholar } = await import("./services/academicSearchService.js");
+            const results = await searchSemanticScholar(query.trim(), limit);
+            return res.json({ query: query.trim(), total: results.length, source: "semantic_scholar", results });
+        }
+        if (source === "crossref") {
+            const { searchCrossRef } = await import("./services/academicSearchService.js");
+            const results = await searchCrossRef(query.trim(), limit);
+            return res.json({ query: query.trim(), total: results.length, source: "crossref", results });
+        }
+        // Default: search all sources
+        const result = await searchAcademic(query.trim(), limit);
+        res.json(result);
+    } catch (err) {
+        console.error("[ACADEMIC] Search failed:", err.message);
+        res.status(500).json({ error: "Academic search failed", details: err.message });
     }
 });
 
@@ -4067,6 +4300,8 @@ app.get("/latest-papers", async (req, res) => {
             tag_color: status === 'VERIFIED' ? 'green' : status === 'DENIED' ? 'red' : 'orange',
             timestamp: data.timestamp,
             github_path: data.github_path || null,
+            lean_verified: data.lean_verified || false,
+            granular_scores: data.granular_scores ? (typeof data.granular_scores === 'string' ? (() => { try { return JSON.parse(data.granular_scores); } catch(_) { return null; } })() : data.granular_scores) : null,
         };
     };
 
