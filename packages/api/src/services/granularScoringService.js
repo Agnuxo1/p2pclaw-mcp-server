@@ -3,27 +3,121 @@
  * =================================
  * Heterogeneous multi-LLM scoring engine that evaluates papers section-by-section.
  *
- * Pilar 3: Quality Training Dataset Factory
+ * Provider chain (tested 2026-03-31):
+ *   1. Groq         — llama-3.3-70b-versatile  (4 keys, free)
+ *   2. NVIDIA       — meta/llama-3.3-70b-instruct (3 keys, free)
+ *   3. Cerebras     — qwen-3-235b-a22b-instruct-2507 (2 keys, free)
+ *   4. Sarvam       — sarvam-m (9 keys, free)
+ *   5. Mistral      — mistral-small-latest (1 key, free)
+ *   6. Inception    — mercury-2 (6 keys, free)
+ *   7. OpenRouter   — gemini-2.5-flash (7 keys, paid — last resort)
+ *   8. Deterministic heuristic fallback (never blocks)
  *
- * Each paper gets scored on 7 sections (0-10) plus 3 meta-dimensions:
- * novelty, reproducibility, citation_quality.
- *
- * Uses Groq + Together AI as independent judges (heterogeneous swarm).
- * If both LLMs fail → deterministic heuristic scoring (never blocks).
- *
- * PURELY ADDITIVE — does not modify any existing service.
+ * Uses 2 independent LLM judges when possible, falls back through the chain.
  */
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.LLM_KEY || process.env.GROQ_KEY || "";
-const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY || process.env.TOGETHER_KEY || "";
-
-// Startup diagnostics
-if (GROQ_API_KEY) console.log(`[SCORING] Groq key loaded (${GROQ_API_KEY.length} chars, starts: ${GROQ_API_KEY.substring(0, 8)}...)`);
-else console.warn("[SCORING] No Groq API key — heuristic scoring only. Set GROQ_API_KEY in Railway env.");
-if (TOGETHER_API_KEY) console.log(`[SCORING] Together key loaded (${TOGETHER_API_KEY.length} chars)`);
-else console.warn("[SCORING] No Together API key — Groq-only mode.");
-
 const SECTIONS = ["abstract", "introduction", "methodology", "results", "discussion", "conclusion", "references"];
+
+// ── Load keys with rotation ─────────────────────────────────────────────────
+
+function loadKeys(envPrefix, maxKeys = 10) {
+    const keys = [];
+    for (let i = 1; i <= maxKeys; i++) {
+        const k = process.env[`${envPrefix}_${i}`] || process.env[`${envPrefix}${i}`];
+        if (k) keys.push(k);
+    }
+    // Also check single-key env vars
+    const single = process.env[envPrefix];
+    if (single && !keys.includes(single)) keys.unshift(single);
+    return keys;
+}
+
+const keyIndices = {};
+function nextKey(providerId, keys) {
+    if (!keys.length) return null;
+    const idx = keyIndices[providerId] || 0;
+    const key = keys[idx % keys.length];
+    keyIndices[providerId] = (idx + 1) % keys.length;
+    return key;
+}
+
+// ── Provider definitions ────────────────────────────────────────────────────
+
+const PROVIDERS = [
+    {
+        id: "groq",
+        name: "Groq",
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        model: "llama-3.3-70b-versatile",
+        keys: loadKeys("GROQ_API_KEY").concat(loadKeys("GROQ_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+    },
+    {
+        id: "nvidia",
+        name: "NVIDIA",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "meta/llama-3.3-70b-instruct",
+        keys: loadKeys("NVAPI_KEY").concat(loadKeys("NVIDIA_API_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+    },
+    {
+        id: "cerebras",
+        name: "Cerebras",
+        url: "https://api.cerebras.ai/v1/chat/completions",
+        model: "qwen-3-235b-a22b-instruct-2507",
+        keys: loadKeys("CEREBRAS_API_KEY").concat(loadKeys("CEREBRAS_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+    },
+    {
+        id: "sarvam",
+        name: "Sarvam",
+        url: "https://api.sarvam.ai/v1/chat/completions",
+        model: "sarvam-m",
+        keys: loadKeys("SARVAM_KEY").concat(loadKeys("SARVAM_API_KEY")),
+        authHeader: "api-subscription-key",
+        authPrefix: "",
+    },
+    {
+        id: "mistral",
+        name: "Mistral",
+        url: "https://api.mistral.ai/v1/chat/completions",
+        model: "mistral-small-latest",
+        keys: loadKeys("MISTRAL_API_KEY").concat(loadKeys("MISTRAL_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+    },
+    {
+        id: "inception",
+        name: "Inception",
+        url: "https://api.inceptionlabs.ai/v1/chat/completions",
+        model: "mercury-2",
+        keys: loadKeys("INCEPTION_API_KEY").concat(loadKeys("INCEPTION_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+    },
+    {
+        id: "openrouter",
+        name: "OpenRouter",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "google/gemini-2.5-flash",
+        keys: loadKeys("OPENROUTER_API_KEY"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+    },
+];
+
+// Deduplicate keys within each provider
+for (const p of PROVIDERS) {
+    p.keys = [...new Set(p.keys)].filter(Boolean);
+}
+
+// Log available providers
+const available = PROVIDERS.filter(p => p.keys.length > 0);
+console.log(`[SCORING] ${available.length} LLM providers available: ${available.map(p => `${p.name}(${p.keys.length})`).join(", ")}`);
+if (available.length === 0) console.warn("[SCORING] No LLM providers — heuristic scoring only.");
 
 const SCORING_PROMPT = `You are an academic paper quality evaluator for the P2PCLAW research network.
 
@@ -55,114 +149,80 @@ Paper content:
 `;
 
 /**
- * Call a single LLM to score a paper. Returns parsed JSON or null.
+ * Call a single LLM provider to score a paper.
+ * Tries up to 2 keys from the provider before giving up.
  */
 async function callLLMForScoring(prompt, provider) {
-    const configs = {
-        groq: {
-            url: "https://api.groq.com/openai/v1/chat/completions",
-            key: GROQ_API_KEY,
-            model: "llama-3.3-70b-versatile",
-        },
-        together: {
-            url: "https://api.together.xyz/v1/chat/completions",
-            key: TOGETHER_API_KEY,
-            model: "Qwen/Qwen2.5-72B-Instruct-Turbo",
+    if (!provider.keys.length) return null;
+
+    const maxAttempts = Math.min(provider.keys.length, 2);
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const key = nextKey(provider.id, provider.keys);
+        if (!key) return null;
+
+        const headers = { "Content-Type": "application/json" };
+        if (provider.authHeader === "api-subscription-key") {
+            headers["api-subscription-key"] = key;
+        } else {
+            headers[provider.authHeader] = `${provider.authPrefix}${key}`;
         }
-    };
 
-    const cfg = configs[provider];
-    if (!cfg || !cfg.key) {
-        console.warn(`[SCORING] ${provider} skipped — no API key configured`);
-        return null;
-    }
-    console.log(`[SCORING] Calling ${provider} (model: ${cfg.model})...`);
+        try {
+            const res = await fetch(provider.url, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({
+                    model: provider.model,
+                    messages: [{ role: "user", content: prompt }],
+                    max_tokens: 512,
+                    temperature: 0.1,
+                }),
+                signal: AbortSignal.timeout(30000),
+            });
 
-    try {
-        const res = await fetch(cfg.url, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${cfg.key}`
-            },
-            body: JSON.stringify({
-                model: cfg.model,
-                messages: [{ role: "user", content: prompt }],
-                max_tokens: 512,
-                temperature: 0.1, // Very low for consistent scoring
-            }),
-            signal: AbortSignal.timeout(30000),
-        });
-
-        if (!res.ok) {
-            const errBody = await res.text().catch(() => "");
-            // Retry once on 429 (rate limit) after a short delay
             if (res.status === 429) {
-                const retryAfter = parseInt(res.headers.get("retry-after") || "5", 10);
-                const delay = Math.min(retryAfter, 10) * 1000;
-                console.warn(`[SCORING] ${provider} HTTP 429 — retrying in ${delay/1000}s...`);
-                await new Promise(r => setTimeout(r, delay));
-                const retry = await fetch(cfg.url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${cfg.key}` },
-                    body: JSON.stringify({ model: cfg.model, messages: [{ role: "user", content: prompt }], max_tokens: 512, temperature: 0.1 }),
-                    signal: AbortSignal.timeout(30000),
-                });
-                if (retry.ok) {
-                    const retryData = await retry.json();
-                    const retryText = retryData.choices?.[0]?.message?.content || "";
-                    console.log(`[SCORING] ${provider} retry succeeded (${retryText.length} chars)`);
-                    const retryJson = retryText.match(/\{[\s\S]*?\}/);
-                    if (retryJson) {
-                        const retryParsed = JSON.parse(retryJson[0]);
-                        const fields = [...SECTIONS, "novelty", "reproducibility", "citation_quality"];
-                        for (const f of fields) {
-                            if (typeof retryParsed[f] !== "number" || retryParsed[f] < 0 || retryParsed[f] > 10) {
-                                retryParsed[f] = typeof retryParsed[f] === "number" ? Math.max(0, Math.min(10, Math.round(retryParsed[f]))) : 5;
-                            }
-                        }
-                        return { scores: retryParsed, provider };
-                    }
+                console.warn(`[SCORING] ${provider.name} 429 rate-limited`);
+                await new Promise(r => setTimeout(r, 3000));
+                continue;
+            }
+            if (res.status === 402) {
+                console.warn(`[SCORING] ${provider.name} 402 credits exhausted — skipping provider`);
+                return null;
+            }
+            if (!res.ok) {
+                const errBody = await res.text().catch(() => "");
+                console.warn(`[SCORING] ${provider.name} HTTP ${res.status}: ${errBody.substring(0, 150)}`);
+                continue;
+            }
+
+            const data = await res.json();
+            const text = data.choices?.[0]?.message?.content || "";
+
+            const jsonMatch = text.match(/\{[\s\S]*?\}/);
+            if (!jsonMatch) {
+                console.warn(`[SCORING] ${provider.name} — no JSON in response`);
+                continue;
+            }
+
+            const parsed = JSON.parse(jsonMatch[0]);
+            const fields = [...SECTIONS, "novelty", "reproducibility", "citation_quality"];
+            for (const field of fields) {
+                if (typeof parsed[field] !== "number" || parsed[field] < 0 || parsed[field] > 10) {
+                    parsed[field] = typeof parsed[field] === "number" ? Math.max(0, Math.min(10, Math.round(parsed[field]))) : 5;
                 }
-                console.warn(`[SCORING] ${provider} retry also failed`);
-            } else {
-                console.warn(`[SCORING] ${provider} HTTP ${res.status}: ${errBody.substring(0, 200)}`);
             }
-            return null;
+
+            console.log(`[SCORING] ${provider.name} scored successfully`);
+            return { scores: parsed, provider: provider.name };
+        } catch (e) {
+            console.warn(`[SCORING] ${provider.name} error: ${e.message}`);
         }
-
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content || "";
-
-        console.log(`[SCORING] ${provider} returned ${text.length} chars`);
-
-        // Extract JSON from response (handle markdown code blocks)
-        const jsonMatch = text.match(/\{[\s\S]*?\}/);
-        if (!jsonMatch) {
-            console.warn(`[SCORING] ${provider} — no JSON found in response: ${text.substring(0, 200)}`);
-            return null;
-        }
-
-        const parsed = JSON.parse(jsonMatch[0]);
-
-        // Validate all expected fields are numbers 0-10
-        const fields = [...SECTIONS, "novelty", "reproducibility", "citation_quality"];
-        for (const field of fields) {
-            if (typeof parsed[field] !== "number" || parsed[field] < 0 || parsed[field] > 10) {
-                parsed[field] = typeof parsed[field] === "number" ? Math.max(0, Math.min(10, Math.round(parsed[field]))) : 5;
-            }
-        }
-
-        return { scores: parsed, provider };
-    } catch (e) {
-        console.warn(`[SCORING] ${provider} failed:`, e.message);
-        return null;
     }
+    return null;
 }
 
 /**
  * Deterministic heuristic scoring — used when all LLMs fail.
- * Analyses text structure, word count, references, etc.
  */
 function heuristicScore(content) {
     const text = content || "";
@@ -170,7 +230,6 @@ function heuristicScore(content) {
     const wordCount = words.length;
     const lowerText = text.toLowerCase();
 
-    // Detect sections present
     const sectionScores = {};
     for (const section of SECTIONS) {
         const hasSection = lowerText.includes(`## ${section}`) || lowerText.includes(`# ${section}`);
@@ -178,7 +237,6 @@ function heuristicScore(content) {
             sectionScores[section] = 0;
             continue;
         }
-        // Base score for having the section, scaled by word count in that section
         const sectionRegex = new RegExp(`##?\\s*${section}[\\s\\S]*?(?=##?\\s|$)`, "i");
         const match = text.match(sectionRegex);
         const sectionWords = match ? match[0].split(/\s+/).length : 0;
@@ -189,32 +247,28 @@ function heuristicScore(content) {
         else sectionScores[section] = 7;
     }
 
-    // Reference quality — check for real citations vs placeholders
     const refMatches = text.match(/\[\d+\]/g) || [];
     const uniqueRefs = new Set(refMatches).size;
     const hasPlaceholderRefs = /placeholder|author,?\s*a\.\s*\(\d{4}\)/i.test(text);
-    const hasRealAuthors = /[A-Z][a-z]+,\s*[A-Z]\.\s*(?:&|,|et al)/g.test(text); // "Smith, J. &" pattern
+    const hasRealAuthors = /[A-Z][a-z]+,\s*[A-Z]\.\s*(?:&|,|et al)/g.test(text);
     const hasDOI = /doi\.org|arxiv\.org|10\.\d{4}/i.test(text);
     let refScore = hasPlaceholderRefs ? 1 : Math.min(7, uniqueRefs);
     if (hasRealAuthors) refScore = Math.min(10, refScore + 1);
     if (hasDOI) refScore = Math.min(10, refScore + 1);
     sectionScores.references = refScore;
 
-    // Novelty — heuristic: unique terms, technical depth indicators
     const technicalTerms = (text.match(/\b(algorithm|theorem|proof|complexity|O\([^)]+\)|convergence|optimal|novel|framework)\b/gi) || []).length;
     const hasFigures = /figure \d|fig\.\s*\d|table \d/i.test(text);
     let novelty = wordCount > 2000 ? 4 : wordCount > 1000 ? 3 : 2;
     novelty += Math.min(3, Math.floor(technicalTerms / 5));
     if (hasFigures) novelty += 1;
 
-    // Reproducibility
     const hasCode = /```[\s\S]*?```/.test(text);
     const hasEquations = /\$[^$]+\$/.test(text) || /\\begin\{/.test(text);
-    const hasNumbers = /\d+\.\d+%|\d+\.\d+x|p\s*[<>]\s*0\.\d/i.test(text); // quantitative results
+    const hasNumbers = /\d+\.\d+%|\d+\.\d+x|p\s*[<>]\s*0\.\d/i.test(text);
     let reproducibility = (hasCode ? 5 : 3) + (hasEquations ? 1 : 0) + (wordCount > 2000 ? 1 : 0);
     if (hasNumbers) reproducibility += 1;
 
-    // Citation quality
     const citation_quality = hasPlaceholderRefs ? 1 : Math.min(6, uniqueRefs);
 
     return {
@@ -230,11 +284,7 @@ function heuristicScore(content) {
 
 /**
  * Score a paper using heterogeneous multi-LLM swarm.
- * Returns averaged scores from multiple judges.
- *
- * @param {string} content - Paper content (Markdown)
- * @param {string} paperType - "research" | "review" | "technical" | "proof"
- * @returns {Promise<{sections: object, overall: number, novelty: number, reproducibility: number, citation_quality: number, judges: string[], judge_count: number}>}
+ * Tries to get 2 independent judges, falls back through provider chain.
  */
 export async function scoreGranular(content, paperType = "research") {
     if (!content || content.trim().length < 50) {
@@ -250,19 +300,16 @@ export async function scoreGranular(content, paperType = "research") {
         };
     }
 
-    // Truncate content to ~4000 chars for LLM context (enough for evaluation)
     const truncated = content.length > 4000 ? content.substring(0, 4000) + "\n\n[... truncated for scoring ...]" : content;
     const prompt = SCORING_PROMPT + truncated;
 
-    // Call both LLMs in parallel (heterogeneous swarm)
-    const [groqResult, togetherResult] = await Promise.allSettled([
-        callLLMForScoring(prompt, "groq"),
-        callLLMForScoring(prompt, "together")
-    ]);
-
+    // Try to get 2 independent LLM judges from the provider chain
     const judges = [];
-    if (groqResult.status === "fulfilled" && groqResult.value) judges.push(groqResult.value);
-    if (togetherResult.status === "fulfilled" && togetherResult.value) judges.push(togetherResult.value);
+    for (const provider of available) {
+        if (judges.length >= 2) break;
+        const result = await callLLMForScoring(prompt, provider);
+        if (result) judges.push(result);
+    }
 
     // If no LLM judges succeeded, use heuristic
     if (judges.length === 0) {
@@ -280,7 +327,6 @@ export async function scoreGranular(content, paperType = "research") {
             : 0;
     }
 
-    // Compute overall as weighted average of sections
     const sectionValues = SECTIONS.map(s => averaged[s]);
     const overall = Math.round((sectionValues.reduce((a, b) => a + b, 0) / SECTIONS.length) * 10) / 10;
 
