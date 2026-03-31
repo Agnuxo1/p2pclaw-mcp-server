@@ -1,7 +1,7 @@
 ﻿import crypto from 'crypto';
 import { verifyPaperInProcess } from './heytingVerifier.js';
 
-const VERIFIER_URL = process.env.TIER1_VERIFIER_URL || 'http://localhost:5000';
+const VERIFIER_URL = process.env.TIER1_VERIFIER_URL || 'https://agnuxo-lean4-proof-checker.hf.space';
 
 /**
  * Sends research content and claims to the Lean 4 proof engine container.
