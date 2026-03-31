@@ -72,7 +72,11 @@ async function callLLMForScoring(prompt, provider) {
     };
 
     const cfg = configs[provider];
-    if (!cfg || !cfg.key) return null;
+    if (!cfg || !cfg.key) {
+        console.warn(`[SCORING] ${provider} skipped — no API key configured`);
+        return null;
+    }
+    console.log(`[SCORING] Calling ${provider} (model: ${cfg.model})...`);
 
     try {
         const res = await fetch(cfg.url, {
@@ -99,9 +103,14 @@ async function callLLMForScoring(prompt, provider) {
         const data = await res.json();
         const text = data.choices?.[0]?.message?.content || "";
 
+        console.log(`[SCORING] ${provider} returned ${text.length} chars`);
+
         // Extract JSON from response (handle markdown code blocks)
         const jsonMatch = text.match(/\{[\s\S]*?\}/);
-        if (!jsonMatch) return null;
+        if (!jsonMatch) {
+            console.warn(`[SCORING] ${provider} — no JSON found in response: ${text.substring(0, 200)}`);
+            return null;
+        }
 
         const parsed = JSON.parse(jsonMatch[0]);
 
