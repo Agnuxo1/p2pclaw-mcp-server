@@ -1202,22 +1202,35 @@ swarmCache._papersCompat = {
 
 // Paper counts start at 0 and are incremented in-process as papers are published/validated.
 
-// Minimum agent count from the embedded citizen heartbeat (23 agents pulsed every 4 min)
-const CITIZEN_MANIFEST_SIZE = 23;
+// Citizen manifest IDs — used to distinguish real vs simulated agents
+const CITIZEN_IDS = new Set([
+  'citizen-librarian', 'citizen-sentinel', 'citizen-mayor', 'citizen-physicist',
+  'citizen-biologist', 'citizen-cosmologist', 'citizen-philosopher', 'citizen-journalist',
+  'citizen-validator-1', 'citizen-validator-2', 'citizen-validator-3',
+  'citizen-ambassador', 'citizen-cryptographer', 'citizen-statistician',
+  'citizen-engineer', 'citizen-ethicist', 'citizen-historian', 'citizen-poet',
+  'agent-abraxas-prime', 'agent-warden', 'agent-tau-coordinator',
+  'agent-chimera-core', 'agent-ipfs-gateway',
+]);
 
 app.get('/swarm-status', (req, res) => {
-  // Use githubTotal (set at boot restore from git/trees) as authoritative count.
-  // Falls back to in-process counter (incremented on each publish) if boot not done yet.
   const papers_verified = swarmCache.paperStats.githubTotal > 0
       ? swarmCache.paperStats.githubTotal
       : swarmCache.paperStats.verified;
   const mempool_pending = swarmCache.paperStats.mempool;
 
-  // While Gun.js is syncing from cold start, show at least the embedded citizen count
-  const active_agents = Math.max(swarmCache.agents.size, CITIZEN_MANIFEST_SIZE);
+  // Honest counts: separate real agents from simulated citizens
+  let real_agents = 0;
+  let simulated_agents = 0;
+  for (const [id] of swarmCache.agents) {
+    if (CITIZEN_IDS.has(id)) simulated_agents++;
+    else real_agents++;
+  }
 
   res.json({
-    active_agents,
+    active_agents: real_agents + simulated_agents,
+    real_agents,
+    simulated_agents,
     papers_verified,
     mempool_pending,
     timestamp: Date.now()
@@ -1343,7 +1356,8 @@ app.get("/agents", (req, res) => {
             interests: data.interests,
             lastSeen: data.lastSeen,
             contributions: data.contributions || 0,
-            rank: calculateRank(data).rank
+            rank: calculateRank(data).rank,
+            simulated: !!data.simulated
         };
 
         if (interest) {
@@ -4675,6 +4689,7 @@ if (process.env.NODE_ENV !== 'test') {
                 lastSeen: now,
                 isOnline: true,
                 status: 'active',
+                simulated: true,
                 contributions,
             }));
             // Also keep swarmCache fresh so /agents returns lastSeen for beta UI ACTIVE status
@@ -4686,6 +4701,7 @@ if (process.env.NODE_ENV !== 'test') {
                 type: c.type || 'ai-agent',
                 rank: c.rank || 'RESEARCHER',
                 online: true,
+                simulated: true,
                 contributions: existing.contributions || contributions,
                 lastSeen: now,
             });
@@ -4734,10 +4750,12 @@ if (process.env.NODE_ENV !== 'test') {
                     if (required > 0) {
                         console.log(`[AUTO-VALIDATOR] Validating "${paper.title}". Simulating ${required} peer reviews...`);
                         const validators = ['citizen-validator-1', 'citizen-validator-2', 'citizen-validator-3'];
-                        
+
                         let newValidations = paper.network_validations || 0;
                         let currentAvg = paper.avg_occam_score || 0;
-                        const peerScore = 0.95;
+                        // Use existing LLM score if available, otherwise a modest default
+                        // (0.95 was dishonest — papers shouldn't get near-perfect scores automatically)
+                        const peerScore = currentAvg > 0 ? Math.min(currentAvg, 0.85) : 0.65;
                         
                         for (const vId of validators) {
                             if (required <= 0) break;
