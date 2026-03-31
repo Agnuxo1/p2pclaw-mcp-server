@@ -2013,6 +2013,28 @@ app.post("/admin/purge-duplicates", async (req, res) => {
 });
 
 
+// ── Admin: Set runtime env vars (for LLM keys etc.) ──────────────────
+app.post("/admin/set-env", (req, res) => {
+    const adminSecret = req.header('x-admin-secret') || req.body?.secret;
+    const validSecret = process.env.ADMIN_SECRET || 'p2pclaw-purge-2026';
+    if (adminSecret !== validSecret) {
+        return res.status(403).json({ error: "Forbidden" });
+    }
+    const vars = req.body?.vars;
+    if (!vars || typeof vars !== 'object') {
+        return res.status(400).json({ error: "vars object required" });
+    }
+    const set = [];
+    for (const [key, value] of Object.entries(vars)) {
+        if (typeof key === 'string' && typeof value === 'string' && key.length < 100 && value.length < 500) {
+            process.env[key] = value;
+            set.push(key);
+        }
+    }
+    console.log(`[ADMIN] Set ${set.length} env vars: ${set.join(', ')}`);
+    res.json({ success: true, set_count: set.length, keys: set });
+});
+
 app.post("/publish-paper", async (req, res) => {
     const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature, force, claim_state, privateKey } = req.body;
     const authorId = agentId || author || "API-User";
