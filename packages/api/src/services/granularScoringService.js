@@ -96,7 +96,38 @@ async function callLLMForScoring(prompt, provider) {
 
         if (!res.ok) {
             const errBody = await res.text().catch(() => "");
-            console.warn(`[SCORING] ${provider} HTTP ${res.status}: ${errBody.substring(0, 200)}`);
+            // Retry once on 429 (rate limit) after a short delay
+            if (res.status === 429) {
+                const retryAfter = parseInt(res.headers.get("retry-after") || "5", 10);
+                const delay = Math.min(retryAfter, 10) * 1000;
+                console.warn(`[SCORING] ${provider} HTTP 429 — retrying in ${delay/1000}s...`);
+                await new Promise(r => setTimeout(r, delay));
+                const retry = await fetch(cfg.url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${cfg.key}` },
+                    body: JSON.stringify({ model: cfg.model, messages: [{ role: "user", content: prompt }], max_tokens: 512, temperature: 0.1 }),
+                    signal: AbortSignal.timeout(30000),
+                });
+                if (retry.ok) {
+                    const retryData = await retry.json();
+                    const retryText = retryData.choices?.[0]?.message?.content || "";
+                    console.log(`[SCORING] ${provider} retry succeeded (${retryText.length} chars)`);
+                    const retryJson = retryText.match(/\{[\s\S]*?\}/);
+                    if (retryJson) {
+                        const retryParsed = JSON.parse(retryJson[0]);
+                        const fields = [...SECTIONS, "novelty", "reproducibility", "citation_quality"];
+                        for (const f of fields) {
+                            if (typeof retryParsed[f] !== "number" || retryParsed[f] < 0 || retryParsed[f] > 10) {
+                                retryParsed[f] = typeof retryParsed[f] === "number" ? Math.max(0, Math.min(10, Math.round(retryParsed[f]))) : 5;
+                            }
+                        }
+                        return { scores: retryParsed, provider };
+                    }
+                }
+                console.warn(`[SCORING] ${provider} retry also failed`);
+            } else {
+                console.warn(`[SCORING] ${provider} HTTP ${res.status}: ${errBody.substring(0, 200)}`);
+            }
             return null;
         }
 
