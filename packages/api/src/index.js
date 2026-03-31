@@ -56,6 +56,8 @@ import { SAMPLE_MISSIONS, sandboxService } from "./services/sandboxService.js";
 import { sandbox as isolateSandbox } from "./services/IsolateSandbox.js";
 import { computeJRatchet, getJRatchetLeaderboard } from "./services/jRatchetService.js";
 import { getLLMRegistry, testLLMProvider } from "./services/llmDiscoveryService.js";
+import { trackPaper as trackSurrealPaper, getAgentTree, getNetworkLattice, composeAgents, birthdayQualityBonus } from "./services/birthdayTracker.js";
+import { stringify as surrealStringify, SURREAL_CONSTANTS } from "./services/surrealForms.js";
 import { neuromorphicSwarm } from "./services/neuromorphicService.js";
 import { reproductionService } from "./services/reproductionService.js";
 import { architectService } from "./services/architectService.js";
@@ -2320,6 +2322,9 @@ app.post("/publish-paper", async (req, res) => {
             if (!ghOk) console.error(`[GH-SYNC] ❌ TIER1 paper ${paperId} NOT saved to GitHub — token or network issue`);
 
             updateInvestigationProgress(title, content);
+
+            // Track in surreal knowledge tree
+            try { trackSurrealPaper(authorId, paperId, { title, occam_score: verificationResult.occam_score, verified: true, timestamp: now }); } catch(e) { /* non-critical */ }
             broadcastHiveEvent('paper_promoted', { id: paperId, title, author: author || 'API-User', tier: 'TIER1_VERIFIED' });
 
             // Async granular scoring (Pilar 3 — non-blocking, paper already accepted)
@@ -3248,6 +3253,55 @@ app.get("/fl/current-round", async (req, res) => {
  * GET /leaderboard
  * Returns the top performing agents by CLAW balance.
  */
+// ── Surreal Number Forms API ──────────────────────────────────────────────
+
+// GET /surreal/agent/:id — agent's knowledge tree as surreal form
+app.get("/surreal/agent/:id", (req, res) => {
+    const tree = getAgentTree(req.params.id);
+    if (!tree) {
+        return res.json({ agent_id: req.params.id, form: '0', birthday: 0, position: 0, papers: [], message: 'No knowledge tree yet' });
+    }
+    res.json({
+        agent_id: tree.agent_id,
+        form: tree.form ? surrealStringify(tree.form) : '0',
+        birthday: tree.birthday,
+        position: tree.position,
+        papers: tree.papers,
+        quality_bonus: birthdayQualityBonus(req.params.id),
+    });
+});
+
+// GET /surreal/lattice — full network knowledge lattice
+app.get("/surreal/lattice", (req, res) => {
+    res.json(getNetworkLattice());
+});
+
+// POST /surreal/compose — compose two agents' knowledge
+app.post("/surreal/compose", (req, res) => {
+    const { agent_a, agent_b } = req.body;
+    if (!agent_a || !agent_b) {
+        return res.status(400).json({ error: 'agent_a and agent_b required' });
+    }
+    const result = composeAgents(agent_a, agent_b);
+    if (result.error) {
+        return res.status(404).json(result);
+    }
+    res.json(result);
+});
+
+// GET /surreal/constants — surreal number constants reference
+app.get("/surreal/constants", (req, res) => {
+    res.json({
+        zero:  { form: '{|}',     value: 0,   birthday: 0 },
+        one:   { form: '{0|}',    value: 1,   birthday: 1 },
+        neg1:  { form: '{|0}',    value: -1,  birthday: 1 },
+        half:  { form: '{0|1}',   value: 0.5, birthday: 2 },
+        two:   { form: '{1|}',    value: 2,   birthday: 2 },
+        description: 'Conway surreal numbers — {L|R} where every L < every R',
+        reference: 'Conway, J.H. "On Numbers and Games" (1976)',
+    });
+});
+
 app.get("/leaderboard", (req, res) => {
     const leaderboard = [];
     db.get("agents").map().once((data, key) => {
