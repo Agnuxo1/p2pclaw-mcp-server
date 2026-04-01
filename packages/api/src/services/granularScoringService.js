@@ -55,6 +55,8 @@ const PROVIDERS = [
         keys: loadKeys("CEREBRAS_API_KEY").concat(loadKeys("CEREBRAS_KEY")),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 1024,
     },
     {
         id: "cerebras-llama",
@@ -75,7 +77,7 @@ const PROVIDERS = [
         authHeader: "Authorization",
         authPrefix: "Bearer ",
     },
-    // --- Sarvam (Indian AI): sarvam-m, uses <think> tags in output ---
+    // --- Sarvam (Indian AI): sarvam-m, uses <think> tags (needs 2048+ tokens) ---
     {
         id: "sarvam",
         name: "Sarvam",
@@ -85,7 +87,7 @@ const PROVIDERS = [
         authHeader: "Authorization",
         authPrefix: "Bearer ",
         stripThinkTags: true,
-        maxTokens: 1024,
+        maxTokens: 2048,
     },
     // --- OpenRouter: free models ---
     {
@@ -218,7 +220,12 @@ async function callLLMForScoring(prompt, provider) {
 
             // Strip <think>...</think> tags (Sarvam, Qwen with thinking mode)
             if (provider.stripThinkTags || text.includes("<think>")) {
+                // Strip closed think blocks
                 text = text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+                // Strip unclosed think blocks (model ran out of tokens mid-think)
+                if (text.startsWith("<think>")) {
+                    text = text.replace(/<think>[\s\S]*/g, "").trim();
+                }
             }
 
             const jsonMatch = text.match(/\{[\s\S]*?\}/);
