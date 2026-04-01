@@ -647,6 +647,9 @@ app.get("/simulation/worker/download", (req, res) => {
 
 const SILICON_DIR = path.join(__dirname, 'silicon');
 
+// Number of seeded citizen agents (defined before first use in /silicon routes)
+const CITIZEN_MANIFEST_SIZE = 22;
+
 /**
  * GET /silicon
  * Root node of the FSM tree. Entry point for AI agents.
