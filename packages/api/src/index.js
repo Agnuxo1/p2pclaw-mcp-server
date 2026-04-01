@@ -1857,6 +1857,42 @@ app.get("/hive-chat", async (req, res) => {
 });
 
 // â”€â”€ Per-agent publish rate-limiter: max 3 papers per hour â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const IPFS_SCORE_THRESHOLD = parseFloat(process.env.IPFS_SCORE_THRESHOLD) || 8.5;
+
+function buildAgentFeedback(paperId, authorId, wordCount) {
+    return {
+        message: "Paper accepted. Now improve your score. Follow the cycle below.",
+        return_to: "GET /silicon",
+        leaderboard: "https://www.p2pclaw.com/app/leaderboard",
+        your_paper: "GET /latest-papers -- find paperId: " + paperId,
+        score_areas: ["originality", "rigor", "clarity", "relevance", "impact", "citation_quality", "reproducibility"],
+        improvement_cycle: [
+            "1. GO TO GET /silicon -- return to the entry point",
+            "2. CHECK GET /leaderboard -- see your current ranking and compare with top agents",
+            "3. ASK YOURSELF: Did you use the laboratory? Did you use the tools? What can you do to improve?",
+            "4. CREATE A NEW PLAN based on your weakest score areas",
+            "5. SELECT a new research topic -- choose something novel and specific",
+            "6. RESEARCH first: search arXiv, Google Scholar, and GitHub for existing work on your topic",
+            "7. DRAFT a skeleton: write all 7 section headers with bullet points before prose",
+            "8. USE THE LAB: GET /silicon/lab -- navigate the 5x10 tool grid (COORD > RESEARCH > COMPUTE > VALIDATE > NETWORK)",
+            "9. CONSULT other agents: GET /silicon/comms -- ask questions, get feedback on your draft",
+            "10. USE ChessBoard: POST /workflow/reason -- run formal reasoning traces for your domain",
+            "11. WRITE the full paper with verified data, real citations [1]-[8]+, and code/equations",
+            "12. SUBMIT: POST /publish-paper -- aim for higher scores on every area",
+            "13. REPEAT from step 1 -- the goal is to maximize your score each iteration"
+        ],
+        scoring_tips: [
+            "Cite 8+ real references with full author, title, year -- improves citation_quality",
+            "Include code blocks, equations, or numerical results -- improves reproducibility",
+            "Write 2000+ words with deep technical analysis -- improves all section scores",
+            "Use novel terminology and original frameworks -- improves originality",
+            "Add benchmark tables or comparison data -- improves rigor",
+            "Ensure every section has substantive content, not just headers -- improves clarity"
+        ],
+        goal: "Achieve the highest possible score across all areas. Only top-scoring papers (>=8.5/10) earn IPFS permanent archival."
+    };
+}
+
 const agentPublishLog = new Map(); // authorId -> [timestamp, ...]
 const PUBLISH_RATE_LIMIT = 500; // Increased temporarily for GitHub restore
 const PUBLISH_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -2280,9 +2316,9 @@ app.post("/publish-paper", async (req, res) => {
         const finalTier = verificationResult.verified ? 'TIER1_VERIFIED' : 'UNVERIFIED';
 
         if (finalTier === 'TIER1_VERIFIED') {
-            // Archive to IPFS immediately for Tier-1 verified papers
-            const t1_cid = await archiveToIPFS(content, paperId);
-            const t1_url = t1_cid ? `https://ipfs.io/ipfs/${t1_cid}` : null;
+            // IPFS deferred to scoring callback (Pinata free = 100 pins, score >= IPFS_SCORE_THRESHOLD only)
+            let t1_cid = null;
+            let t1_url = null;
 
             const paperObj = gunSafe({
                 title,
@@ -2335,12 +2371,22 @@ app.post("/publish-paper", async (req, res) => {
             try { trackSurrealPaper(authorId, paperId, { title, occam_score: verificationResult.occam_score, verified: true, timestamp: now }); } catch(e) { /* non-critical */ }
             broadcastHiveEvent('paper_promoted', { id: paperId, title, author: author || 'API-User', tier: 'TIER1_VERIFIED' });
 
-            // Async granular scoring (Pilar 3 — non-blocking, paper already accepted)
-            scoreGranular(content, tier || "research").then(scores => {
+            // Async granular scoring + conditional IPFS pin (Pinata free = 100 pins)
+            scoreGranular(content, tier || "research").then(async (scores) => {
                 if (scores && scores.overall > 0) {
                     db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
                     paperCache.set(paperId, { ...verifiedObj, granular_scores: JSON.stringify(scores) });
                     console.log(`[SCORING] T1 paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
+                    if (scores.overall >= IPFS_SCORE_THRESHOLD) {
+                        try {
+                            const cid = await archiveToIPFS(content, paperId);
+                            if (cid) {
+                                db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ ipfs_cid: cid, url_html: `https://ipfs.io/ipfs/${cid}` }));
+                                creditClaw(db, authorId, 'IPFS_PINNED_BONUS', { paperId });
+                                console.log(`[IPFS] T1 paper ${paperId} pinned (score ${scores.overall}): ${cid}`);
+                            }
+                        } catch (e) { console.warn(`[IPFS] Pin failed:`, e.message); }
+                    }
                 }
             }).catch(e => console.warn(`[SCORING] Non-blocking score failed:`, e.message));
 
@@ -2352,12 +2398,14 @@ app.post("/publish-paper", async (req, res) => {
                 investigation_id: investigation_id || null,
                 note: `[TIER-1 VERIFIED] Paper published directly to La Rueda. Now visible on the network.`,
                 check_endpoint: `GET /latest-papers`,
-                word_count: wordCount
+                word_count: wordCount,
+                next_steps: buildAgentFeedback(paperId, authorId, wordCount)
             });
         }
 
-        const ipfs_cid = await archiveToIPFS(content, paperId);
-        const ipfs_url = ipfs_cid ? `https://ipfs.io/ipfs/${ipfs_cid}` : null;
+        // IPFS deferred to scoring callback (Pinata free = 100 pins, score >= IPFS_SCORE_THRESHOLD only)
+        const ipfs_cid = null;
+        const ipfs_url = null;
 
         // Ed25519 signature â€” always sign with server keypair, optionally also with agent's own key
         let paperSignature = null;
@@ -2419,6 +2467,10 @@ app.post("/publish-paper", async (req, res) => {
         updateInvestigationProgress(title, content);
         broadcastHiveEvent('paper_submitted', { id: paperId, title, author: author || 'API-User', tier: 'UNVERIFIED' });
 
+        // Store ALL papers in R2 (durable storage, not just Tier-1)
+        kvStorePaper(paperId, { title, content, author: author || 'API-User', author_id: authorId, tier: 'UNVERIFIED', timestamp: now }).catch(e => console.error(`[STORAGE] ${e.message}`));
+        try { trackSurrealPaper(authorId, paperId, { title, verified: false, timestamp: now }); } catch(e) { /* non-critical */ }
+
         // â”€â”€ Sparse Memory (Veselov) â€” index paper for semantic search â”€â”€â”€â”€â”€â”€â”€â”€â”€
         try {
             globalEmbeddingStore.storeText(paperId, `${title} ${content}`);
@@ -2443,22 +2495,31 @@ app.post("/publish-paper", async (req, res) => {
         // CLAW credits for publishing
         const clawAction = finalTier === 'TIER1_VERIFIED' ? 'PAPER_TIER1' : 'PAPER_DRAFT';
         creditClaw(db, authorId, clawAction, { paperId });
-        if (ipfs_cid) creditClaw(db, authorId, 'IPFS_PINNED_BONUS', { paperId });
         if (paperSignature) creditClaw(db, authorId, 'ED25519_SIGNED', { paperId });
 
-        // Async granular scoring (Pilar 3 — non-blocking, paper already accepted)
-        scoreGranular(content, tier || "research").then(scores => {
+        // Async granular scoring + conditional IPFS pin (Pinata free = 100 pins)
+        scoreGranular(content, tier || "research").then(async (scores) => {
             if (scores && scores.overall > 0) {
                 db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
                 paperCache.set(paperId, { ...verifiedData, granular_scores: JSON.stringify(scores) });
                 console.log(`[SCORING] Paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
+                if (scores.overall >= IPFS_SCORE_THRESHOLD) {
+                    try {
+                        const cid = await archiveToIPFS(content, paperId);
+                        if (cid) {
+                            db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ ipfs_cid: cid, url_html: `https://ipfs.io/ipfs/${cid}` }));
+                            creditClaw(db, authorId, 'IPFS_PINNED_BONUS', { paperId });
+                            console.log(`[IPFS] Paper ${paperId} pinned (score ${scores.overall}): ${cid}`);
+                        }
+                    } catch (e) { console.warn(`[IPFS] Pin failed:`, e.message); }
+                }
             }
         }).catch(e => console.warn(`[SCORING] Non-blocking score failed:`, e.message));
 
         res.json({
             success: true,
             ipfs_url,
-            cid: ipfs_cid, // backwards compatibility
+            cid: ipfs_cid,
             ipfs_cid,
             paperId,
             status: 'VERIFIED',
@@ -2466,7 +2527,8 @@ app.post("/publish-paper", async (req, res) => {
             note: "Paper published to La Rueda. Now visible on the network.",
             rank_update: "RESEARCHER",
             word_count: wordCount,
-            check_endpoint: "GET /latest-papers"
+            check_endpoint: "GET /latest-papers",
+            next_steps: buildAgentFeedback(paperId, authorId, wordCount)
         });
 
         // Update Ï„-time for the publishing agent
