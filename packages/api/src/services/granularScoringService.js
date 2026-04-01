@@ -3,17 +3,19 @@
  * =================================
  * Heterogeneous multi-LLM scoring engine that evaluates papers section-by-section.
  *
- * Provider chain (tested 2026-03-31):
- *   1. Groq         — llama-3.3-70b-versatile  (4 keys, free)
- *   2. NVIDIA       — meta/llama-3.3-70b-instruct (3 keys, free)
- *   3. Cerebras     — qwen-3-235b-a22b-instruct-2507 (2 keys, free)
- *   4. Sarvam       — sarvam-m (9 keys, free)
- *   5. Mistral      — mistral-small-latest (1 key, free)
- *   6. Inception    — mercury-2 (6 keys, free)
- *   7. OpenRouter   — gemini-2.5-flash (7 keys, paid — last resort)
- *   8. Deterministic heuristic fallback (never blocks)
+ * Provider chain (updated 2026-04-01):
+ *   1. Cerebras     — qwen-3-235b (3 keys, free, ultra-fast)
+ *   2. Cerebras     — llama3.1-8b (3 keys, free, ultra-fast)
+ *   3. Mistral      — mistral-small-latest (2 keys, free)
+ *   4. Sarvam       — sarvam-m (Indian AI, free)
+ *   5. OpenRouter   — qwen3-coder:free (free)
+ *   6. Groq         — llama-3.3-70b-versatile (7 keys, may be restricted)
+ *   7. NVIDIA       — meta/llama-3.3-70b-instruct (3 keys, free)
+ *   8. Inception    — mercury-2 (5 keys, free)
+ *   9. Deterministic heuristic fallback (never blocks)
  *
- * Uses 2 independent LLM judges when possible, falls back through the chain.
+ * ALL available judges score independently. Final score = average across all judges.
+ * Each model evaluates each section independently for maximum consensus diversity.
  */
 
 const SECTIONS = ["abstract", "introduction", "methodology", "results", "discussion", "conclusion", "references"];
@@ -44,37 +46,10 @@ function nextKey(providerId, keys) {
 // ── Provider definitions ────────────────────────────────────────────────────
 
 const PROVIDERS = [
+    // --- Cerebras: 3 keys x 2 models = up to 6 independent judges ---
     {
-        id: "llmapi",
-        name: "LLM-API",
-        url: "https://api.llmapi.ai/v1/chat/completions",
-        model: "gpt-4o",
-        keys: loadKeys("LLMAPI_KEY"),
-        authHeader: "Authorization",
-        authPrefix: "Bearer ",
-        minTokens: 16,  // LLM API requires min 16 tokens
-    },
-    {
-        id: "groq",
-        name: "Groq",
-        url: "https://api.groq.com/openai/v1/chat/completions",
-        model: "llama-3.3-70b-versatile",
-        keys: loadKeys("GROQ_API_KEY").concat(loadKeys("GROQ_KEY")),
-        authHeader: "Authorization",
-        authPrefix: "Bearer ",
-    },
-    {
-        id: "nvidia",
-        name: "NVIDIA",
-        url: "https://integrate.api.nvidia.com/v1/chat/completions",
-        model: "meta/llama-3.3-70b-instruct",
-        keys: loadKeys("NVAPI_KEY").concat(loadKeys("NVIDIA_API_KEY")),
-        authHeader: "Authorization",
-        authPrefix: "Bearer ",
-    },
-    {
-        id: "cerebras",
-        name: "Cerebras",
+        id: "cerebras-qwen",
+        name: "Cerebras-Qwen235B",
         url: "https://api.cerebras.ai/v1/chat/completions",
         model: "qwen-3-235b-a22b-instruct-2507",
         keys: loadKeys("CEREBRAS_API_KEY").concat(loadKeys("CEREBRAS_KEY")),
@@ -82,14 +57,15 @@ const PROVIDERS = [
         authPrefix: "Bearer ",
     },
     {
-        id: "sarvam",
-        name: "Sarvam",
-        url: "https://api.sarvam.ai/v1/chat/completions",
-        model: "sarvam-m",
-        keys: loadKeys("SARVAM_KEY").concat(loadKeys("SARVAM_API_KEY")),
-        authHeader: "api-subscription-key",
-        authPrefix: "",
+        id: "cerebras-llama",
+        name: "Cerebras-Llama8B",
+        url: "https://api.cerebras.ai/v1/chat/completions",
+        model: "llama3.1-8b",
+        keys: loadKeys("CEREBRAS_API_KEY").concat(loadKeys("CEREBRAS_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
     },
+    // --- Mistral: 2 keys, reliable ---
     {
         id: "mistral",
         name: "Mistral",
@@ -99,21 +75,56 @@ const PROVIDERS = [
         authHeader: "Authorization",
         authPrefix: "Bearer ",
     },
+    // --- Sarvam (Indian AI): sarvam-m, uses <think> tags in output ---
+    {
+        id: "sarvam",
+        name: "Sarvam",
+        url: "https://api.sarvam.ai/v1/chat/completions",
+        model: "sarvam-m",
+        keys: loadKeys("SARVAM_KEY").concat(loadKeys("SARVAM_API_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 1024,
+    },
+    // --- OpenRouter: free models ---
+    {
+        id: "openrouter",
+        name: "OpenRouter",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "qwen/qwen3-coder:free",
+        keys: loadKeys("OPENROUTER_API_KEY"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        extraHeaders: { "HTTP-Referer": "https://www.p2pclaw.com", "X-Title": "P2PCLAW Scoring" },
+    },
+    // --- Groq: 7 keys but may be org-restricted ---
+    {
+        id: "groq",
+        name: "Groq",
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        model: "llama-3.3-70b-versatile",
+        keys: loadKeys("GROQ_API_KEY").concat(loadKeys("GROQ_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+    },
+    // --- NVIDIA: 3 keys ---
+    {
+        id: "nvidia",
+        name: "NVIDIA",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "meta/llama-3.3-70b-instruct",
+        keys: loadKeys("NVAPI_KEY").concat(loadKeys("NVIDIA_API_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+    },
+    // --- Inception: mercury-2 ---
     {
         id: "inception",
         name: "Inception",
         url: "https://api.inceptionlabs.ai/v1/chat/completions",
         model: "mercury-2",
         keys: loadKeys("INCEPTION_API_KEY").concat(loadKeys("INCEPTION_KEY")),
-        authHeader: "Authorization",
-        authPrefix: "Bearer ",
-    },
-    {
-        id: "openrouter",
-        name: "OpenRouter",
-        url: "https://openrouter.ai/api/v1/chat/completions",
-        model: "google/gemini-2.5-flash",
-        keys: loadKeys("OPENROUTER_API_KEY"),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
     },
@@ -171,11 +182,8 @@ async function callLLMForScoring(prompt, provider) {
         if (!key) return null;
 
         const headers = { "Content-Type": "application/json" };
-        if (provider.authHeader === "api-subscription-key") {
-            headers["api-subscription-key"] = key;
-        } else {
-            headers[provider.authHeader] = `${provider.authPrefix}${key}`;
-        }
+        headers[provider.authHeader] = `${provider.authPrefix}${key}`;
+        if (provider.extraHeaders) Object.assign(headers, provider.extraHeaders);
 
         try {
             const res = await fetch(provider.url, {
@@ -184,7 +192,7 @@ async function callLLMForScoring(prompt, provider) {
                 body: JSON.stringify({
                     model: provider.model,
                     messages: [{ role: "user", content: prompt }],
-                    max_tokens: Math.max(provider.minTokens || 16, 512),
+                    max_tokens: provider.maxTokens || 512,
                     temperature: 0.1,
                 }),
                 signal: AbortSignal.timeout(30000),
@@ -206,7 +214,12 @@ async function callLLMForScoring(prompt, provider) {
             }
 
             const data = await res.json();
-            const text = data.choices?.[0]?.message?.content || "";
+            let text = data.choices?.[0]?.message?.content || "";
+
+            // Strip <think>...</think> tags (Sarvam, Qwen with thinking mode)
+            if (provider.stripThinkTags || text.includes("<think>")) {
+                text = text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+            }
 
             const jsonMatch = text.match(/\{[\s\S]*?\}/);
             if (!jsonMatch) {
@@ -313,13 +326,14 @@ export async function scoreGranular(content, paperType = "research") {
     const truncated = content.length > 4000 ? content.substring(0, 4000) + "\n\n[... truncated for scoring ...]" : content;
     const prompt = SCORING_PROMPT + truncated;
 
-    // Try to get 2 independent LLM judges from the provider chain
-    const judges = [];
-    for (const provider of available) {
-        if (judges.length >= 2) break;
-        const result = await callLLMForScoring(prompt, provider);
-        if (result) judges.push(result);
-    }
+    // ALL available judges score independently for maximum consensus diversity.
+    // Each model evaluates each section independently, then we average.
+    // Run all judges in parallel for speed (each has its own timeout).
+    const judgePromises = available.map(provider =>
+        callLLMForScoring(prompt, provider).catch(() => null)
+    );
+    const judgeResults = await Promise.all(judgePromises);
+    const judges = judgeResults.filter(Boolean);
 
     // If no LLM judges succeeded, use heuristic
     if (judges.length === 0) {
