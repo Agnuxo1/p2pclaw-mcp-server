@@ -1182,6 +1182,57 @@ const swarmCache = {
     mempoolPapers: [], // [{ paperId, title, author, author_id, tier, network_validations, validations_by, avg_occam_score, timestamp, status, ipfs_cid }]
 };
 
+// ── Persistent Top-3 Podium ─────────────────────────────────────────────────
+// These 3 slots NEVER get cleaned. A paper only leaves the podium when a
+// higher-scored paper pushes it out. Populated at boot from paperCache and
+// updated every time a paper receives granular_scores.
+const podium = [null, null, null]; // [0]=gold, [1]=silver, [2]=bronze
+
+function podiumTryInsert(entry) {
+    // entry = { paperId, title, author, author_id, overall, granular_scores, timestamp }
+    if (!entry || typeof entry.overall !== 'number' || entry.overall <= 0) return;
+    // Avoid duplicates: if paper already on podium, update its score
+    for (let i = 0; i < 3; i++) {
+        if (podium[i] && podium[i].paperId === entry.paperId) {
+            podium[i] = entry;
+            podium.sort((a, b) => (b?.overall || 0) - (a?.overall || 0));
+            return;
+        }
+    }
+    // Find weakest slot
+    for (let i = 2; i >= 0; i--) {
+        if (!podium[i] || entry.overall > podium[i].overall) {
+            podium.splice(i + 1, 0, null); // make room
+            podium[i] = entry;
+            podium.length = 3; // trim back to 3
+            podium.sort((a, b) => (b?.overall || 0) - (a?.overall || 0));
+            return;
+        }
+    }
+}
+
+function podiumBootRestore() {
+    for (const [id, data] of paperCache.entries()) {
+        if (!data.granular_scores) continue;
+        try {
+            const scores = typeof data.granular_scores === 'string'
+                ? JSON.parse(data.granular_scores) : data.granular_scores;
+            if (scores.overall) {
+                podiumTryInsert({
+                    paperId: id,
+                    title: data.title,
+                    author: data.author,
+                    author_id: data.author_id,
+                    overall: scores.overall,
+                    granular_scores: scores,
+                    timestamp: data.timestamp,
+                });
+            }
+        } catch (_) {}
+    }
+    console.log('[PODIUM] Boot restore:', podium.filter(Boolean).map(p => `${p.title?.slice(0, 40)} (${p.overall})`).join(' | ') || 'empty');
+}
+
 // Expose paperStats via swarmCache.papers for backwards-compat with iterating code
 // (swarm-status, /silicon etc. only ever check p.status, so a synthetic iterable is fine)
 Object.defineProperty(swarmCache, 'papers', {
@@ -2376,6 +2427,7 @@ app.post("/publish-paper", async (req, res) => {
                 if (scores && scores.overall > 0) {
                     db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
                     paperCache.set(paperId, { ...verifiedObj, granular_scores: JSON.stringify(scores) });
+                    podiumTryInsert({ paperId, title, author: author || 'API-User', author_id: authorId, overall: scores.overall, granular_scores: scores, timestamp: now });
                     console.log(`[SCORING] T1 paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
                     if (scores.overall >= IPFS_SCORE_THRESHOLD) {
                         try {
@@ -2502,6 +2554,7 @@ app.post("/publish-paper", async (req, res) => {
             if (scores && scores.overall > 0) {
                 db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
                 paperCache.set(paperId, { ...verifiedData, granular_scores: JSON.stringify(scores) });
+                podiumTryInsert({ paperId, title, author: author || 'API-User', author_id: authorId, overall: scores.overall, granular_scores: scores, timestamp: now });
                 console.log(`[SCORING] Paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
                 if (scores.overall >= IPFS_SCORE_THRESHOLD) {
                     try {
@@ -3422,6 +3475,22 @@ app.get("/heyting/proof-sketch/:agentA/:agentB", (req, res) => {
     res.type('text/plain').send(result.verification?.proof_sketch || '-- No proof sketch available');
 });
 
+// GET /podium — persistent top-3 best-scored papers (never cleaned, only replaced by better)
+app.get("/podium", (req, res) => {
+    const entries = podium.filter(Boolean).map((p, i) => ({
+        position: i + 1,
+        medal: ['GOLD', 'SILVER', 'BRONZE'][i],
+        paperId: p.paperId,
+        title: p.title,
+        author: p.author,
+        author_id: p.author_id,
+        overall_score: p.overall,
+        granular_scores: p.granular_scores,
+        timestamp: p.timestamp,
+    }));
+    res.json({ success: true, podium: entries, note: "Top 3 papers by score. Only replaced when a higher-scored paper arrives." });
+});
+
 app.get("/leaderboard", (req, res) => {
     const leaderboard = [];
     db.get("agents").map().once((data, key) => {
@@ -3441,7 +3510,11 @@ app.get("/leaderboard", (req, res) => {
         leaderboard.sort((a, b) =>
             (b.contributions * 10 + b.balance) - (a.contributions * 10 + a.balance)
         );
-        res.json({ success: true, leaderboard: leaderboard.slice(0, 20) });
+        const top3papers = podium.filter(Boolean).map((p, i) => ({
+            position: i + 1, medal: ['GOLD', 'SILVER', 'BRONZE'][i],
+            paperId: p.paperId, title: p.title, author: p.author, overall_score: p.overall,
+        }));
+        res.json({ success: true, podium: top3papers, leaderboard: leaderboard.slice(0, 20) });
     }, 1200);
 });
 
@@ -4751,6 +4824,7 @@ if (process.env.NODE_ENV !== 'test') {
                 } catch (_) { /* skip malformed file */ }
             }
             console.log(`[BOOT-RESTORE] ✅ Restored ${restored}/${mdFiles.length} papers (${allMd.length} total in GitHub)`);
+            podiumBootRestore();
         } catch (e) {
             console.warn('[BOOT-RESTORE] Failed to restore from GitHub:', e.message);
         }
