@@ -12,7 +12,9 @@
  *   6. Groq         — llama-3.3-70b-versatile (7 keys, may be restricted)
  *   7. NVIDIA       — meta/llama-3.3-70b-instruct (3 keys, free)
  *   8. Inception    — mercury-2 (5 keys, free)
- *   9. Deterministic heuristic fallback (never blocks)
+ *   9. Xiaomi MiMo  — mimo-v2-flash (3 keys, free)
+ *  10. Xiaomi MiMo  — mimo-v2-pro (3 keys, free, reasoning)
+ *  11. Deterministic heuristic fallback (never blocks)
  *
  * ALL available judges score independently. Final score = average across all judges.
  * Each model evaluates each section independently for maximum consensus diversity.
@@ -129,6 +131,26 @@ const PROVIDERS = [
         keys: loadKeys("INCEPTION_API_KEY").concat(loadKeys("INCEPTION_KEY")),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
+    },
+    // --- Xiaomi MiMo: 3 keys x 2 models = up to 2 independent judges ---
+    {
+        id: "xiaomi-flash",
+        name: "Xiaomi-MiMo-Flash",
+        url: "https://api.xiaomimimo.com/v1/chat/completions",
+        model: "mimo-v2-flash",
+        keys: loadKeys("XIAOMI_API_KEY").concat(loadKeys("XIAOMI_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+    },
+    {
+        id: "xiaomi-pro",
+        name: "Xiaomi-MiMo-Pro",
+        url: "https://api.xiaomimimo.com/v1/chat/completions",
+        model: "mimo-v2-pro",
+        keys: loadKeys("XIAOMI_API_KEY").concat(loadKeys("XIAOMI_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
     },
 ];
 
