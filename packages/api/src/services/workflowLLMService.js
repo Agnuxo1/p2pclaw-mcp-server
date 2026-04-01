@@ -467,10 +467,79 @@ export const DOMAIN_ONTOLOGIES = {
 
 // ── LLM Provider Configuration ─────────────────────────────────────────────
 
-// ── Onion LLM chain: 8 providers, NEVER fails ──────────────────────────────
-// Primary: Groq (fast, logprobs) → DeepSeek (smart) → OpenRouter (free)
-// Fallback: Gemini (Google, free tier) → Cerebras (ultra-fast) → Groq key 2-5 round-robin
+// ── Onion LLM chain: 11 providers, NEVER fails ─────────────────────────────
+// Priority: working providers first (Cerebras, Mistral, OpenRouter free)
+// Then: Groq, DeepSeek, Gemini (may have quota/balance issues)
+// Updated 2026-04-01: fixed model names, added Mistral + Inception
 const PROVIDERS = [
+  {
+    id: "cerebras",
+    name: "Cerebras (llama3.1-8b)",
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    model: "llama3.1-8b",
+    keyEnv: "CEREBRAS_API_KEY",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+  },
+  {
+    id: "mistral",
+    name: "Mistral (mistral-small-latest)",
+    url: "https://api.mistral.ai/v1/chat/completions",
+    model: "mistral-small-latest",
+    keyEnv: "MISTRAL_API_KEY",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+  },
+  {
+    id: "cerebras2",
+    name: "Cerebras Key 2 (qwen-3-235b)",
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    model: "qwen-3-235b-a22b-instruct-2507",
+    keyEnv: "CEREBRAS_API_KEY_2",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+  },
+  {
+    id: "openrouter",
+    name: "OpenRouter (qwen3-coder:free)",
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    model: "qwen/qwen3-coder:free",
+    keyEnv: "OPENROUTER_API_KEY",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+    headers: {
+      "HTTP-Referer": "https://www.p2pclaw.com",
+      "X-Title": "P2PCLAW ChessBoard Reasoning Engine",
+    }
+  },
+  {
+    id: "mistral2",
+    name: "Mistral Key 2",
+    url: "https://api.mistral.ai/v1/chat/completions",
+    model: "mistral-small-latest",
+    keyEnv: "MISTRAL_API_KEY_2",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+  },
+  {
+    id: "openrouter2",
+    name: "OpenRouter Key 2 (nemotron-3-super)",
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    model: "nvidia/nemotron-3-super-120b-a12b:free",
+    keyEnv: "OPENROUTER_API_KEY_2",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+    headers: {
+      "HTTP-Referer": "https://www.p2pclaw.com",
+      "X-Title": "P2PCLAW ChessBoard Reasoning Engine",
+    }
+  },
   {
     id: "groq",
     name: "Groq (llama-3.3-70b-versatile)",
@@ -500,24 +569,14 @@ const PROVIDERS = [
     supportsLogprobs: false,
     temperature: 0.3,
     maxTokens: 1200,
-    isGemini: true, // uses different API shape
+    isGemini: true,
   },
   {
-    id: "cerebras",
-    name: "Cerebras (llama-3.3-70b)",
-    url: "https://api.cerebras.ai/v1/chat/completions",
-    model: "llama-3.3-70b",
-    keyEnv: "CEREBRAS_API_KEY",
-    supportsLogprobs: false,
-    temperature: 0.3,
-    maxTokens: 1200,
-  },
-  {
-    id: "openrouter",
-    name: "OpenRouter (llama-3.3-70b-instruct:free)",
+    id: "openrouter3",
+    name: "OpenRouter Key 3 (minimax-m2.5:free)",
     url: "https://openrouter.ai/api/v1/chat/completions",
-    model: "meta-llama/llama-3.3-70b-instruct:free",
-    keyEnv: "OPENROUTER_API_KEY",
+    model: "minimax/minimax-m2.5:free",
+    keyEnv: "OPENROUTER_API_KEY_3",
     supportsLogprobs: false,
     temperature: 0.3,
     maxTokens: 1200,
@@ -528,44 +587,10 @@ const PROVIDERS = [
   },
   {
     id: "groq2",
-    name: "Groq Key 2 (llama-3.3-70b)",
+    name: "Groq Key 2",
     url: "https://api.groq.com/openai/v1/chat/completions",
     model: "llama-3.3-70b-versatile",
     keyEnv: "GROQ_API_KEY_2",
-    supportsLogprobs: false,
-    temperature: 0.3,
-    maxTokens: 1200,
-  },
-  {
-    id: "deepseek2",
-    name: "DeepSeek Key 2",
-    url: "https://api.deepseek.com/v1/chat/completions",
-    model: "deepseek-chat",
-    keyEnv: "DEEPSEEK_API_KEY_2",
-    supportsLogprobs: false,
-    temperature: 0.3,
-    maxTokens: 1200,
-  },
-  {
-    id: "openrouter2",
-    name: "OpenRouter Key 2",
-    url: "https://openrouter.ai/api/v1/chat/completions",
-    model: "meta-llama/llama-3.3-70b-instruct:free",
-    keyEnv: "OPENROUTER_API_KEY_2",
-    supportsLogprobs: false,
-    temperature: 0.3,
-    maxTokens: 1200,
-    headers: {
-      "HTTP-Referer": "https://www.p2pclaw.com",
-      "X-Title": "P2PCLAW ChessBoard Reasoning Engine",
-    }
-  },
-  {
-    id: "groq3",
-    name: "Groq Key 3",
-    url: "https://api.groq.com/openai/v1/chat/completions",
-    model: "llama-3.3-70b-versatile",
-    keyEnv: "GROQ_API_KEY_3",
     supportsLogprobs: false,
     temperature: 0.3,
     maxTokens: 1200,
