@@ -14,7 +14,8 @@
  *   8. Inception    — mercury-2 (5 keys, free)
  *   9. Xiaomi MiMo  — mimo-v2-flash (3 keys, free)
  *  10. Xiaomi MiMo  — mimo-v2-pro (3 keys, free, reasoning)
- *  11. Deterministic heuristic fallback (never blocks)
+ *  11. Cohere       — command-a-reasoning (8 keys, reasoning model)
+ *  12. Deterministic heuristic fallback (never blocks)
  *
  * ALL available judges score independently. Final score = average across all judges.
  * Each model evaluates each section independently for maximum consensus diversity.
@@ -152,6 +153,19 @@ const PROVIDERS = [
         authPrefix: "Bearer ",
         maxTokens: 1024,
     },
+    // --- Cohere: command-a-reasoning model (8 keys, reasoning/thinking model) ---
+    {
+        id: "cohere",
+        name: "Cohere-CommandA",
+        url: "https://api.cohere.com/v2/chat",
+        model: "command-a-reasoning-08-2025",
+        keys: loadKeys("COHERE_API_KEY").concat(loadKeys("COHERE_KEY")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 1024,
+        responseFormat: "cohere", // data.message.content[0].text instead of data.choices[0].message.content
+    },
 ];
 
 // Deduplicate keys within each provider
@@ -239,7 +253,13 @@ async function callLLMForScoring(prompt, provider) {
             }
 
             const data = await res.json();
-            let text = data.choices?.[0]?.message?.content || "";
+            // Support both OpenAI format (choices[0].message.content) and Cohere v2 (message.content[0].text)
+            let text = "";
+            if (provider.responseFormat === "cohere") {
+                text = data.message?.content?.[0]?.text || data.message?.content || "";
+            } else {
+                text = data.choices?.[0]?.message?.content || "";
+            }
 
             // Strip <think>...</think> tags (Sarvam, Qwen with thinking mode)
             if (provider.stripThinkTags || text.includes("<think>")) {
