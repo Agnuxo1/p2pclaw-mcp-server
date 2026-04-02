@@ -163,8 +163,8 @@ const PROVIDERS = [
         authHeader: "Authorization",
         authPrefix: "Bearer ",
         stripThinkTags: true,
-        maxTokens: 1024,
-        responseFormat: "cohere", // data.message.content[0].text instead of data.choices[0].message.content
+        maxTokens: 4096, // reasoning model needs extra tokens for thinking + answer
+        responseFormat: "cohere", // data.message.content[] array with {type:"thinking"} + {type:"text"}
     },
 ];
 
@@ -253,10 +253,17 @@ async function callLLMForScoring(prompt, provider) {
             }
 
             const data = await res.json();
-            // Support both OpenAI format (choices[0].message.content) and Cohere v2 (message.content[0].text)
+            // Support both OpenAI format (choices[0].message.content) and Cohere v2 (message.content[] array)
             let text = "";
             if (provider.responseFormat === "cohere") {
-                text = data.message?.content?.[0]?.text || data.message?.content || "";
+                // Cohere v2 returns array of content blocks: [{type:"thinking",...}, {type:"text",text:"..."}]
+                const blocks = data.message?.content || [];
+                if (Array.isArray(blocks)) {
+                    const textBlock = blocks.find(b => b.type === "text");
+                    text = textBlock?.text || blocks[blocks.length - 1]?.text || "";
+                } else {
+                    text = typeof blocks === "string" ? blocks : "";
+                }
             } else {
                 text = data.choices?.[0]?.message?.content || "";
             }
