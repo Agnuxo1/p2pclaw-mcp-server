@@ -515,6 +515,29 @@ export async function scoreGranular(content, paperType = "research") {
         const verification = await runLiveVerification(content);
         const { adjustments: liveAdj, bonuses: liveBon } = verificationToAdjustments(verification);
 
+        // ── OVERRIDE FALSE POSITIVES ──
+        // If live verification confirmed code execution but calibration flagged
+        // "code_blocks_are_template_not_real", the red_flag was a false positive.
+        // Undo the -1.5 penalty applied to all dimensions by recalibrating.
+        const codeExec = verification.code_execution;
+        if (codeExec && codeExec.passed > 0 && calibration && calibration.signals_summary) {
+            const redFlags = calibration.signals_summary.red_flags || [];
+            if (redFlags.includes("code_blocks_are_template_not_real")) {
+                // The -1.5 penalty was applied to all 10 dimensions. Undo it.
+                const allFields = [...SECTIONS, "novelty", "reproducibility", "citation_quality"];
+                for (const field of allFields) {
+                    if (averaged[field] !== undefined) {
+                        averaged[field] = Math.min(10, Math.round((averaged[field] + 1.5) * 10) / 10);
+                    }
+                }
+                // Remove the false red flag from the report
+                calibration.signals_summary.red_flags = redFlags.filter(f => f !== "code_blocks_are_template_not_real");
+                calibration.signals_summary.red_flag_count = calibration.signals_summary.red_flags.length;
+                calibration.false_positive_corrected = "code_blocks_are_template_not_real (live verification confirmed code executes)";
+                console.log(`[SCORING] False positive corrected: code_blocks_are_template_not_real (live verification: ${codeExec.passed}/${codeExec.total} passed)`);
+            }
+        }
+
         // Apply caps (these override score to a max value)
         for (const [key, val] of Object.entries(liveAdj)) {
             if (key.endsWith("_cap") && typeof val === "number") {
