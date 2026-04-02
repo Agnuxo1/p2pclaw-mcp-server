@@ -170,19 +170,82 @@ const PROVIDERS = [
         responseFormat: "cohere", // data.message.content[] array with {type:"thinking"} + {type:"text"}
         timeout: 90000, // 90s — reasoning model needs time to think through all 10 dimensions
     },
-    // --- Cloudflare Workers AI: GLM-4.7 Flash (ZhipuAI, reasoning model, free) ---
+    // --- Cloudflare Workers AI: 6 models across 6 accounts (all FREE) ---
+    // Ordered by model quality: best first
     {
         id: "cloudflare-glm",
         name: "Cloudflare-GLM4",
-        url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID || "eaffd2b52c95c69aaad8d859e9dcb52b"}/ai/run/@cf/zai-org/glm-4.7-flash`,
+        url: `https://api.cloudflare.com/client/v4/accounts/eaffd2b52c95c69aaad8d859e9dcb52b/ai/run/@cf/zai-org/glm-4.7-flash`,
         model: "@cf/zai-org/glm-4.7-flash",
         keys: loadKeys("CF_AI_TOKEN").concat(loadKeys("CLOUDFLARE_AI_TOKEN")),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
         stripThinkTags: true,
-        maxTokens: 2048, // reasoning model includes thinking + answer
-        responseFormat: "cloudflare", // {result: {choices: [{message: {content}}]}, success: true}
-        timeout: 60000, // 60s — reasoning model needs time
+        maxTokens: 2048,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    {
+        id: "cloudflare-gemma4",
+        name: "Cloudflare-Gemma4",
+        url: `https://api.cloudflare.com/client/v4/accounts/a7995d3f33b6ba57955749337c9abbe0/ai/run/@cf/google/gemma-4-26B-A4B-it`,
+        model: "@cf/google/gemma-4-26B-A4B-it",
+        keys: loadKeys("CF_AI_TOKEN_2"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    {
+        id: "cloudflare-nemotron",
+        name: "Cloudflare-Nemotron",
+        url: `https://api.cloudflare.com/client/v4/accounts/194d9aea21482ac893ed81fc6b004864/ai/run/@cf/nvidia/nemotron-3-120b-a12b`,
+        model: "@cf/nvidia/nemotron-3-120b-a12b",
+        keys: loadKeys("CF_AI_TOKEN_3"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    {
+        id: "cloudflare-kimi",
+        name: "Cloudflare-Kimi",
+        url: `https://api.cloudflare.com/client/v4/accounts/401a75ead25275262c1c05eecb7a997c/ai/run/@cf/moonshotai/kimi-k2.5`,
+        model: "@cf/moonshotai/kimi-k2.5",
+        keys: loadKeys("CF_AI_TOKEN_4"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    {
+        id: "cloudflare-gptoss",
+        name: "Cloudflare-GPT-OSS",
+        url: `https://api.cloudflare.com/client/v4/accounts/73340519f6430362daee759ba0b48ce8/ai/run/@cf/openai/gpt-oss-120b`,
+        model: "@cf/openai/gpt-oss-120b",
+        keys: loadKeys("CF_AI_TOKEN_5"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    {
+        id: "cloudflare-qwen3",
+        name: "Cloudflare-Qwen3",
+        url: `https://api.cloudflare.com/client/v4/accounts/df4a7888befcbb6ce3e0a0b346ea1990/ai/run/@cf/qwen/qwen3-30b-a3b-fp8`,
+        model: "@cf/qwen/qwen3-30b-a3b-fp8",
+        keys: loadKeys("CF_AI_TOKEN_6"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        responseFormat: "cloudflare",
+        timeout: 60000,
     },
 ];
 
