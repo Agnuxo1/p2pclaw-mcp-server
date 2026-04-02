@@ -1083,13 +1083,17 @@ function calibrateScores(rawScores, signals, fieldBenchmarks) {
             (sum, r) => sum + (r.quality_fingerprint.typical_word_count || 5000), 0
         ) / fieldBenchmarks.references.length;
 
-        // If paper is < 30% of reference length, cap methodology/results
-        if (signals.word_count < avgRefWords * 0.3) {
-            const depth_cap = 4;
+        // If paper is extremely short compared to references AND below minimum
+        // threshold, apply a mild cap. The platform recommends 2500-3500 words,
+        // so papers >= 1500 words should not be penalized for being shorter than
+        // reference papers (which can be 8000-12000 words).
+        const MIN_WORDS_FOR_DEPTH = 1500; // below this, content is truly insufficient
+        if (signals.word_count < MIN_WORDS_FOR_DEPTH && signals.word_count < avgRefWords * 0.2) {
+            const depth_cap = 5; // mild cap, not harsh
             for (const field of ["methodology", "results", "discussion"]) {
                 if ((calibrated[field] || 0) > depth_cap) {
                     adjustments[field] = adjustments[field] || [];
-                    adjustments[field].push(`word_count_${signals.word_count}_vs_ref_${Math.round(avgRefWords)}: capped at ${depth_cap}`);
+                    adjustments[field].push(`word_count_${signals.word_count}_below_${MIN_WORDS_FOR_DEPTH}: capped at ${depth_cap}`);
                     calibrated[field] = depth_cap;
                 }
             }
