@@ -170,6 +170,20 @@ const PROVIDERS = [
         responseFormat: "cohere", // data.message.content[] array with {type:"thinking"} + {type:"text"}
         timeout: 90000, // 90s — reasoning model needs time to think through all 10 dimensions
     },
+    // --- Cloudflare Workers AI: GLM-4.7 Flash (ZhipuAI, reasoning model, free) ---
+    {
+        id: "cloudflare-glm",
+        name: "Cloudflare-GLM4",
+        url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID || "eaffd2b52c95c69aaad8d859e9dcb52b"}/ai/run/@cf/zai-org/glm-4.7-flash`,
+        model: "@cf/zai-org/glm-4.7-flash",
+        keys: loadKeys("CF_AI_TOKEN").concat(loadKeys("CLOUDFLARE_AI_TOKEN")),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048, // reasoning model includes thinking + answer
+        responseFormat: "cloudflare", // {result: {choices: [{message: {content}}]}, success: true}
+        timeout: 60000, // 60s — reasoning model needs time
+    },
 ];
 
 // Deduplicate keys within each provider
@@ -271,6 +285,10 @@ async function callLLMForScoring(prompt, provider) {
                 } else {
                     text = typeof blocks === "string" ? blocks : "";
                 }
+            } else if (provider.responseFormat === "cloudflare") {
+                // Cloudflare Workers AI wraps OpenAI format: {result: {choices: [...]}, success: true}
+                const inner = data.result || data;
+                text = inner.choices?.[0]?.message?.content || "";
             } else {
                 text = data.choices?.[0]?.message?.content || "";
             }
