@@ -748,7 +748,172 @@ function extractSignals(content) {
         red_flags.push("excessive_self_citation");
     }
 
-    // 7. DECEPTION PATTERN DETECTION — the anti-benchmark layer
+    // 7. GRAMMAR & WRITING QUALITY
+    // Measure sentence structure diversity, vocabulary richness, and LLM-typical patterns
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    const sentenceLengths = sentences.map(s => s.trim().split(/\s+/).length);
+    const avgSentenceLen = sentenceLengths.length > 0
+        ? sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length : 0;
+    const sentenceLenVariance = sentenceLengths.length > 1
+        ? sentenceLengths.reduce((sum, l) => sum + (l - avgSentenceLen) ** 2, 0) / sentenceLengths.length : 0;
+    const sentenceLenStdDev = Math.sqrt(sentenceLenVariance);
+    // Type-Token Ratio — vocabulary diversity (unique words / total words)
+    const wordTokens = words.map(w => w.toLowerCase().replace(/[^a-z]/g, "")).filter(w => w.length > 2);
+    const uniqueTokens = new Set(wordTokens);
+    const ttr = wordTokens.length > 0 ? uniqueTokens.size / wordTokens.length : 0;
+    // Low TTR + low sentence variance = LLM-generated monotone text
+    const grammar_quality = {
+        sentence_count: sentences.length,
+        avg_sentence_length: Math.round(avgSentenceLen * 10) / 10,
+        sentence_length_stddev: Math.round(sentenceLenStdDev * 10) / 10,
+        vocabulary_diversity_ttr: Math.round(ttr * 1000) / 1000,
+        is_monotone: sentenceLenStdDev < 3 && sentences.length > 10,
+        is_low_vocabulary: ttr < 0.3 && wordTokens.length > 200,
+    };
+    if (grammar_quality.is_monotone) red_flags.push("monotone_sentence_structure");
+    if (grammar_quality.is_low_vocabulary) red_flags.push("low_vocabulary_diversity");
+
+    // 8. N-GRAM REPETITION DETECTION
+    // Excessive phrase repetition = weak LLM or padding
+    const trigrams = [];
+    for (let i = 0; i < wordTokens.length - 2; i++) {
+        trigrams.push(`${wordTokens[i]} ${wordTokens[i+1]} ${wordTokens[i+2]}`);
+    }
+    const trigramCounts = {};
+    for (const tg of trigrams) { trigramCounts[tg] = (trigramCounts[tg] || 0) + 1; }
+    const repeatedTrigrams = Object.entries(trigramCounts)
+        .filter(([tg, c]) => c >= 3 && !["of the the", "in the the", "the the the"].includes(tg))
+        .sort((a, b) => b[1] - a[1]);
+    const totalRepetitions = repeatedTrigrams.reduce((s, [_, c]) => s + c, 0);
+    const repetition_score = {
+        unique_trigrams: Object.keys(trigramCounts).length,
+        repeated_trigrams: repeatedTrigrams.length,
+        total_repetitions: totalRepetitions,
+        worst_offenders: repeatedTrigrams.slice(0, 5).map(([tg, c]) => ({ phrase: tg, count: c })),
+        repetition_ratio: trigrams.length > 0 ? Math.round(totalRepetitions / trigrams.length * 1000) / 1000 : 0,
+    };
+    if (repetition_score.repetition_ratio > 0.1) {
+        red_flags.push(`excessive_repetition_ratio_${repetition_score.repetition_ratio}`);
+    }
+
+    // 9. CODE QUALITY ANALYSIS
+    // Extract code blocks, check if they look real (Python syntax patterns)
+    const codeBlocks = text.match(/```(?:python|py)?\s*\n([\s\S]*?)```/gi) || [];
+    const code_quality = { blocks_found: codeBlocks.length, has_python: false, signals: [] };
+    if (codeBlocks.length > 0) {
+        for (const block of codeBlocks) {
+            const code = block.replace(/```(?:python|py)?\s*\n?/i, "").replace(/```$/, "").trim();
+            // Python indicators
+            const hasDef = /\bdef\s+\w+\s*\(/.test(code);
+            const hasImport = /\b(import|from)\s+\w+/.test(code);
+            const hasClass = /\bclass\s+\w+/.test(code);
+            const hasLoop = /\b(for|while)\s+.+:/.test(code);
+            const hasCondition = /\bif\s+.+:/.test(code);
+            const hasReturn = /\breturn\s+/.test(code);
+            const hasVariables = /\w+\s*=\s*.+/.test(code);
+            const hasPrint = /\bprint\s*\(/.test(code);
+            const codeLines = code.split("\n").filter(l => l.trim().length > 0);
+            const isPython = hasDef || hasImport || hasClass;
+            if (isPython) code_quality.has_python = true;
+            // Real code has: functions, imports, variables, logic flow
+            const realIndicators = [hasDef, hasImport, hasLoop, hasCondition, hasReturn, hasVariables].filter(Boolean).length;
+            // Pseudo/template code has: generic names, comments-only, single-line snippets
+            const isPseudo = codeLines.length < 3 || (codeLines.length > 2 && codeLines.filter(l => l.trim().startsWith("#")).length > codeLines.length * 0.6);
+            // Check for actual computation (not just print/pass/placeholder)
+            const hasComputation = /[\+\-\*\/\%]|\.append|\.keys|len\(|range\(|np\.|pd\.|torch\.|tf\./.test(code);
+            code_quality.signals.push({
+                lines: codeLines.length,
+                is_python: isPython,
+                real_indicator_count: realIndicators,
+                is_pseudo: isPseudo,
+                has_computation: hasComputation,
+                quality: realIndicators >= 4 && hasComputation ? "real" : realIndicators >= 2 ? "plausible" : "template",
+            });
+        }
+    }
+    const has_real_code = code_quality.signals.some(s => s.quality === "real");
+    const has_pseudo_code = code_quality.signals.some(s => s.quality === "template");
+    if (has_pseudo_code && !has_real_code && codeBlocks.length > 0) {
+        red_flags.push("code_blocks_are_template_not_real");
+    }
+
+    // 10. MATH FORMULA QUALITY
+    // Check if equations are well-formed and use defined variables
+    const mathBlocks = text.match(/\$[^$]{3,}\$/g) || [];
+    const math_quality = { formula_count: mathBlocks.length, signals: [] };
+    if (mathBlocks.length > 0) {
+        // Extract variable definitions from text (e.g., "where x is", "let n =", "denote by α")
+        const definedVars = new Set();
+        const varDefs = text.match(/(?:where|let|denote(?:\s+by)?|define)\s+([a-zA-Zα-ωΑ-Ω])\s/gi) || [];
+        for (const vd of varDefs) {
+            const m = vd.match(/([a-zA-Zα-ωΑ-Ω])\s*$/);
+            if (m) definedVars.add(m[1].toLowerCase());
+        }
+        // Check each formula for basic validity
+        for (const formula of mathBlocks.slice(0, 10)) {
+            const inner = formula.replace(/^\$|\$$/g, "").trim();
+            const hasOperators = /[+\-×÷=<>≤≥∑∏∫∂√]/.test(inner);
+            const hasVariables = /[a-zA-Zα-ωΑ-Ω]/.test(inner);
+            const isBalanced = (inner.match(/\(/g) || []).length === (inner.match(/\)/g) || []).length;
+            const isTrivial = inner.length < 5; // "$x=1$" is trivial
+            math_quality.signals.push({
+                formula: inner.substring(0, 60),
+                has_operators: hasOperators,
+                has_variables: hasVariables,
+                is_balanced: isBalanced,
+                is_trivial: isTrivial,
+                quality: hasOperators && hasVariables && isBalanced && !isTrivial ? "valid" : "suspect",
+            });
+        }
+        math_quality.defined_variables = [...definedVars];
+        math_quality.valid_count = math_quality.signals.filter(s => s.quality === "valid").length;
+        math_quality.suspect_count = math_quality.signals.filter(s => s.quality === "suspect").length;
+    }
+
+    // 11. TABLE & FIGURE QUALITY
+    // Check if tables have headers, consistent columns, and meaningful data
+    const tableBlocks = text.match(/\|[^\n]+\|\s*\n\|[\s\-:]+\|\s*\n(\|[^\n]+\|\s*\n?)+/g) || [];
+    const table_quality = { count: tableBlocks.length, signals: [] };
+    for (const table of tableBlocks.slice(0, 5)) {
+        const rows = table.trim().split("\n").filter(r => r.includes("|"));
+        const headerRow = rows[0] || "";
+        const columns = headerRow.split("|").filter(c => c.trim().length > 0);
+        const dataRows = rows.slice(2); // skip header + separator
+        // Check consistency: do all rows have same column count?
+        const colCounts = dataRows.map(r => r.split("|").filter(c => c.trim().length > 0).length);
+        const isConsistent = colCounts.every(c => c === columns.length);
+        // Check for actual data vs placeholder
+        const hasNumbers = dataRows.some(r => /\d/.test(r));
+        const isRepetitive = new Set(dataRows.map(r => r.trim())).size < dataRows.length * 0.5 && dataRows.length > 2;
+        table_quality.signals.push({
+            columns: columns.length,
+            data_rows: dataRows.length,
+            is_consistent: isConsistent,
+            has_numbers: hasNumbers,
+            is_repetitive: isRepetitive,
+            quality: isConsistent && hasNumbers && !isRepetitive ? "good" : isRepetitive ? "padding" : "weak",
+        });
+    }
+    const has_good_tables = table_quality.signals.some(s => s.quality === "good");
+    const has_padding_tables = table_quality.signals.some(s => s.quality === "padding");
+    if (has_padding_tables && !has_good_tables) {
+        red_flags.push("tables_are_repetitive_padding");
+    }
+
+    // 12. LEAN4 VERIFICATION STATUS
+    // Check if paper mentions Lean4 verification, proof hashes, or CAB certificates
+    const lean4_signals = {
+        mentions_lean4: /\blean\s*4?\b/i.test(text),
+        has_proof_hash: /proof_hash|lean_certificate|cab_certificate/i.test(text),
+        has_lean_code: /```lean[\s\S]*?```/i.test(text),
+        has_verification_claim: /\b(verified|formally\s+verified|type-checked|lean\s+verified)\b/i.test(text),
+    };
+    lean4_signals.verification_level = lean4_signals.has_lean_code ? "code_present"
+        : lean4_signals.has_proof_hash ? "hash_present"
+        : lean4_signals.mentions_lean4 ? "mentioned_only"
+        : "none";
+
+    // 13. DECEPTION PATTERN DETECTION — the anti-benchmark layer
     // Run all deception detectors against the paper content.
     // These catch SOPHISTICATED fakes that avoid obvious red flags.
     const deception_matches = [];
@@ -799,18 +964,30 @@ function extractSignals(content) {
         extraordinary_claims,
         evidence_markers,
         avg_section_words,
+        grammar_quality,
+        repetition_score,
+        code_quality,
+        math_quality,
+        table_quality,
+        lean4_signals,
+        has_real_code,
+        has_good_tables,
         deception_matches,
         deception_count: deception_matches.length,
         depth_score: Math.min(10, Math.round(
             (sections_present.length / 7 * 2) +
             (has_equations ? 1 : 0) +
             (has_formal_proofs ? 1.5 : 0) +
-            (has_code ? 1 : 0) +
+            (has_real_code ? 1.5 : has_code ? 0.5 : 0) +
             (has_statistical_tests ? 1.5 : 0) +
             (Math.min(1, number_count / 5)) +
             (Math.min(1, unique_refs / 8)) +
             (has_dois ? 0.5 : 0) +
-            (has_real_authors ? 0.5 : 0)
+            (has_real_authors ? 0.5 : 0) +
+            (lean4_signals.has_lean_code ? 1.5 : lean4_signals.has_proof_hash ? 0.5 : 0) +
+            (has_good_tables ? 0.5 : 0) +
+            (grammar_quality.is_monotone ? -1 : 0) +
+            (grammar_quality.is_low_vocabulary ? -1 : 0)
         ) * 10) / 10,
     };
 }
@@ -1033,7 +1210,86 @@ function calibrateScores(rawScores, signals, fieldBenchmarks) {
         }
     }
 
-    // 9. OVERALL CONSISTENCY CHECK — no single dimension should be >3 above average of others
+    // 9. WRITING QUALITY PENALTIES
+    if (signals.grammar_quality) {
+        if (signals.grammar_quality.is_monotone && (calibrated.abstract || 0) > 5) {
+            calibrated.abstract = Math.min(calibrated.abstract, 5);
+            adjustments.abstract = adjustments.abstract || [];
+            adjustments.abstract.push("monotone_writing: sentence structure lacks variation, capped at 5");
+        }
+        if (signals.grammar_quality.is_low_vocabulary) {
+            for (const f of ["abstract", "introduction", "discussion"]) {
+                if ((calibrated[f] || 0) > 5) {
+                    calibrated[f] = Math.min(calibrated[f], 5);
+                    adjustments[f] = adjustments[f] || [];
+                    adjustments[f].push(`low_vocabulary_diversity(TTR=${signals.grammar_quality.vocabulary_diversity_ttr}): capped at 5`);
+                }
+            }
+        }
+    }
+
+    // 10. REPETITION PENALTIES
+    if (signals.repetition_score && signals.repetition_score.repetition_ratio > 0.1) {
+        const repPenalty = signals.repetition_score.repetition_ratio > 0.2 ? 2 : 1;
+        for (const f of ["methodology", "discussion", "conclusion"]) {
+            if ((calibrated[f] || 0) > 4) {
+                calibrated[f] = Math.max(2, (calibrated[f] || 0) - repPenalty);
+                adjustments[f] = adjustments[f] || [];
+                adjustments[f].push(`excessive_repetition(ratio=${signals.repetition_score.repetition_ratio}): -${repPenalty}`);
+            }
+        }
+    }
+
+    // 11. CODE QUALITY PENALTIES/BONUSES
+    if (signals.code_quality && signals.code_quality.blocks_found > 0) {
+        if (signals.has_real_code) {
+            // BONUS: real executable code boosts reproducibility
+            if ((calibrated.reproducibility || 0) < 7) {
+                const boost = Math.min(2, 7 - (calibrated.reproducibility || 0));
+                calibrated.reproducibility = Math.min(8, (calibrated.reproducibility || 0) + boost);
+                adjustments.reproducibility = adjustments.reproducibility || [];
+                adjustments.reproducibility.push(`real_code_present: +${boost} reproducibility boost`);
+            }
+        } else if (signals.has_pseudo_code) {
+            // Pseudo/template code pretending to be real
+            if ((calibrated.reproducibility || 0) > 4) {
+                calibrated.reproducibility = 4;
+                adjustments.reproducibility = adjustments.reproducibility || [];
+                adjustments.reproducibility.push("code_blocks_are_template_not_real: capped at 4");
+            }
+        }
+    }
+
+    // 12. LEAN4 VERIFICATION BONUSES
+    if (signals.lean4_signals) {
+        if (signals.lean4_signals.has_lean_code) {
+            // Lean4 code present — significant reproducibility bonus
+            if ((calibrated.reproducibility || 0) < 8) {
+                calibrated.reproducibility = Math.min(9, (calibrated.reproducibility || 0) + 2);
+                adjustments.reproducibility = adjustments.reproducibility || [];
+                adjustments.reproducibility.push("lean4_code_present: +2 formal verification bonus");
+            }
+        }
+        if (signals.lean4_signals.has_verification_claim && !signals.lean4_signals.has_proof_hash && !signals.lean4_signals.has_lean_code) {
+            // Claims Lean4 verification but has no proof
+            if ((calibrated.reproducibility || 0) > 4) {
+                calibrated.reproducibility = 4;
+                adjustments.reproducibility = adjustments.reproducibility || [];
+                adjustments.reproducibility.push("claims_lean4_verification_without_proof_hash: capped at 4");
+            }
+        }
+    }
+
+    // 13. TABLE QUALITY PENALTIES
+    if (signals.table_quality && signals.has_padding_tables && !signals.has_good_tables) {
+        if ((calibrated.results || 0) > 4) {
+            calibrated.results = 4;
+            adjustments.results = adjustments.results || [];
+            adjustments.results.push("tables_are_repetitive_padding_not_real_data: capped at 4");
+        }
+    }
+
+    // 14. OVERALL CONSISTENCY CHECK — no single dimension should be >3 above average of others
     const allVals = Object.values(calibrated).filter(v => typeof v === "number");
     if (allVals.length > 0) {
         const mean = allVals.reduce((a, b) => a + b, 0) / allVals.length;

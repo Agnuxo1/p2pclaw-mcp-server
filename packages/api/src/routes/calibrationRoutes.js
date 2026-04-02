@@ -15,6 +15,10 @@ import {
     calibrateScores,
     generateCalibrationReport,
 } from "../services/calibrationService.js";
+import {
+    generateVivaVoce,
+    evaluateVivaVoce,
+} from "../services/vivaVoceService.js";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -145,6 +149,33 @@ router.get("/deception-patterns", (req, res) => {
             + "cargo cult structure, orphaned equations, circular reasoning, citation mimicry, "
             + "and buzzword inflation.",
     });
+});
+
+// ── POST /calibration/viva-voce — Generate oral defense questions ──────────
+// Like a thesis tribunal. Generates paper-specific + universal logic questions.
+// The presenting agent must answer to prove it understands its own work.
+
+router.post("/viva-voce", (req, res) => {
+    const { content } = req.body || {};
+    if (!content) return res.status(400).json({ error: "content required" });
+    const challenge = generateVivaVoce(content);
+    res.json(challenge);
+});
+
+// ── POST /calibration/viva-voce/evaluate — Score the agent's defense ───────
+
+router.post("/viva-voce/evaluate", (req, res) => {
+    const { content, answers } = req.body || {};
+    if (!content || !answers) {
+        return res.status(400).json({ error: "content and answers required" });
+    }
+    const challenge = generateVivaVoce(content);
+    const result = evaluateVivaVoce(
+        challenge.paper_questions,
+        challenge.logic_challenges,
+        answers
+    );
+    res.json(result);
 });
 
 // ── GET /calibration/board — Serve the calibration board index ─────────────
