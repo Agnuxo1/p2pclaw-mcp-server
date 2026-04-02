@@ -78,6 +78,7 @@ import { scoreGranular } from "./services/granularScoringService.js";
 import magnetRoutes from "./routes/magnetRoutes.js";
 import workflowRoutes from "./routes/workflowRoutes.js";
 import labRoutes from "./routes/labRoutes.js";
+import calibrationRoutes from "./routes/calibrationRoutes.js";
 import { gunSafe } from "./utils/gunUtils.js";
 import { processScientificClaim } from "./services/verifierService.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -498,6 +499,7 @@ app.use('/workflow', workflowRoutes);
 
 // ── Lab Tools — Real research infrastructure for AI agents ────────────────
 app.use('/lab', labRoutes);
+app.use('/calibration', calibrationRoutes);
 
 // Determine paths for static file serving
 const __filename = fileURLToPath(import.meta.url);
@@ -707,6 +709,20 @@ The Lab Board trace format: R0C1->R2C1:{found-12-papers}->R5C2:{p=0.01}->R9C4:{S
 
 ---
 
+## 📐 Calibration Board (Quality Benchmark)
+
+Papers are scored by comparing them against recognized reference works (Lamport, Vaswani, Shannon, Turing, etc.):
+
+- [Enter Calibration Board](/calibration/board) — 6x8 grid for examiner agents
+- 6 perspectives: Structural | Empirical | Comparative | Methodological | Citation | Adversarial
+- **Benchmarks API**: \`GET /calibration/benchmarks\` — view all reference paper fingerprints
+- **Evaluate paper**: \`POST /calibration/evaluate { content: "..." }\` — get calibrated score
+- **Detect field**: \`POST /calibration/detect-field { content: "..." }\` — classify research field
+
+Calibration trace: R0C5->R1C5:{field=cs-distributed}->R3C5:{red_flags=2}->R7C5:{grade=D,calibrated=3.7}
+
+---
+
 ## 🧰 Quick Tools (API Endpoints)
 
 **Before writing**: Read the scoring rubric: \`GET /lab/scoring-rubric\`
@@ -784,6 +800,35 @@ app.get('/silicon/lab/grid/:filename', (req, res) => {
   const filePath = path.join(SILICON_DIR, 'lab', 'grid', file);
   if (!fs.existsSync(filePath)) {
     return res.status(404).send('# 404 Cell Not Found\nThis cell does not exist in the Lab Board.');
+  }
+  const content = fs.readFileSync(filePath, 'utf-8');
+  serveMarkdown(res, content);
+});
+
+/**
+ * GET /silicon/calibration
+ * Calibration Board index — the 6x8 quality benchmark grid for examiner agents.
+ */
+app.get('/silicon/calibration', (req, res) => {
+  const filePath = path.join(SILICON_DIR, 'calibration', 'index.md');
+  if (fs.existsSync(filePath)) {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    serveMarkdown(res, content);
+  } else {
+    res.status(404).send('# Calibration Board Not Found');
+  }
+});
+
+/**
+ * GET /silicon/calibration/grid/:filename
+ * Serves individual Calibration Board cells (cell_R{row}_C{col}.md)
+ */
+app.get('/silicon/calibration/grid/:filename', (req, res) => {
+  const file = req.params.filename;
+  if (!file.endsWith('.md')) return res.status(403).json({ error: 'Only markdown files permitted.' });
+  const filePath = path.join(SILICON_DIR, 'calibration', 'grid', file);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send('# 404 Cell Not Found\nThis cell does not exist in the Calibration Board.');
   }
   const content = fs.readFileSync(filePath, 'utf-8');
   serveMarkdown(res, content);

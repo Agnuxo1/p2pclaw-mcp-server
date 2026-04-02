@@ -21,6 +21,8 @@
  * Each model evaluates each section independently for maximum consensus diversity.
  */
 
+import { detectField, extractSignals, calibrateScores, REFERENCE_BENCHMARKS } from "./calibrationService.js";
+
 const SECTIONS = ["abstract", "introduction", "methodology", "results", "discussion", "conclusion", "references"];
 
 // ── Load keys with rotation ─────────────────────────────────────────────────
@@ -437,6 +439,54 @@ export async function scoreGranular(content, paperType = "research") {
             : 0;
     }
 
+    // ── CALIBRATION PASS — adjust raw averages against reference benchmarks ──
+    // This is the core fix for inflated scoring. Raw LLM averages are compared
+    // against quality signals extracted from the paper content and calibrated
+    // against recognized reference paper fingerprints.
+    let calibration = null;
+    try {
+        const fieldResult = detectField(content);
+        const signals = extractSignals(content);
+        const benchmarks = REFERENCE_BENCHMARKS[fieldResult.field] || null;
+        const { calibrated, adjustments } = calibrateScores(averaged, signals, benchmarks);
+
+        // Apply calibrated scores over raw averages
+        const adjustmentCount = Object.keys(adjustments).length;
+        if (adjustmentCount > 0) {
+            for (const [field, val] of Object.entries(calibrated)) {
+                if (typeof val === "number" && averaged[field] !== undefined) {
+                    averaged[field] = val;
+                }
+            }
+            console.log(`[SCORING] Calibration applied: ${adjustmentCount} adjustments, field=${fieldResult.field}, ` +
+                `red_flags=${signals.red_flag_count}, depth=${signals.depth_score}`);
+        }
+
+        calibration = {
+            field: fieldResult.field,
+            field_confidence: fieldResult.confidence,
+            signals_summary: {
+                word_count: signals.word_count,
+                sections_present: signals.sections_present.length,
+                sections_missing: signals.sections_missing,
+                red_flags: signals.red_flags,
+                red_flag_count: signals.red_flag_count,
+                has_formal_proofs: signals.has_formal_proofs,
+                has_equations: signals.has_equations,
+                has_code: signals.has_code,
+                unique_refs: signals.unique_refs,
+                has_placeholder_refs: signals.has_placeholder_refs,
+                depth_score: signals.depth_score,
+                evidence_markers: signals.evidence_markers,
+            },
+            adjustments,
+            adjustment_count: adjustmentCount,
+            reference_papers: benchmarks ? benchmarks.references.map(r => r.title) : [],
+        };
+    } catch (calErr) {
+        console.warn(`[SCORING] Calibration error (non-fatal): ${calErr.message}`);
+    }
+
     const sectionValues = SECTIONS.map(s => averaged[s]);
     const overall = Math.round((sectionValues.reduce((a, b) => a + b, 0) / SECTIONS.length) * 10) / 10;
 
@@ -484,6 +534,7 @@ export async function scoreGranular(content, paperType = "research") {
         feedback: Object.keys(aggregated_feedback).length > 0 ? aggregated_feedback : null,
         scored_at: new Date().toISOString(),
         paper_type: paperType,
+        calibration,
     };
 
     console.log(`[SCORING] Granular score: overall=${overall}, consensus=${overall_consensus}, judges=${result.judges.join(",")}`);
