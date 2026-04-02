@@ -165,6 +165,7 @@ const PROVIDERS = [
         stripThinkTags: true,
         maxTokens: 4096, // reasoning model needs extra tokens for thinking + answer
         responseFormat: "cohere", // data.message.content[] array with {type:"thinking"} + {type:"text"}
+        timeout: 90000, // 90s — reasoning model needs time to think through all 10 dimensions
     },
 ];
 
@@ -234,7 +235,7 @@ async function callLLMForScoring(prompt, provider) {
                     max_tokens: provider.maxTokens || 512,
                     temperature: 0.1,
                 }),
-                signal: AbortSignal.timeout(30000),
+                signal: AbortSignal.timeout(provider.timeout || 30000),
             });
 
             if (res.status === 429) {
