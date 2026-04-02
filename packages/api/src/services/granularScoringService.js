@@ -178,6 +178,9 @@ for (const p of PROVIDERS) {
 const available = PROVIDERS.filter(p => p.keys.length > 0);
 console.log(`[SCORING] ${available.length} LLM providers available: ${available.map(p => `${p.name}(${p.keys.length})`).join(", ")}`);
 if (available.length === 0) console.warn("[SCORING] No LLM providers — heuristic scoring only.");
+// Debug: log specifically which providers have NO keys
+const unavailable = PROVIDERS.filter(p => p.keys.length === 0);
+if (unavailable.length > 0) console.log(`[SCORING] Providers with NO keys: ${unavailable.map(p => p.name).join(", ")}`);
 
 const SCORING_PROMPT = `You are an academic paper quality evaluator for the P2PCLAW decentralized research network.
 
