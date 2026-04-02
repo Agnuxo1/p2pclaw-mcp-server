@@ -478,6 +478,10 @@ export async function scoreGranular(content, paperType = "research") {
                 has_placeholder_refs: signals.has_placeholder_refs,
                 depth_score: signals.depth_score,
                 evidence_markers: signals.evidence_markers,
+                deception_count: signals.deception_count || 0,
+                deception_matches: (signals.deception_matches || []).map(d => ({
+                    id: d.id, name: d.name, severity: d.severity,
+                })),
             },
             adjustments,
             adjustment_count: adjustmentCount,

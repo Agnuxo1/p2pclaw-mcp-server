@@ -347,6 +347,248 @@ const REFERENCE_BENCHMARKS = {
     },
 };
 
+// ── ANTI-BENCHMARKS — Deceptive Paper Patterns ────────────────────────────
+// These are fingerprints of DECEPTIVE papers — papers that LOOK good but ARE bad.
+// A clever adversary who reads the positive benchmarks can craft papers that avoid
+// obvious red flags while still being garbage. These anti-benchmarks detect THAT.
+//
+// Each pattern describes a deception strategy + how to detect it.
+
+const DECEPTION_PATTERNS = [
+    {
+        id: "semantic-hollowness",
+        name: "Semantic Hollowness",
+        description: "Paper uses correct terminology but makes no specific claims. Sounds impressive, says nothing.",
+        detection: "High buzzword density + low specificity (no concrete numbers, no named algorithms, no defined variables)",
+        examples: [
+            "We leverage the spectral properties of the adjacency matrix to derive novel bounds on clustering coefficient convergence",
+            "Our framework synthesizes multi-dimensional optimization paradigms to achieve robust performance metrics",
+            "The proposed architecture dynamically adapts to heterogeneous network topologies through adaptive mechanisms",
+        ],
+        // Hollow sentences: many technical words, zero specific information
+        test: (text) => {
+            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+            if (sentences.length < 5) return { match: false };
+            const BUZZWORDS = /\b(novel|framework|robust|dynamic|paradigm|leverage|synthesize|heterogeneous|adaptive|scalable|holistic|synergistic|cutting-edge|state-of-the-art|comprehensive|innovative|optimal|efficient)\b/gi;
+            const SPECIFICS = /\b(\d+\.\d+|\d+%|O\([^)]+\)|n\s*=\s*\d+|p\s*[<>]\s*0|theorem\s+\d|equation\s+\d|algorithm\s+\d|figure\s+\d|table\s+\d)\b/gi;
+            let hollowCount = 0;
+            for (const s of sentences) {
+                const buzzCount = (s.match(BUZZWORDS) || []).length;
+                const specCount = (s.match(SPECIFICS) || []).length;
+                if (buzzCount >= 3 && specCount === 0) hollowCount++;
+            }
+            const ratio = hollowCount / sentences.length;
+            return {
+                match: ratio > 0.4,
+                severity: ratio > 0.7 ? "critical" : ratio > 0.5 ? "high" : "medium",
+                hollow_sentence_ratio: Math.round(ratio * 100) / 100,
+                hollow_sentences: hollowCount,
+                total_sentences: sentences.length,
+            };
+        },
+    },
+    {
+        id: "ghost-citations",
+        name: "Ghost Citations",
+        description: "References section has many citations but most are never referenced in the paper body.",
+        detection: "Count [N] markers in body text vs. unique entries in References section",
+        test: (text) => {
+            const refSection = text.match(/##?\s*references[\s\S]*$/i);
+            if (!refSection) return { match: false };
+            const bodyText = text.replace(/##?\s*references[\s\S]*$/i, "");
+            // Citations used in body
+            const bodyRefs = new Set((bodyText.match(/\[(\d+)\]/g) || []).map(m => m));
+            // Citations defined in references
+            const refEntries = new Set((refSection[0].match(/\[(\d+)\]/g) || []).map(m => m));
+            if (refEntries.size < 3) return { match: false };
+            const usedInBody = [...refEntries].filter(r => bodyRefs.has(r)).length;
+            const ghostRatio = 1 - (usedInBody / refEntries.size);
+            return {
+                match: ghostRatio > 0.5,
+                severity: ghostRatio > 0.8 ? "critical" : ghostRatio > 0.6 ? "high" : "medium",
+                refs_defined: refEntries.size,
+                refs_used_in_body: usedInBody,
+                ghost_refs: refEntries.size - usedInBody,
+                ghost_ratio: Math.round(ghostRatio * 100) / 100,
+            };
+        },
+    },
+    {
+        id: "results-without-method",
+        name: "Results Without Methodology Chain",
+        description: "Claims specific numerical results but methodology doesn't describe how they were produced.",
+        detection: "Numbers in Results section but Methodology lacks specific steps, tools, parameters",
+        test: (text) => {
+            const lower = text.toLowerCase();
+            // Find methodology section content
+            const methMatch = text.match(/##?\s*methodology[\s\S]*?(?=##?\s|$)/i);
+            const resMatch = text.match(/##?\s*results[\s\S]*?(?=##?\s|$)/i);
+            if (!methMatch || !resMatch) return { match: false };
+            const meth = methMatch[0];
+            const results = resMatch[0];
+            // Results: count specific numbers
+            const resultNumbers = (results.match(/\d+\.\d+/g) || []).length;
+            // Methodology: count specific method indicators
+            const METHOD_INDICATORS = /\b(step\s+\d|algorithm\s+\d|we\s+ran|we\s+trained|we\s+computed|we\s+measured|we\s+simulated|iterations?\s*=|epochs?\s*=|learning\s+rate|batch\s+size|sample\s+size|n\s*=\s*\d|dataset|benchmark|baseline)\b/gi;
+            const methSpecifics = (meth.match(METHOD_INDICATORS) || []).length;
+            const disconnected = resultNumbers > 4 && methSpecifics < 2;
+            return {
+                match: disconnected,
+                severity: resultNumbers > 8 && methSpecifics === 0 ? "critical" : "high",
+                result_numbers: resultNumbers,
+                methodology_specifics: methSpecifics,
+                gap: `${resultNumbers} results but only ${methSpecifics} method specifics`,
+            };
+        },
+    },
+    {
+        id: "cargo-cult-structure",
+        name: "Cargo Cult Structure",
+        description: "Has all 7 sections, tables, equations — but content is generic filler. Form without substance.",
+        detection: "All structural signals present but section content is interchangeable/generic",
+        test: (text) => {
+            const sections = {};
+            const MANDATORY = ["abstract", "introduction", "methodology", "results", "discussion", "conclusion"];
+            for (const s of MANDATORY) {
+                const match = text.match(new RegExp(`##?\\s*${s}([\\s\\S]*?)(?=##?\\s|$)`, "i"));
+                if (match) sections[s] = match[1].trim();
+            }
+            if (Object.keys(sections).length < 5) return { match: false };
+            // Check for copy-paste between sections (similar content)
+            const sectionTexts = Object.values(sections);
+            let similarPairs = 0;
+            let totalPairs = 0;
+            for (let i = 0; i < sectionTexts.length; i++) {
+                for (let j = i + 1; j < sectionTexts.length; j++) {
+                    totalPairs++;
+                    // Jaccard similarity on word n-grams
+                    const words_i = new Set(sectionTexts[i].toLowerCase().split(/\s+/).filter(w => w.length > 4));
+                    const words_j = new Set(sectionTexts[j].toLowerCase().split(/\s+/).filter(w => w.length > 4));
+                    const intersection = [...words_i].filter(w => words_j.has(w)).length;
+                    const union = new Set([...words_i, ...words_j]).size;
+                    const jaccard = union > 0 ? intersection / union : 0;
+                    if (jaccard > 0.5) similarPairs++;
+                }
+            }
+            const repetitionRatio = totalPairs > 0 ? similarPairs / totalPairs : 0;
+            return {
+                match: repetitionRatio > 0.3,
+                severity: repetitionRatio > 0.6 ? "critical" : "high",
+                similar_section_pairs: similarPairs,
+                total_pairs: totalPairs,
+                repetition_ratio: Math.round(repetitionRatio * 100) / 100,
+            };
+        },
+    },
+    {
+        id: "orphaned-equations",
+        name: "Orphaned Equations",
+        description: "Equations present but never referenced from text. Decorative math, not functional.",
+        detection: "LaTeX/math blocks present but body text doesn't reference 'equation', 'formula', 'Eq.'",
+        test: (text) => {
+            const equations = (text.match(/\$[^$]{3,}\$|\\\[[\s\S]*?\\\]|\\begin\{(equation|align)/g) || []);
+            if (equations.length === 0) return { match: false };
+            const EQ_REFS = /\b(equation|eq\.|formula|where\s+\w+\s+(is|denotes|represents)|substituting|from\s+\(\d+\)|defined\s+as)\b/gi;
+            const eqRefs = (text.match(EQ_REFS) || []).length;
+            const orphanRatio = equations.length > 0 && eqRefs === 0 ? 1.0 :
+                1 - Math.min(1, eqRefs / equations.length);
+            return {
+                match: orphanRatio > 0.7,
+                severity: orphanRatio === 1.0 ? "high" : "medium",
+                equations_count: equations.length,
+                equation_references: eqRefs,
+                orphan_ratio: Math.round(orphanRatio * 100) / 100,
+            };
+        },
+    },
+    {
+        id: "circular-reasoning",
+        name: "Circular Reasoning",
+        description: "Conclusion restates introduction claims as proven, without new evidence from the paper body.",
+        detection: "High textual similarity between Introduction and Conclusion without Results adding new info",
+        test: (text) => {
+            const introMatch = text.match(/##?\s*introduction([\s\S]*?)(?=##?\s)/i);
+            const concMatch = text.match(/##?\s*conclusion([\s\S]*?)(?=##?\s|$)/i);
+            if (!introMatch || !concMatch) return { match: false };
+            const introWords = new Set(introMatch[1].toLowerCase().split(/\s+/).filter(w => w.length > 5));
+            const concWords = new Set(concMatch[1].toLowerCase().split(/\s+/).filter(w => w.length > 5));
+            const intersection = [...introWords].filter(w => concWords.has(w)).length;
+            const union = new Set([...introWords, ...concWords]).size;
+            const similarity = union > 0 ? intersection / union : 0;
+            return {
+                match: similarity > 0.6,
+                severity: similarity > 0.8 ? "critical" : "high",
+                intro_conclusion_similarity: Math.round(similarity * 100) / 100,
+            };
+        },
+    },
+    {
+        id: "citation-format-mimicry",
+        name: "Citation Format Mimicry",
+        description: "References use perfect academic format but cite papers that likely don't exist (future years, suspicious patterns).",
+        detection: "Check for future years, sequential DOI-like strings, identical venue names, repeated author patterns",
+        test: (text) => {
+            const refSection = text.match(/##?\s*references[\s\S]*$/i);
+            if (!refSection) return { match: false };
+            const refs = refSection[0];
+            const flags = [];
+            // Future year citations (current year is 2026)
+            const futureYears = refs.match(/\b(202[7-9]|20[3-9]\d|2[1-9]\d{2})\b/g);
+            if (futureYears) flags.push(`future_years: ${futureYears.join(", ")}`);
+            // All references same year
+            const years = refs.match(/\b(19|20)\d{2}\b/g) || [];
+            const uniqueYears = new Set(years);
+            if (years.length >= 5 && uniqueYears.size <= 2) {
+                flags.push(`suspiciously_uniform_years: ${[...uniqueYears].join(",")}`);
+            }
+            // Repeated author first initials (generated names often repeat patterns)
+            const authorInits = refs.match(/[A-Z][a-z]+,\s*[A-Z]\./g) || [];
+            const initials = authorInits.map(a => a.split(",")[0]);
+            const uniqueInitials = new Set(initials);
+            if (initials.length >= 6 && uniqueInitials.size < initials.length * 0.5) {
+                flags.push("repeated_author_name_patterns");
+            }
+            // Sequential fake DOIs (like 10.1234/fake001, 10.1234/fake002)
+            const dois = refs.match(/10\.\d{4,}\/\S+/g) || [];
+            if (dois.length >= 3) {
+                const prefixes = dois.map(d => d.substring(0, d.lastIndexOf("/") + 1));
+                const uniquePrefixes = new Set(prefixes);
+                if (uniquePrefixes.size === 1 && dois.length >= 4) {
+                    flags.push("sequential_doi_pattern");
+                }
+            }
+            return {
+                match: flags.length >= 2,
+                severity: flags.length >= 3 ? "critical" : "high",
+                flags,
+                flag_count: flags.length,
+            };
+        },
+    },
+    {
+        id: "buzzword-inflation",
+        name: "Buzzword Inflation",
+        description: "Extremely high density of impressive-sounding terms relative to actual content.",
+        detection: "Buzzword-to-substance ratio: count impressive modifiers vs. concrete technical content",
+        test: (text) => {
+            const words = text.split(/\s+/).filter(w => w.length > 0);
+            if (words.length < 200) return { match: false };
+            const INFLATORS = /\b(novel|innovative|groundbreaking|state-of-the-art|cutting-edge|revolutionary|paradigm-shifting|unprecedented|transformative|holistic|synergistic|robust|scalable|elegant|superior|optimal|powerful|comprehensive|advanced|sophisticated|pioneering|seminal|pivotal)\b/gi;
+            const SUBSTANCE = /\b(theorem|proof|let\s+\w+\s*=|we\s+compute|we\s+measure|sample\s+size|p-value|confidence|error\s+rate|training\s+loss|gradient|iteration|convergence|we\s+observe\s+that|the\s+data\s+shows?|figure\s+\d|table\s+\d|algorithm\s+\d)\b/gi;
+            const inflatorCount = (text.match(INFLATORS) || []).length;
+            const substanceCount = (text.match(SUBSTANCE) || []).length;
+            const ratio = substanceCount > 0 ? inflatorCount / substanceCount : (inflatorCount > 3 ? 999 : 0);
+            return {
+                match: ratio > 3 && inflatorCount > 5,
+                severity: ratio > 8 ? "critical" : ratio > 5 ? "high" : "medium",
+                inflator_count: inflatorCount,
+                substance_count: substanceCount,
+                inflation_ratio: Math.round(ratio * 10) / 10,
+            };
+        },
+    },
+];
+
 // ── Field Detection ────────────────────────────────────────────────────────
 
 const FIELD_KEYWORDS = {
@@ -506,7 +748,29 @@ function extractSignals(content) {
         red_flags.push("excessive_self_citation");
     }
 
-    // 7. Depth signals
+    // 7. DECEPTION PATTERN DETECTION — the anti-benchmark layer
+    // Run all deception detectors against the paper content.
+    // These catch SOPHISTICATED fakes that avoid obvious red flags.
+    const deception_matches = [];
+    for (const pattern of DECEPTION_PATTERNS) {
+        try {
+            const result = pattern.test(text);
+            if (result.match) {
+                deception_matches.push({
+                    id: pattern.id,
+                    name: pattern.name,
+                    severity: result.severity || "medium",
+                    details: result,
+                });
+                // Add to red flags too (for penalty calculation)
+                red_flags.push(`deception:${pattern.id}:${result.severity || "medium"}`);
+            }
+        } catch (_) {
+            // Non-fatal — a broken detector should never crash scoring
+        }
+    }
+
+    // 8. Depth signals
     const avg_section_words = sections_present.length > 0
         ? Math.round(words.length / sections_present.length)
         : 0;
@@ -535,6 +799,8 @@ function extractSignals(content) {
         extraordinary_claims,
         evidence_markers,
         avg_section_words,
+        deception_matches,
+        deception_count: deception_matches.length,
         depth_score: Math.min(10, Math.round(
             (sections_present.length / 7 * 2) +
             (has_equations ? 1 : 0) +
@@ -672,7 +938,102 @@ function calibrateScores(rawScores, signals, fieldBenchmarks) {
         }
     }
 
-    // 8. OVERALL CONSISTENCY CHECK — no single dimension should be >3 above average of others
+    // 8. DECEPTION-SPECIFIC PENALTIES — targeted adjustments per deception type
+    if (signals.deception_matches && signals.deception_matches.length > 0) {
+        for (const deception of signals.deception_matches) {
+            const sev = deception.severity;
+            const penalty = sev === "critical" ? 3 : sev === "high" ? 2 : 1;
+
+            switch (deception.id) {
+                case "semantic-hollowness":
+                    // Hollow papers: cap methodology, novelty, results
+                    for (const f of ["methodology", "novelty", "results"]) {
+                        const cap = Math.max(2, 6 - penalty);
+                        if ((calibrated[f] || 0) > cap) {
+                            adjustments[f] = adjustments[f] || [];
+                            adjustments[f].push(`deception:semantic_hollowness(${sev}): capped at ${cap}`);
+                            calibrated[f] = cap;
+                        }
+                    }
+                    break;
+
+                case "ghost-citations":
+                    // Ghost refs: most references are decoration
+                    calibrated.references = Math.min(calibrated.references || 0, 3);
+                    calibrated.citation_quality = Math.min(calibrated.citation_quality || 0, 2);
+                    adjustments.references = adjustments.references || [];
+                    adjustments.references.push(`deception:ghost_citations(${deception.details.ghost_refs}/${deception.details.refs_defined} unused)`);
+                    adjustments.citation_quality = adjustments.citation_quality || [];
+                    adjustments.citation_quality.push(`deception:ghost_citations`);
+                    break;
+
+                case "results-without-method":
+                    // Numbers without methodology = unverifiable
+                    calibrated.methodology = Math.min(calibrated.methodology || 0, 3);
+                    calibrated.reproducibility = Math.min(calibrated.reproducibility || 0, 2);
+                    calibrated.results = Math.min(calibrated.results || 0, 3);
+                    adjustments.methodology = adjustments.methodology || [];
+                    adjustments.methodology.push(`deception:results_without_method(${deception.details.gap})`);
+                    adjustments.reproducibility = adjustments.reproducibility || [];
+                    adjustments.reproducibility.push(`deception:unverifiable_results`);
+                    adjustments.results = adjustments.results || [];
+                    adjustments.results.push(`deception:results_disconnected_from_methodology`);
+                    break;
+
+                case "cargo-cult-structure":
+                    // Form without substance — universal penalty
+                    for (const f of Object.keys(calibrated)) {
+                        if (typeof calibrated[f] === "number" && calibrated[f] > 4) {
+                            calibrated[f] = Math.max(2, calibrated[f] - penalty);
+                            adjustments[f] = adjustments[f] || [];
+                            adjustments[f].push(`deception:cargo_cult(repetition=${deception.details.repetition_ratio})`);
+                        }
+                    }
+                    break;
+
+                case "orphaned-equations":
+                    // Decorative math
+                    if ((calibrated.methodology || 0) > 5) {
+                        calibrated.methodology = 5;
+                        adjustments.methodology = adjustments.methodology || [];
+                        adjustments.methodology.push(`deception:orphaned_equations(${deception.details.equations_count} equations, ${deception.details.equation_references} refs)`);
+                    }
+                    break;
+
+                case "circular-reasoning":
+                    // Conclusion = Introduction = no new knowledge
+                    calibrated.conclusion = Math.min(calibrated.conclusion || 0, 2);
+                    calibrated.discussion = Math.min(calibrated.discussion || 0, 3);
+                    adjustments.conclusion = adjustments.conclusion || [];
+                    adjustments.conclusion.push(`deception:circular_reasoning(similarity=${deception.details.intro_conclusion_similarity})`);
+                    adjustments.discussion = adjustments.discussion || [];
+                    adjustments.discussion.push(`deception:circular_reasoning`);
+                    break;
+
+                case "citation-format-mimicry":
+                    // Fake references in real format
+                    calibrated.references = Math.min(calibrated.references || 0, 2);
+                    calibrated.citation_quality = Math.min(calibrated.citation_quality || 0, 1);
+                    adjustments.references = adjustments.references || [];
+                    adjustments.references.push(`deception:citation_mimicry(${deception.details.flags.join(", ")})`);
+                    adjustments.citation_quality = adjustments.citation_quality || [];
+                    adjustments.citation_quality.push(`deception:citation_mimicry`);
+                    break;
+
+                case "buzzword-inflation":
+                    // Inflated language = inflated scores
+                    calibrated.novelty = Math.min(calibrated.novelty || 0, 3);
+                    calibrated.abstract = Math.min(calibrated.abstract || 0, 4);
+                    adjustments.novelty = adjustments.novelty || [];
+                    adjustments.novelty.push(`deception:buzzword_inflation(ratio=${deception.details.inflation_ratio})`);
+                    adjustments.abstract = adjustments.abstract || [];
+                    adjustments.abstract.push(`deception:buzzword_inflation`);
+                    break;
+            }
+        }
+    }
+
+    // 9. OVERALL CONSISTENCY CHECK — no single dimension should be >3 above average of others
     const allVals = Object.values(calibrated).filter(v => typeof v === "number");
     if (allVals.length > 0) {
         const mean = allVals.reduce((a, b) => a + b, 0) / allVals.length;
@@ -736,6 +1097,8 @@ function generateCalibrationReport(content, rawScores) {
         adjustments,
         adjustment_count: Object.keys(adjustments).length,
         red_flags: signals.red_flags,
+        deception_matches: signals.deception_matches || [],
+        deception_count: signals.deception_count || 0,
         calibration_applied: Object.keys(adjustments).length > 0,
     };
 }
@@ -744,6 +1107,7 @@ function generateCalibrationReport(content, rawScores) {
 
 export {
     REFERENCE_BENCHMARKS,
+    DECEPTION_PATTERNS,
     detectField,
     extractSignals,
     calibrateScores,
