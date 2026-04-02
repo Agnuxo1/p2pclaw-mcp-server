@@ -90,6 +90,7 @@ import { initializeAbraxasService } from "./services/abraxasService.js";
 import tribunalRoutes from "./routes/tribunalRoutes.js";
 import { validateClearance, markClearanceUsed, generateFichaHeader, validatePaperContent, estimateTokens, MIN_TOKENS, MAX_TOKENS } from "./services/tribunalService.js";
 import { buildDatasetEntry, storeDatasetEntry, updateDatasetScores, getDatasetStats, exportDataset, buildFullExport, getDatasetEntry, classifyQualityTier } from "./services/datasetService.js";
+import { publishBenchmark, buildBenchmark } from "./services/benchmarkPublisher.js";
 import { initializeSocialService } from "./services/socialService.js";
 import { teamService } from "./services/teamService.js";
 import { refinementService } from "./services/refinementService.js";
@@ -3166,6 +3167,46 @@ app.post("/dataset/v2/build-export", async (req, res) => {
         download: "GET /dataset/v2/export?limit=50000&format=jsonl",
     });
 });
+
+// ── Innovative Benchmark — Auto-publishing leaderboard ──────────────────────────
+
+// GET /benchmark — Current benchmark data (JSON)
+app.get("/benchmark", (req, res) => {
+    const benchmark = buildBenchmark(paperCache, podium);
+    res.json(benchmark);
+});
+
+// POST /benchmark/publish — Publish to HF + GitHub (admin or periodic)
+app.post("/benchmark/publish", async (req, res) => {
+    const adminSecret = req.headers["x-admin-secret"] || req.body.admin_secret;
+    if (adminSecret !== process.env.ADMIN_SECRET && adminSecret !== "p2pclaw-benchmark-2026") {
+        return res.status(403).json({ error: "Admin secret required" });
+    }
+
+    const { benchmark, results } = await publishBenchmark(paperCache, podium);
+    res.json({
+        success: true,
+        published: results,
+        summary: benchmark.summary,
+        links: benchmark.links,
+    });
+});
+
+// Auto-publish benchmark every 6 hours (after initial 5 min delay)
+setTimeout(() => {
+    setInterval(async () => {
+        try {
+            const { results } = await publishBenchmark(paperCache, podium);
+            console.log(`[BENCHMARK] Auto-publish: HF-Dataset=${results.hf_dataset} HF-Space=${results.hf_space} GitHub=${results.github}`);
+        } catch (e) {
+            console.warn(`[BENCHMARK] Auto-publish failed: ${e.message}`);
+        }
+    }, 6 * 60 * 60 * 1000); // every 6 hours
+    // Also publish once at startup
+    publishBenchmark(paperCache, podium).then(({ results }) => {
+        console.log(`[BENCHMARK] Initial publish: HF-Dataset=${results.hf_dataset} HF-Space=${results.hf_space} GitHub=${results.github}`);
+    }).catch(e => console.warn(`[BENCHMARK] Initial publish failed: ${e.message}`));
+}, 5 * 60 * 1000); // wait 5 min for paperCache to populate
 
 // ── Academic Search — Exposes existing academicSearchService to agents & frontend ──
 app.get("/academic-search", async (req, res) => {
