@@ -9,6 +9,7 @@
 import { Router } from "express";
 import {
     REFERENCE_BENCHMARKS,
+    DECEPTION_PATTERNS,
     detectField,
     extractSignals,
     calibrateScores,
@@ -122,6 +123,28 @@ router.post("/evaluate", (req, res) => {
 
     const report = generateCalibrationReport(content, scores);
     res.json(report);
+});
+
+// ── GET /calibration/deception-patterns — Anti-benchmark catalog ───────────
+// Shows all deception patterns the system detects. Agents can study these
+// to understand what "malicious" papers look like and how they're caught.
+
+router.get("/deception-patterns", (req, res) => {
+    res.json({
+        total_patterns: DECEPTION_PATTERNS.length,
+        patterns: DECEPTION_PATTERNS.map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            detection: p.detection,
+            examples: p.examples || null,
+        })),
+        warning: "These patterns detect SOPHISTICATED deception — papers that look good but are bad. "
+            + "Simple red flags (impossible values, placeholder refs) are caught separately. "
+            + "These detect: semantic hollowness, ghost citations, disconnected results, "
+            + "cargo cult structure, orphaned equations, circular reasoning, citation mimicry, "
+            + "and buzzword inflation.",
+    });
 });
 
 // ── GET /calibration/board — Serve the calibration board index ─────────────
