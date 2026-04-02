@@ -164,21 +164,21 @@ const available = PROVIDERS.filter(p => p.keys.length > 0);
 console.log(`[SCORING] ${available.length} LLM providers available: ${available.map(p => `${p.name}(${p.keys.length})`).join(", ")}`);
 if (available.length === 0) console.warn("[SCORING] No LLM providers — heuristic scoring only.");
 
-const SCORING_PROMPT = `You are an academic paper quality evaluator for the P2PCLAW research network.
+const SCORING_PROMPT = `You are an academic paper quality evaluator for the P2PCLAW decentralized research network.
 
-Score this paper on a 0-10 scale for each criterion. Return ONLY valid JSON, no explanations.
+Score this paper on a 0-10 scale for each criterion. For EACH score, include a brief "why" (1 sentence explaining the score).
 
 Scoring criteria:
-- abstract (0-10): Quality, clarity, and completeness of the abstract
-- introduction (0-10): Problem statement clarity, context, motivation
-- methodology (0-10): Rigor, reproducibility, appropriate methods
-- results (0-10): Quality of findings, data presentation, significance
-- discussion (0-10): Interpretation depth, limitations acknowledged, implications
-- conclusion (0-10): Summary quality, future work suggestions
-- references (0-10): Citation quality, relevance, proper formatting (0 if no real references)
-- novelty (0-10): Original contribution to the field
-- reproducibility (0-10): Could another researcher reproduce this work?
-- citation_quality (0-10): Are references real, relevant, and properly cited?
+- abstract (0-10): Quality, clarity, and completeness of the abstract. Clear problem statement, scope, and key results summarized.
+- introduction (0-10): Problem statement clarity, context, motivation. Should cite 2+ related works.
+- methodology (0-10): Rigor, reproducibility, appropriate methods. Must describe steps clearly enough to reproduce.
+- results (0-10): Quality of findings, data presentation, significance. Quantitative data strongly preferred.
+- discussion (0-10): Interpretation depth, limitations acknowledged, implications for the field.
+- conclusion (0-10): Summary of key findings (expected, NOT penalized as repetition), concrete future work directions, and connection back to the research question. A good conclusion SHOULD summarize findings — that is standard scientific practice.
+- references (0-10): Citation quality, relevance, proper formatting (0 if no real references). Real author names, titles, years, DOIs/URLs expected.
+- novelty (0-10): Original contribution to the field. Novel frameworks, terminology, or approaches.
+- reproducibility (0-10): Could another researcher reproduce this work? Code, equations, detailed parameters help.
+- citation_quality (0-10): Are references real, relevant, and properly cited? 8+ unique real citations expected for high scores.
 
 IMPORTANT RULES:
 - If a section is MISSING entirely, score it 0
@@ -186,8 +186,9 @@ IMPORTANT RULES:
 - Trivial proofs or papers under 300 words should score below 3 overall
 - Papers that prove obvious things (like 0*0=0) should score novelty as 0-1
 - Be STRICT — a score of 8+ means genuinely publishable quality
+- Lean 4 verified papers with valid proof hashes deserve reproducibility bonus
 
-Return ONLY this JSON format:
+Return ONLY this JSON format (each field can be a number OR {"score":N,"why":"reason"}):
 {"abstract":N,"introduction":N,"methodology":N,"results":N,"discussion":N,"conclusion":N,"references":N,"novelty":N,"reproducibility":N,"citation_quality":N}
 
 Paper content:
@@ -258,14 +259,22 @@ async function callLLMForScoring(prompt, provider) {
 
             const parsed = JSON.parse(jsonMatch[0]);
             const fields = [...SECTIONS, "novelty", "reproducibility", "citation_quality"];
+            const feedback = {};
             for (const field of fields) {
-                if (typeof parsed[field] !== "number" || parsed[field] < 0 || parsed[field] > 10) {
-                    parsed[field] = typeof parsed[field] === "number" ? Math.max(0, Math.min(10, Math.round(parsed[field]))) : 5;
+                let val = parsed[field];
+                // Support both plain number and {score, why} object format
+                if (val && typeof val === "object" && typeof val.score === "number") {
+                    feedback[field] = val.why || null;
+                    val = val.score;
                 }
+                if (typeof val !== "number" || val < 0 || val > 10) {
+                    val = typeof val === "number" ? Math.max(0, Math.min(10, Math.round(val))) : 5;
+                }
+                parsed[field] = val;
             }
 
             console.log(`[SCORING] ${provider.name} scored successfully`);
-            return { scores: parsed, provider: provider.name };
+            return { scores: parsed, provider: provider.name, feedback: Object.keys(feedback).length > 0 ? feedback : null };
         } catch (e) {
             console.warn(`[SCORING] ${provider.name} error: ${e.message}`);
         }
@@ -383,6 +392,36 @@ export async function scoreGranular(content, paperType = "research") {
     const sectionValues = SECTIONS.map(s => averaged[s]);
     const overall = Math.round((sectionValues.reduce((a, b) => a + b, 0) / SECTIONS.length) * 10) / 10;
 
+    // Per-judge detail breakdown (individual scores + feedback)
+    const judge_details = judges.map(j => ({
+        judge: j.provider,
+        scores: j.scores,
+        feedback: j.feedback || null,
+    }));
+
+    // Consensus score per dimension (1 = all judges agree, 0 = total disagreement)
+    const consensus = {};
+    for (const field of allFields) {
+        const values = judges.map(j => j.scores[field]).filter(v => typeof v === "number");
+        if (values.length < 2) { consensus[field] = 1.0; continue; }
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
+        const stddev = Math.sqrt(variance);
+        consensus[field] = Math.round(Math.max(0, 1 - stddev / 5) * 100) / 100;
+    }
+    const overall_consensus = Math.round(
+        (allFields.reduce((sum, f) => sum + consensus[f], 0) / allFields.length) * 100
+    ) / 100;
+
+    // Aggregate feedback per dimension (from all judges that provided it)
+    const aggregated_feedback = {};
+    for (const field of allFields) {
+        const comments = judges
+            .filter(j => j.feedback && j.feedback[field])
+            .map(j => ({ judge: j.provider, comment: j.feedback[field] }));
+        if (comments.length > 0) aggregated_feedback[field] = comments;
+    }
+
     const result = {
         sections: Object.fromEntries(SECTIONS.map(s => [s, averaged[s]])),
         overall,
@@ -391,10 +430,14 @@ export async function scoreGranular(content, paperType = "research") {
         citation_quality: averaged.citation_quality,
         judges: judges.map(j => j.provider),
         judge_count: judges.length,
+        judge_details,
+        consensus,
+        overall_consensus,
+        feedback: Object.keys(aggregated_feedback).length > 0 ? aggregated_feedback : null,
         scored_at: new Date().toISOString(),
         paper_type: paperType,
     };
 
-    console.log(`[SCORING] Granular score: overall=${overall}, judges=${result.judges.join(",")}`);
+    console.log(`[SCORING] Granular score: overall=${overall}, consensus=${overall_consensus}, judges=${result.judges.join(",")}`);
     return result;
 }
