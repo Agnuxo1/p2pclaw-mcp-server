@@ -63,29 +63,38 @@ async function hfCreateRepo(repoId, type = "dataset", options = {}) {
     });
 }
 
-async function hfUploadFile(repoId, filePath, content, type = "dataset", commitMessage = "Update benchmark") {
+/**
+ * Upload multiple files to HF repo using the commit API (more reliable than upload endpoint).
+ * @param {string} repoId - e.g. "Agnuxo/P2PCLAW-Benchmark"
+ * @param {Array<{path: string, content: string}>} files - Files to upload
+ * @param {string} type - "dataset" or "space"
+ * @param {string} commitMessage - Commit message
+ */
+async function hfCommitFiles(repoId, files, type = "dataset", commitMessage = "Update benchmark") {
     const token = HF_TOKEN();
     if (!token) return false;
 
-    const url = `https://huggingface.co/api/${type}s/${repoId}/upload/main/${filePath}`;
+    const url = `https://huggingface.co/api/${type}s/${repoId}/commit/main`;
     try {
         const res = await fetch(url, {
-            method: "PUT",
+            method: "POST",
             headers: {
                 "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/octet-stream",
-                "x-commit-message": commitMessage,
+                "Content-Type": "application/json",
             },
-            body: typeof content === "string" ? content : JSON.stringify(content),
+            body: JSON.stringify({
+                summary: commitMessage,
+                files: files.map(f => ({ path: f.path, content: typeof f.content === "string" ? f.content : JSON.stringify(f.content) })),
+            }),
         });
         if (!res.ok) {
             const text = await res.text().catch(() => "");
-            // 409 = file already exists with same content (not an error)
-            if (res.status !== 409) console.error(`[BENCHMARK-HF] Upload ${filePath} → ${res.status}: ${text.slice(0, 200)}`);
+            console.error(`[BENCHMARK-HF] Commit to ${repoId} -> ${res.status}: ${text.slice(0, 300)}`);
+            return false;
         }
-        return res.ok || res.status === 200 || res.status === 409;
+        return true;
     } catch (e) {
-        console.error(`[BENCHMARK-HF] Upload ${filePath} failed: ${e.message}`);
+        console.error(`[BENCHMARK-HF] Commit to ${repoId} failed: ${e.message}`);
         return false;
     }
 }
@@ -619,20 +628,13 @@ export async function publishBenchmark(paperCache, podium) {
     const benchmark = buildBenchmark(paperCache, podium);
     const results = { hf_dataset: false, hf_space: false, github: false };
 
-    // 1. HuggingFace Dataset
+    // 1. HuggingFace Dataset (commit API — reliable)
     try {
-        // Create repo if needed (idempotent)
-        await hfCreateRepo("Agnuxo/P2PCLAW-Innovative-Benchmark", "dataset", {
-            private: false,
-        });
-
-        const [readmeOk, jsonOk] = await Promise.all([
-            hfUploadFile("Agnuxo/P2PCLAW-Innovative-Benchmark", "README.md",
-                generateDatasetReadme(benchmark), "dataset", "Update benchmark results"),
-            hfUploadFile("Agnuxo/P2PCLAW-Innovative-Benchmark", "benchmark.json",
-                JSON.stringify(benchmark, null, 2), "dataset", "Update benchmark data"),
-        ]);
-        results.hf_dataset = readmeOk || jsonOk;
+        await hfCreateRepo("Agnuxo/P2PCLAW-Innovative-Benchmark", "dataset", { private: false });
+        results.hf_dataset = await hfCommitFiles("Agnuxo/P2PCLAW-Innovative-Benchmark", [
+            { path: "README.md", content: generateDatasetReadme(benchmark) },
+            { path: "benchmark.json", content: JSON.stringify(benchmark, null, 2) },
+        ], "dataset", `Update benchmark ${new Date().toISOString().split("T")[0]}`);
         if (results.hf_dataset) console.log("[BENCHMARK] Published to HuggingFace Dataset");
     } catch (e) {
         console.error(`[BENCHMARK] HF Dataset publish failed: ${e.message}`);
@@ -640,14 +642,10 @@ export async function publishBenchmark(paperCache, podium) {
 
     // 2. HuggingFace Space (static HTML leaderboard)
     try {
-        await hfCreateRepo("Agnuxo/P2PCLAW-Benchmark", "space", {
-            private: false,
-            sdk: "static",
-        });
-
-        const htmlOk = await hfUploadFile("Agnuxo/P2PCLAW-Benchmark", "index.html",
-            generateLeaderboardHTML(benchmark), "space", "Update benchmark leaderboard");
-        results.hf_space = htmlOk;
+        await hfCreateRepo("Agnuxo/P2PCLAW-Benchmark", "space", { private: false, sdk: "static" });
+        results.hf_space = await hfCommitFiles("Agnuxo/P2PCLAW-Benchmark", [
+            { path: "index.html", content: generateLeaderboardHTML(benchmark) },
+        ], "space", `Update leaderboard ${new Date().toISOString().split("T")[0]}`);
         if (results.hf_space) console.log("[BENCHMARK] Published to HuggingFace Space");
     } catch (e) {
         console.error(`[BENCHMARK] HF Space publish failed: ${e.message}`);
