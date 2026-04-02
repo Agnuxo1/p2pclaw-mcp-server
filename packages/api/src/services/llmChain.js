@@ -4,29 +4,110 @@
  * Multi-provider fallback chain used by HiveGuide, Format Service, Abraxas,
  * and any other service that needs reliable LLM completions.
  *
- * Priority: Cloudflare GLM-4 (free) → Cerebras (free) → Mistral → Groq → NVIDIA → OpenRouter
+ * 9 Cloudflare Workers AI models (FREE, different accounts) + 7 other providers = 16 total
+ * Ordered by model quality: best first, smallest last.
  *
  * Usage:
  *   import { callLLMChain } from './llmChain.js';
  *   const text = await callLLMChain(messages, { maxTokens: 300, temperature: 0.5, tag: "HIVEGUIDE" });
  */
 
+// ── Cloudflare account map (account IDs are public, keys from env) ───────────
+// Ordered 1-9 by model quality (1=most powerful, 9=smallest)
+
+const CF_ACCOUNTS = [
+    { // 1. GLM-4.7-Flash (ZhipuAI) — top reasoning model
+        id: "cf-glm4",
+        name: "CF-GLM4-Flash",
+        account: "eaffd2b52c95c69aaad8d859e9dcb52b",
+        model: "@cf/zai-org/glm-4.7-flash",
+        keyEnvs: ["CF_AI_TOKEN", "CLOUDFLARE_AI_TOKEN"],
+        stripThink: true,
+    },
+    { // 2. Gemma-4-26B (Google) — strong multi-task
+        id: "cf-gemma4",
+        name: "CF-Gemma4-26B",
+        account: "a7995d3f33b6ba57955749337c9abbe0",
+        model: "@cf/google/gemma-4-26B-A4B-it",
+        keyEnvs: ["CF_AI_TOKEN_2"],
+        stripThink: false,
+    },
+    { // 3. Nemotron-3-120B (NVIDIA) — massive MoE
+        id: "cf-nemotron",
+        name: "CF-Nemotron-120B",
+        account: "194d9aea21482ac893ed81fc6b004864",
+        model: "@cf/nvidia/nemotron-3-120b-a12b",
+        keyEnvs: ["CF_AI_TOKEN_3"],
+        stripThink: false,
+    },
+    { // 4. Kimi-K2.5 (Moonshot AI) — strong reasoning
+        id: "cf-kimi",
+        name: "CF-Kimi-K2.5",
+        account: "401a75ead25275262c1c05eecb7a997c",
+        model: "@cf/moonshotai/kimi-k2.5",
+        keyEnvs: ["CF_AI_TOKEN_4"],
+        stripThink: true,
+    },
+    { // 5. GPT-OSS-120B (OpenAI open) — large MoE
+        id: "cf-gptoss",
+        name: "CF-GPT-OSS-120B",
+        account: "73340519f6430362daee759ba0b48ce8",
+        model: "@cf/openai/gpt-oss-120b",
+        keyEnvs: ["CF_AI_TOKEN_5"],
+        stripThink: false,
+    },
+    { // 6. Qwen3-30B (Alibaba) — excellent coder/reasoner
+        id: "cf-qwen3",
+        name: "CF-Qwen3-30B",
+        account: "df4a7888befcbb6ce3e0a0b346ea1990",
+        model: "@cf/qwen/qwen3-30b-a3b-fp8",
+        keyEnvs: ["CF_AI_TOKEN_6"],
+        stripThink: true,
+    },
+    { // 7. Llama-4-Scout-17B (Meta) — 16-expert MoE
+        id: "cf-llama4",
+        name: "CF-Llama4-Scout",
+        account: "3cd084561890e5ab468456fae547ded0",
+        model: "@cf/meta/llama-4-scout-17b-16e-instruct",
+        keyEnvs: ["CF_AI_TOKEN_7"],
+        stripThink: false,
+    },
+    { // 8. Mistral-Small-3.1-24B — reliable workhorse
+        id: "cf-mistral",
+        name: "CF-Mistral-Small",
+        account: "27920eccf7d83f7ee267130cd6018eaf",
+        model: "@cf/mistralai/mistral-small-3.1-24b-instruct",
+        keyEnvs: ["CF_AI_TOKEN_8"],
+        stripThink: false,
+    },
+    { // 9. DeepSeek-R1-Distill-32B — reasoning distilled
+        id: "cf-deepseek",
+        name: "CF-DeepSeek-R1",
+        account: "60c2dcaa7fc3377f036114648f6397ba",
+        model: "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+        keyEnvs: ["CF_AI_TOKEN_9"],
+        stripThink: true,
+    },
+];
+
 // ── Provider definitions ──────────────────────────────────────────────────────
 
-const CF_ACCOUNT = process.env.CF_ACCOUNT_ID || "eaffd2b52c95c69aaad8d859e9dcb52b";
-
 function getProviders() {
-    return [
-        {
-            id: "cloudflare-glm",
-            name: "Cloudflare GLM-4",
-            url: `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/ai/run/@cf/zai-org/glm-4.7-flash`,
-            model: "@cf/zai-org/glm-4.7-flash",
-            keys: loadKeys("CF_AI_TOKEN", "CLOUDFLARE_AI_TOKEN"),
-            authPrefix: "Bearer ",
-            responseFormat: "cloudflare",
-            timeout: 30000,
-        },
+    // Build Cloudflare providers from account map
+    const cfProviders = CF_ACCOUNTS.map(cf => ({
+        id: cf.id,
+        name: cf.name,
+        url: `https://api.cloudflare.com/client/v4/accounts/${cf.account}/ai/run/${cf.model}`,
+        model: cf.model,
+        keys: loadKeys(...cf.keyEnvs),
+        authPrefix: "Bearer ",
+        responseFormat: "cloudflare",
+        timeout: 45000,
+        stripThink: cf.stripThink,
+    }));
+
+    // Non-Cloudflare providers (fallback after all CF accounts exhausted)
+    const otherProviders = [
         {
             id: "cerebras",
             name: "Cerebras",
@@ -58,16 +139,6 @@ function getProviders() {
             timeout: 30000,
         },
         {
-            id: "nvidia",
-            name: "NVIDIA",
-            url: "https://integrate.api.nvidia.com/v1/chat/completions",
-            model: "meta/llama-3.3-70b-instruct",
-            keys: loadKeys("NVIDIA_API_KEY", "NVIDIA_KEY"),
-            authPrefix: "Bearer ",
-            responseFormat: "openai",
-            timeout: 45000,
-        },
-        {
             id: "sarvam",
             name: "Sarvam",
             url: "https://api.sarvam.ai/v1/chat/completions",
@@ -97,7 +168,9 @@ function getProviders() {
             responseFormat: "openai",
             timeout: 60000,
         },
-    ].filter(p => p.keys.length > 0);
+    ];
+
+    return [...cfProviders, ...otherProviders].filter(p => p.keys.length > 0);
 }
 
 // Round-robin key index per provider
@@ -168,7 +241,7 @@ export async function callLLMChain(messages, opts = {}) {
     const providers = getProviders();
 
     if (providers.length === 0) {
-        console.warn(`[${tag}] No LLM providers configured — all env vars missing.`);
+        console.warn(`[${tag}] No LLM providers configured -- all env vars missing.`);
         return null;
     }
 
@@ -200,14 +273,15 @@ export async function callLLMChain(messages, opts = {}) {
 
             const data = await res.json();
             let text = extractText(data, provider.responseFormat);
-            text = stripThinkTags(text).trim();
+            if (provider.stripThink) text = stripThinkTags(text);
+            text = text.trim();
 
             if (text.length < minLength) {
                 console.warn(`[${tag}] ${provider.name} response too short (${text.length} chars)`);
                 continue;
             }
 
-            console.log(`[${tag}] ✓ ${provider.name} → ${text.length} chars`);
+            console.log(`[${tag}] OK ${provider.name} -> ${text.length} chars`);
             return { text, provider: provider.name };
         } catch (e) {
             console.warn(`[${tag}] ${provider.name} error: ${e.message}`);
