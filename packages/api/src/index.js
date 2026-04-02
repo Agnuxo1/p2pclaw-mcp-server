@@ -89,6 +89,7 @@ import { initializeConsciousness, getLatestNarrative, getNarrativeHistory } from
 import { initializeAbraxasService } from "./services/abraxasService.js";
 import tribunalRoutes from "./routes/tribunalRoutes.js";
 import { validateClearance, markClearanceUsed, generateFichaHeader, validatePaperContent, estimateTokens, MIN_TOKENS, MAX_TOKENS } from "./services/tribunalService.js";
+import { buildDatasetEntry, storeDatasetEntry, updateDatasetScores, getDatasetStats, exportDataset, buildFullExport, getDatasetEntry, classifyQualityTier } from "./services/datasetService.js";
 import { initializeSocialService } from "./services/socialService.js";
 import { teamService } from "./services/teamService.js";
 import { refinementService } from "./services/refinementService.js";
@@ -2268,6 +2269,8 @@ app.post("/publish-paper", async (req, res) => {
                 info: "GET /tribunal/info",
             });
         }
+        // Stash tribunal data for dataset service
+        req._tribunalData = clearanceCheck;
     }
 
     // ── TOKEN COUNT VALIDATION (3,000 - 15,000 tokens) ─────────────────
@@ -2558,6 +2561,10 @@ app.post("/publish-paper", async (req, res) => {
             // Store in Cloudflare R2/KV (durable storage)
             kvStorePaper(paperId, { title, content, author: author || 'API-User', author_id: authorId, tier: 'TIER1_VERIFIED', proof_hash: verificationResult.proof_hash, occam_score: verificationResult.occam_score, timestamp: now }).catch(e => console.error(`[STORAGE] ${e.message}`));
 
+            // Premium Dataset — store training entry (R2 + Railway volume)
+            const t1DatasetEntry = buildDatasetEntry(paperId, { title, content: finalContent, author: author || 'API-User', author_id: authorId, tier: 'TIER1_VERIFIED', proof_hash: verificationResult.proof_hash, ipfs_cid: t1_cid, signature: paperSignature, lean_verified: true, timestamp: now }, req._tribunalData || null, null);
+            storeDatasetEntry(t1DatasetEntry).catch(e => console.warn(`[DATASET] T1 store failed: ${e.message}`));
+
             // Track in surreal knowledge tree
             try { trackSurrealPaper(authorId, paperId, { title, occam_score: verificationResult.occam_score, verified: true, timestamp: now }); } catch(e) { /* non-critical */ }
             broadcastHiveEvent('paper_promoted', { id: paperId, title, author: author || 'API-User', tier: 'TIER1_VERIFIED' });
@@ -2569,6 +2576,8 @@ app.post("/publish-paper", async (req, res) => {
                     paperCache.set(paperId, { ...verifiedObj, granular_scores: JSON.stringify(scores) });
                     podiumTryInsert({ paperId, title, author: author || 'API-User', author_id: authorId, overall: scores.overall, granular_scores: scores, timestamp: now });
                     console.log(`[SCORING] T1 paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
+                    // Update dataset entry with scores
+                    updateDatasetScores(paperId, scores).catch(() => {});
                     if (scores.overall >= IPFS_SCORE_THRESHOLD) {
                         try {
                             const cid = await archiveToIPFS(content, paperId);
@@ -2673,6 +2682,11 @@ app.post("/publish-paper", async (req, res) => {
 
         // Store ALL papers in R2 (durable storage, not just Tier-1)
         kvStorePaper(paperId, { title, content, author: author || 'API-User', author_id: authorId, tier: 'UNVERIFIED', timestamp: now }).catch(e => console.error(`[STORAGE] ${e.message}`));
+
+        // Premium Dataset — store training entry (R2 + Railway volume)
+        const uvDatasetEntry = buildDatasetEntry(paperId, { title, content: finalContent, author: author || 'API-User', author_id: authorId, tier: finalTier || 'UNVERIFIED', ipfs_cid: ipfs_cid, signature: paperSignature, timestamp: now }, req._tribunalData || null, null);
+        storeDatasetEntry(uvDatasetEntry).catch(e => console.warn(`[DATASET] UV store failed: ${e.message}`));
+
         try { trackSurrealPaper(authorId, paperId, { title, verified: false, timestamp: now }); } catch(e) { /* non-critical */ }
 
         // â"€â"€ Sparse Memory (Veselov) - index paper for semantic search â"€â"€â"€â"€â"€â"€â"€â"€â"€
@@ -2708,6 +2722,8 @@ app.post("/publish-paper", async (req, res) => {
                 paperCache.set(paperId, { ...verifiedData, granular_scores: JSON.stringify(scores) });
                 podiumTryInsert({ paperId, title, author: author || 'API-User', author_id: authorId, overall: scores.overall, granular_scores: scores, timestamp: now });
                 console.log(`[SCORING] Paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
+                // Update dataset entry with scores
+                updateDatasetScores(paperId, scores).catch(() => {});
                 if (scores.overall >= IPFS_SCORE_THRESHOLD) {
                     try {
                         const cid = await archiveToIPFS(content, paperId);
@@ -3057,6 +3073,97 @@ app.get("/dataset/stats", (req, res) => {
             export_jsonl: "GET /dataset/export?min_score=5&fields=title,content,granular_scores",
             score_paper: "POST /score-paper { content, paper_type }",
         }
+    });
+});
+
+// ── Premium Dataset v2 — Professional training data with tribunal + quality tiers ──
+
+// GET /dataset/v2/stats — Professional dataset statistics
+app.get("/dataset/v2/stats", (req, res) => {
+    const stats = getDatasetStats();
+    res.json({
+        ...stats,
+        dataset_version: "2.0",
+        description: "P2PCLAW Premium Training Dataset - papers with tribunal examination, 15-dimension scoring, Lean4 verification, and quality tiers (GOLD/SILVER/BRONZE)",
+        quality_tiers: {
+            GOLD: "Tribunal DISTINCTION + score >= 7 + Lean4 verified + TIER1",
+            SILVER: "Tribunal PASS + score >= 5 + verified",
+            BRONZE: "Published but lower quality signals",
+        },
+        revenue_model: {
+            dataset_sales: "Premium JSONL training data for AI companies",
+            benchmarking: "AI model evaluation service (score on P2PCLAW papers)",
+            pro_plan: "Dedicated research agent (Claude Opus tier) for researchers",
+            enterprise: "University and enterprise contracts",
+        },
+        endpoints: {
+            stats: "GET /dataset/v2/stats",
+            export_gold: "GET /dataset/v2/export?quality_tier=GOLD&format=jsonl",
+            export_all: "GET /dataset/v2/export?limit=5000&format=jsonl",
+            export_lean4: "GET /dataset/v2/export?lean4_only=true&format=jsonl",
+            entry: "GET /dataset/v2/entry/:paperId",
+            build_full: "POST /dataset/v2/build-export",
+        },
+        contact: {
+            name: "Francisco Angulo de Lafuente",
+            email: "lareliquia.angulo@gmail.com",
+            project: "P2PCLAW - Open Science with Formal Verification",
+        },
+    });
+});
+
+// GET /dataset/v2/export — Premium dataset export with quality filters
+app.get("/dataset/v2/export", (req, res) => {
+    const filters = {
+        min_score: parseFloat(req.query.min_score) || 0,
+        quality_tier: req.query.quality_tier || undefined,
+        field: req.query.field || undefined,
+        author_type: req.query.author_type || undefined,
+        lean4_only: req.query.lean4_only === "true",
+        limit: Math.min(parseInt(req.query.limit) || 1000, 10000),
+    };
+
+    const entries = exportDataset(filters);
+
+    if (req.query.format === "json") {
+        return res.json({
+            dataset_version: "2.0",
+            filters,
+            count: entries.length,
+            entries: entries.map(e => { try { return JSON.parse(e); } catch { return null; } }).filter(Boolean),
+        });
+    }
+
+    // Default: JSONL (industry standard for training pipelines)
+    res.setHeader("Content-Type", "application/x-ndjson");
+    res.setHeader("Content-Disposition", `attachment; filename=p2pclaw-premium-dataset-${Date.now()}.jsonl`);
+    res.send(entries.join("\n"));
+});
+
+// GET /dataset/v2/entry/:paperId — Single dataset entry
+app.get("/dataset/v2/entry/:paperId", async (req, res) => {
+    const entry = await getDatasetEntry(req.params.paperId);
+    if (!entry) return res.status(404).json({ error: "Dataset entry not found" });
+    res.json(entry);
+});
+
+// POST /dataset/v2/build-export — Build full export file (admin)
+app.post("/dataset/v2/build-export", async (req, res) => {
+    const adminSecret = req.headers["x-admin-secret"] || req.body.admin_secret;
+    if (adminSecret !== process.env.ADMIN_SECRET && adminSecret !== "p2pclaw-dataset-2026") {
+        return res.status(403).json({ error: "Admin secret required" });
+    }
+
+    const filters = {
+        min_score: parseFloat(req.body.min_score) || 0,
+        quality_tier: req.body.quality_tier || undefined,
+    };
+
+    const result = await buildFullExport(filters);
+    res.json({
+        success: true,
+        ...result,
+        download: "GET /dataset/v2/export?limit=50000&format=jsonl",
     });
 });
 
