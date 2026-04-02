@@ -2,19 +2,14 @@
  * P2PCLAW Paper Format Service
  * ============================
  * Takes raw text drafts and structures them into proper academic papers
- * using the existing LLM infrastructure (Groq → Together → fallback).
+ * using multi-provider LLM chain (Cloudflare → Cerebras → Mistral → Groq → NVIDIA → OpenRouter).
  *
  * Does NOT replace any existing service — purely additive.
  */
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.LLM_KEY || process.env.GROQ_KEY || "";
-const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY || process.env.TOGETHER_KEY || "";
+import { callLLMChain } from './llmChain.js';
 
-// Startup log to diagnose LLM connectivity
-if (GROQ_API_KEY) console.log(`[FORMAT] Groq API key loaded (${GROQ_API_KEY.length} chars, starts: ${GROQ_API_KEY.substring(0, 8)}...)`);
-else console.warn("[FORMAT] No Groq API key found — will use template fallback. Set GROQ_API_KEY or LLM_KEY in env.");
-if (TOGETHER_API_KEY) console.log(`[FORMAT] Together API key loaded (${TOGETHER_API_KEY.length} chars)`);
-else console.warn("[FORMAT] No Together API key found — Groq-only fallback.");
+console.log('[FORMAT] Multi-provider LLM chain loaded.');
 
 const ACADEMIC_SECTIONS = [
     "Abstract",
@@ -44,73 +39,15 @@ User's raw text:
 `;
 
 /**
- * Call Groq or Together AI to format a paper draft.
- * Uses the same fallback pattern as the rest of the API.
+ * Call multi-provider LLM chain to format a paper draft.
+ * Chain: Cloudflare GLM-4 → Cerebras → Mistral → Groq → NVIDIA → OpenRouter
  */
 async function callLLMForFormat(prompt) {
-    // Try Groq first
-    if (GROQ_API_KEY) {
-        try {
-            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${GROQ_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: "llama-3.3-70b-versatile",
-                    messages: [{ role: "user", content: prompt }],
-                    max_tokens: 4096,
-                    temperature: 0.3, // Low temperature for structured output
-                }),
-                signal: AbortSignal.timeout(60000),
-            });
-            if (res.ok) {
-                const data = await res.json();
-                const text = data.choices?.[0]?.message?.content || "";
-                console.log(`[FORMAT] Groq returned ${text.length} chars`);
-                if (text.length > 200) return text;
-            } else {
-                const errText = await res.text().catch(() => "");
-                console.warn(`[FORMAT] Groq HTTP ${res.status}: ${errText.substring(0, 200)}`);
-            }
-        } catch (e) {
-            console.warn("[FORMAT] Groq failed:", e.message);
-        }
-    }
-
-    // Fallback to Together AI
-    if (TOGETHER_API_KEY) {
-        try {
-            const res = await fetch("https://api.together.xyz/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${TOGETHER_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: "Qwen/Qwen2.5-72B-Instruct-Turbo",
-                    messages: [{ role: "user", content: prompt }],
-                    max_tokens: 4096,
-                    temperature: 0.3,
-                }),
-                signal: AbortSignal.timeout(60000),
-            });
-            if (res.ok) {
-                const data = await res.json();
-                const text = data.choices?.[0]?.message?.content || "";
-                console.log(`[FORMAT] Together returned ${text.length} chars`);
-                if (text.length > 200) return text;
-            } else {
-                const errText = await res.text().catch(() => "");
-                console.warn(`[FORMAT] Together HTTP ${res.status}: ${errText.substring(0, 200)}`);
-            }
-        } catch (e) {
-            console.warn("[FORMAT] Together failed:", e.message);
-        }
-    }
-
-    return null;
+    const result = await callLLMChain(
+        [{ role: "user", content: prompt }],
+        { maxTokens: 4096, temperature: 0.3, tag: "FORMAT", minLength: 200 }
+    );
+    return result ? result.text : null;
 }
 
 /**
