@@ -5195,13 +5195,11 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // ── HiveGuide Chat Bot ────────────────────────────────────────────────────────
-// Runs every 60s: reads unanswered Hive Chat messages → LLM replies (≤300 tokens)
+// Runs every 60s: reads unanswered Hive Chat messages → multi-LLM replies (≤300 tokens)
+// Chain: Cloudflare GLM-4 → Cerebras → Mistral → Groq → NVIDIA → OpenRouter
 {
     const HIVEGUIDE_ID    = "HiveGuide";
     const HIVEGUIDE_WIN   = 5 * 60 * 1000;  // 5-minute lookback window
-    const HIVEGUIDE_LLM   = "https://api.groq.com/openai/v1/chat/completions";
-    const HIVEGUIDE_MODEL = process.env.HIVEGUIDE_MODEL || "llama-3.3-70b-versatile";
-    const HIVEGUIDE_KEY   = process.env.LLM_KEY || process.env.HIVEGUIDE_LLM_KEY || "";
     // External chat API: use Railway URL when running on Render (or any non-Railway service)
     const HIVEGUIDE_CHAT_API = process.env.HIVEGUIDE_CHAT_API ||
         (process.env.RENDER ? "https://api-production-87b2.up.railway.app" : null);
@@ -5227,10 +5225,17 @@ API docs: GET /silicon/map
 
 Answer in the same language as the user. Be helpful and specific. If someone asks how to get started, guide them step by step.`;
 
+    // Dynamic import of llmChain (ESM)
+    let _callLLMChain = null;
+    import('./services/llmChain.js').then(m => {
+        _callLLMChain = m.callLLMChain;
+        console.log('[HIVEGUIDE] LLM chain loaded.');
+    }).catch(e => console.warn('[HIVEGUIDE] Could not load llmChain:', e.message));
+
     let _hiveguideLast = Date.now() - HIVEGUIDE_WIN;
 
     const runHiveGuide = async () => {
-        if (!HIVEGUIDE_KEY) return;
+        if (!_callLLMChain) return;
         const PORT = process.env.PORT || 3000;
         // Use external Railway URL if running on Render or other external service
         const CHAT_BASE = HIVEGUIDE_CHAT_API || `http://localhost:${PORT}`;
@@ -5258,25 +5263,22 @@ Answer in the same language as the user. Be helpful and specific. If someone ask
                 const text = String(msg.text ?? msg.message ?? msg.content ?? "").slice(0, 400);
                 const ts   = msg.timestamp ?? msg.ts ?? now;
                 try {
-                    const lr = await fetch(HIVEGUIDE_LLM, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${HIVEGUIDE_KEY}` },
-                        body: JSON.stringify({ model: HIVEGUIDE_MODEL, messages: [
-                            { role: "system", content: HIVEGUIDE_SYSTEM },
-                            { role: "user",   content: text },
-                        ], max_tokens: 300, temperature: 0.5 }),
-                        signal: AbortSignal.timeout(20000),
-                    });
-                    if (!lr.ok) { console.warn(`[HIVEGUIDE] LLM ${lr.status}`); continue; }
-                    const reply = (await lr.json()).choices?.[0]?.message?.content?.trim();
+                    const result = await _callLLMChain([
+                        { role: "system", content: HIVEGUIDE_SYSTEM },
+                        { role: "user",   content: text },
+                    ], { maxTokens: 300, temperature: 0.5, tag: "HIVEGUIDE", minLength: 20 });
+
+                    if (!result) { console.warn('[HIVEGUIDE] All LLM providers failed'); continue; }
+                    const reply = result.text.trim();
                     if (!reply) continue;
+
                     await fetch(`${CHAT_BASE}/chat`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ message: reply, sender: HIVEGUIDE_ID }),
                         signal: AbortSignal.timeout(8000),
                     });
-                    console.log(`[HIVEGUIDE] → "${reply.slice(0, 80)}"`);
+                    console.log(`[HIVEGUIDE] → [${result.provider}] "${reply.slice(0, 80)}"`);
                     if (ts > _hiveguideLast) _hiveguideLast = ts;
                     await new Promise(r => setTimeout(r, 2000));
                 } catch (e) { console.warn(`[HIVEGUIDE] msg error: ${e.message}`); }
@@ -5284,13 +5286,10 @@ Answer in the same language as the user. Be helpful and specific. If someone ask
         } catch (e) { console.warn(`[HIVEGUIDE] error: ${e.message}`); }
     };
 
-    if (HIVEGUIDE_KEY) {
-        setTimeout(runHiveGuide, 30 * 1000);          // first run at 30s
-        setInterval(runHiveGuide, 60 * 1000);          // every 60 seconds
-        console.log('[HIVEGUIDE] Chat bot active (60s poll) — LLM model: ' + HIVEGUIDE_MODEL);
-    } else {
-        console.warn('[HIVEGUIDE] Disabled — set LLM_KEY env var in Railway to enable.');
-    }
+    // HiveGuide now works with ANY available LLM provider (no single-key dependency)
+    setTimeout(runHiveGuide, 30 * 1000);          // first run at 30s
+    setInterval(runHiveGuide, 60 * 1000);          // every 60 seconds
+    console.log('[HIVEGUIDE] Chat bot active (60s poll) — multi-LLM chain');
 }
 
 // Initialize Phase 16 Heartbeat
