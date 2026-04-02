@@ -406,7 +406,10 @@ export async function scoreGranular(content, paperType = "research") {
         };
     }
 
-    const truncated = content.length > 4000 ? content.substring(0, 4000) + "\n\n[... truncated for scoring ...]" : content;
+    // All LLM judges support 32k+ context. Send enough content to include ALL 7 mandatory sections.
+    // Previous limit of 4000 chars truncated papers before methodology/results/conclusion, causing
+    // strict judges (Cohere, Xiaomi) to correctly score missing sections as 0.
+    const truncated = content.length > 16000 ? content.substring(0, 16000) + "\n\n[... truncated for scoring ...]" : content;
     const prompt = SCORING_PROMPT + truncated;
 
     // ALL available judges score independently for maximum consensus diversity.
