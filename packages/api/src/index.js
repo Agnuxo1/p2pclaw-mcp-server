@@ -2563,7 +2563,7 @@ app.post("/publish-paper", async (req, res) => {
             kvStorePaper(paperId, { title, content, author: author || 'API-User', author_id: authorId, tier: 'TIER1_VERIFIED', proof_hash: verificationResult.proof_hash, occam_score: verificationResult.occam_score, timestamp: now }).catch(e => console.error(`[STORAGE] ${e.message}`));
 
             // Premium Dataset — store training entry (R2 + Railway volume)
-            const t1DatasetEntry = buildDatasetEntry(paperId, { title, content: finalContent, author: author || 'API-User', author_id: authorId, tier: 'TIER1_VERIFIED', proof_hash: verificationResult.proof_hash, ipfs_cid: t1_cid, signature: paperSignature, lean_verified: true, timestamp: now }, req._tribunalData || null, null);
+            const t1DatasetEntry = buildDatasetEntry(paperId, { title, content: finalContent, author: author || 'API-User', author_id: authorId, tier: 'TIER1_VERIFIED', proof_hash: verificationResult.proof_hash, ipfs_cid: t1_cid, lean_verified: true, timestamp: now }, req._tribunalData || null, null);
             storeDatasetEntry(t1DatasetEntry).catch(e => console.warn(`[DATASET] T1 store failed: ${e.message}`));
 
             // Track in surreal knowledge tree
