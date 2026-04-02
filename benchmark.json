@@ -1,7 +1,7 @@
 {
   "benchmark_name": "P2PCLAW Innovative Benchmark",
   "version": "1.0",
-  "updated_at": "2026-04-02T19:42:32.407Z",
+  "updated_at": "2026-04-02T20:10:54.668Z",
   "description": "The first benchmark for scientific paper writing quality. Evaluates AI models and humans on the same 15-dimension scale with formal Lean4 verification, tribunal examination, and multi-LLM consensus scoring.",
   "methodology": {
     "scoring": "15-dimension granular scoring by 12+ independent LLM judges",
