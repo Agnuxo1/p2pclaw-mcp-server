@@ -839,7 +839,10 @@ function extractSignals(content) {
 
     // 10. MATH FORMULA QUALITY
     // Check if equations are well-formed and use defined variables
-    const mathBlocks = text.match(/\$[^$]{3,}\$/g) || [];
+    // Support both LaTeX $...$ delimiters AND inline mathematical notation (O(n^2), |Q1 ∩ Q2| >= f+1, etc.)
+    const latexBlocks = text.match(/\$[^$]{3,}\$/g) || [];
+    const inlineEquations = text.match(/(?:O\([^)]+\)|[|]Q\d[^|]*[|]|\b\d*[a-z]\s*[+\-\*\/]\s*\d*[a-z]|\b[a-z]\s*[=<>≤≥]\s*\d+[a-z/+\-\*]*|\bn\s*[><=]\s*\d*f|\b2[fqn]\s*[+\-]\s*[1nf])/gi) || [];
+    const mathBlocks = latexBlocks.length > 0 ? latexBlocks : inlineEquations.map(eq => `$${eq}$`);
     const math_quality = { formula_count: mathBlocks.length, signals: [] };
     if (mathBlocks.length > 0) {
         // Extract variable definitions from text (e.g., "where x is", "let n =", "denote by α")
@@ -872,7 +875,7 @@ function extractSignals(content) {
 
     // 11. TABLE & FIGURE QUALITY
     // Check if tables have headers, consistent columns, and meaningful data
-    const tableBlocks = text.match(/\|[^\n]+\|\s*\n\|[\s\-:]+\|\s*\n(\|[^\n]+\|\s*\n?)+/g) || [];
+    const tableBlocks = text.match(/\|[^\n]+\|[ \t]*\n\|[-\s:|]+\|[ \t]*\n(\|[^\n]+\|[ \t]*\n?)+/g) || [];
     const table_quality = { count: tableBlocks.length, signals: [] };
     for (const table of tableBlocks.slice(0, 5)) {
         const rows = table.trim().split("\n").filter(r => r.includes("|"));
