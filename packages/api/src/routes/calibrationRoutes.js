@@ -19,6 +19,14 @@ import {
     generateVivaVoce,
     evaluateVivaVoce,
 } from "../services/vivaVoceService.js";
+import {
+    runLiveVerification,
+    verificationToAdjustments,
+    verifyCitations,
+    searchNovelty,
+    executeCodeBlocks,
+    verifyLean4Blocks,
+} from "../services/liveVerificationService.js";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -176,6 +184,79 @@ router.post("/viva-voce/evaluate", (req, res) => {
         answers
     );
     res.json(result);
+});
+
+// ── POST /calibration/verify-live — Run all live verifications on a paper ─
+// This is the standalone endpoint for live verification (CrossRef, arXiv, code, Lean4).
+// The same verifications run automatically during granular scoring.
+
+router.post("/verify-live", async (req, res) => {
+    const { content } = req.body || {};
+    if (!content) return res.status(400).json({ error: "content required" });
+
+    try {
+        const verification = await runLiveVerification(content);
+        const { adjustments, bonuses } = verificationToAdjustments(verification);
+        res.json({
+            verification,
+            score_adjustments: adjustments,
+            score_bonuses: bonuses,
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ── POST /calibration/verify-citations — CrossRef citation check only ─────
+
+router.post("/verify-citations", async (req, res) => {
+    const { content } = req.body || {};
+    if (!content) return res.status(400).json({ error: "content required" });
+    try {
+        const result = await verifyCitations(content);
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ── POST /calibration/verify-novelty — arXiv novelty search only ──────────
+
+router.post("/verify-novelty", async (req, res) => {
+    const { content } = req.body || {};
+    if (!content) return res.status(400).json({ error: "content required" });
+    try {
+        const result = await searchNovelty(content);
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ── POST /calibration/verify-code — Execute code blocks only ──────────────
+
+router.post("/verify-code", async (req, res) => {
+    const { content } = req.body || {};
+    if (!content) return res.status(400).json({ error: "content required" });
+    try {
+        const result = await executeCodeBlocks(content);
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ── POST /calibration/verify-lean4 — Lean4 formal verification only ──────
+
+router.post("/verify-lean4", async (req, res) => {
+    const { content } = req.body || {};
+    if (!content) return res.status(400).json({ error: "content required" });
+    try {
+        const result = await verifyLean4Blocks(content);
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // ── GET /calibration/board — Serve the calibration board index ─────────────
