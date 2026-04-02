@@ -482,6 +482,21 @@ export async function scoreGranular(content, paperType = "research") {
                 deception_matches: (signals.deception_matches || []).map(d => ({
                     id: d.id, name: d.name, severity: d.severity,
                 })),
+                // New quality dimensions
+                grammar: signals.grammar_quality ? {
+                    vocabulary_diversity: signals.grammar_quality.vocabulary_diversity_ttr,
+                    is_monotone: signals.grammar_quality.is_monotone,
+                    is_low_vocabulary: signals.grammar_quality.is_low_vocabulary,
+                } : null,
+                repetition_ratio: signals.repetition_score?.repetition_ratio || 0,
+                code_quality: signals.code_quality?.blocks_found > 0 ? {
+                    blocks: signals.code_quality.blocks_found,
+                    has_real_code: signals.has_real_code || false,
+                    has_python: signals.code_quality.has_python || false,
+                } : null,
+                math_formulas: signals.math_quality?.formula_count || 0,
+                lean4: signals.lean4_signals?.verification_level || "none",
+                tables: signals.table_quality?.count || 0,
             },
             adjustments,
             adjustment_count: adjustmentCount,
