@@ -595,6 +595,64 @@ const PROVIDERS = [
     temperature: 0.3,
     maxTokens: 1200,
   },
+  // --- Cloudflare Workers AI (FREE, independent accounts) ---
+  {
+    id: "cf-glm4",
+    name: "CF GLM-4.7 Flash",
+    url: "https://api.cloudflare.com/client/v4/accounts/eaffd2b52c95c69aaad8d859e9dcb52b/ai/run/@cf/zai-org/glm-4.7-flash",
+    model: "@cf/zai-org/glm-4.7-flash",
+    keyEnv: "CF_AI_TOKEN",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+    isCloudflare: true,
+    stripThinkTags: true,
+  },
+  {
+    id: "cf-gemma4",
+    name: "CF Gemma-4-26B",
+    url: "https://api.cloudflare.com/client/v4/accounts/a7995d3f33b6ba57955749337c9abbe0/ai/run/@cf/google/gemma-4-26B-A4B-it",
+    model: "@cf/google/gemma-4-26B-A4B-it",
+    keyEnv: "CF_AI_TOKEN_2",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+    isCloudflare: true,
+  },
+  {
+    id: "cf-nemotron",
+    name: "CF Nemotron-120B",
+    url: "https://api.cloudflare.com/client/v4/accounts/194d9aea21482ac893ed81fc6b004864/ai/run/@cf/nvidia/nemotron-3-120b-a12b",
+    model: "@cf/nvidia/nemotron-3-120b-a12b",
+    keyEnv: "CF_AI_TOKEN_3",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+    isCloudflare: true,
+  },
+  {
+    id: "cf-kimi",
+    name: "CF Kimi-K2.5",
+    url: "https://api.cloudflare.com/client/v4/accounts/401a75ead25275262c1c05eecb7a997c/ai/run/@cf/moonshotai/kimi-k2.5",
+    model: "@cf/moonshotai/kimi-k2.5",
+    keyEnv: "CF_AI_TOKEN_4",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+    isCloudflare: true,
+    stripThinkTags: true,
+  },
+  {
+    id: "cf-gptoss",
+    name: "CF GPT-OSS-120B",
+    url: "https://api.cloudflare.com/client/v4/accounts/73340519f6430362daee759ba0b48ce8/ai/run/@cf/openai/gpt-oss-120b",
+    model: "@cf/openai/gpt-oss-120b",
+    keyEnv: "CF_AI_TOKEN_5",
+    supportsLogprobs: false,
+    temperature: 0.3,
+    maxTokens: 1200,
+    isCloudflare: true,
+  },
 ];
 
 // ── Result cache: prevent duplicate LLM calls within 60s for same domain+case ──
@@ -770,7 +828,7 @@ async function callLLM(provider, prompt) {
     method: "POST",
     headers,
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(25000) // 25s timeout
+    signal: AbortSignal.timeout(provider.isCloudflare ? 45000 : 25000)
   });
 
   if (!response.ok) {
@@ -779,7 +837,21 @@ async function callLLM(provider, prompt) {
   }
 
   const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
+
+  // Cloudflare Workers AI wraps response: {result: {choices: [...]}, success: true}
+  let content;
+  if (provider.isCloudflare) {
+    const inner = data.result || data;
+    content = inner?.choices?.[0]?.message?.content || inner?.response || "";
+  } else {
+    content = data?.choices?.[0]?.message?.content;
+  }
+
+  // Strip <think> tags for reasoning models
+  if (content && provider.stripThinkTags) {
+    content = content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  }
+
   if (!content) throw new Error(`${provider.id} returned empty content`);
 
   const logprobs = provider.supportsLogprobs ? data?.choices?.[0]?.logprobs : null;
