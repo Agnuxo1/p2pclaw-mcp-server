@@ -202,7 +202,7 @@ IMPORTANT RULES:
 - Be STRICT — a score of 8+ means genuinely publishable quality
 - Lean 4 verified papers with valid proof hashes deserve reproducibility bonus
 
-Return ONLY this JSON format (each field can be a number OR {"score":N,"why":"reason"}):
+Return ONLY this JSON format (numbers 0-10, nothing else):
 {"abstract":N,"introduction":N,"methodology":N,"results":N,"discussion":N,"conclusion":N,"references":N,"novelty":N,"reproducibility":N,"citation_quality":N}
 
 Paper content:
@@ -271,7 +271,17 @@ async function callLLMForScoring(prompt, provider) {
                 }
             }
 
-            const jsonMatch = text.match(/\{[\s\S]*?\}/);
+            // Extract JSON — use balanced braces to handle nested objects like {"score":8,"why":"..."}
+            let jsonMatch = null;
+            const firstBrace = text.indexOf('{');
+            if (firstBrace !== -1) {
+                let depth = 0, end = -1;
+                for (let i = firstBrace; i < text.length; i++) {
+                    if (text[i] === '{') depth++;
+                    else if (text[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
+                }
+                if (end !== -1) jsonMatch = [text.substring(firstBrace, end + 1)];
+            }
             if (!jsonMatch) {
                 console.warn(`[SCORING] ${provider.name} — no JSON in response`);
                 continue;
@@ -293,8 +303,12 @@ async function callLLMForScoring(prompt, provider) {
                 parsed[field] = val;
             }
 
+            // Clean parsed: only keep recognized score fields (remove stray "why" etc.)
+            const cleanScores = {};
+            for (const field of fields) cleanScores[field] = parsed[field];
+
             console.log(`[SCORING] ${provider.name} scored successfully`);
-            return { scores: parsed, provider: provider.name, feedback: Object.keys(feedback).length > 0 ? feedback : null };
+            return { scores: cleanScores, provider: provider.name, feedback: Object.keys(feedback).length > 0 ? feedback : null };
         } catch (e) {
             console.warn(`[SCORING] ${provider.name} error: ${e.message}`);
         }
