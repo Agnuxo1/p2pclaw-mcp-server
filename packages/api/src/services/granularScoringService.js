@@ -22,6 +22,7 @@
  */
 
 import { detectField, extractSignals, calibrateScores, REFERENCE_BENCHMARKS } from "./calibrationService.js";
+import { runLiveVerification, verificationToAdjustments } from "./liveVerificationService.js";
 
 const SECTIONS = ["abstract", "introduction", "methodology", "results", "discussion", "conclusion", "references"];
 
@@ -506,6 +507,70 @@ export async function scoreGranular(content, paperType = "research") {
         console.warn(`[SCORING] Calibration error (non-fatal): ${calErr.message}`);
     }
 
+    // ── LIVE VERIFICATION PASS — real-time CrossRef, arXiv, code exec, Lean4 ──
+    // Runs in parallel with independent timeouts. Non-fatal: if it fails, scoring
+    // continues with just calibration. Results apply caps and bonuses to scores.
+    let liveVerification = null;
+    try {
+        const verification = await runLiveVerification(content);
+        const { adjustments: liveAdj, bonuses: liveBon } = verificationToAdjustments(verification);
+
+        // Apply caps (these override score to a max value)
+        for (const [key, val] of Object.entries(liveAdj)) {
+            if (key.endsWith("_cap") && typeof val === "number") {
+                const field = key.replace("_cap", "");
+                if (averaged[field] !== undefined && averaged[field] > val) {
+                    averaged[field] = val;
+                }
+            }
+        }
+
+        // Apply bonuses (add to score, capped at 10)
+        for (const [key, val] of Object.entries(liveBon)) {
+            if (key.endsWith("_bonus") && typeof val === "number") {
+                const field = key.replace("_bonus", "");
+                if (averaged[field] !== undefined) {
+                    averaged[field] = Math.min(10, Math.round((averaged[field] + val) * 10) / 10);
+                }
+            }
+        }
+
+        liveVerification = {
+            verification_time_ms: verification.verification_time_ms,
+            citations: verification.citations ? {
+                total: verification.citations.total,
+                verified: verification.citations.verified,
+                verification_rate: verification.citations.verification_rate,
+            } : null,
+            novelty: verification.novelty ? {
+                searched: verification.novelty.searched,
+                total_found: verification.novelty.total_found,
+                novelty_concern: verification.novelty.novelty_concern,
+                max_similarity: verification.novelty.max_similarity,
+            } : null,
+            code_execution: verification.code_execution ? {
+                total: verification.code_execution.total,
+                passed: verification.code_execution.passed,
+                failed: verification.code_execution.failed,
+            } : null,
+            lean4: verification.lean4 ? {
+                blocks_found: verification.lean4.blocks_found,
+                verified: verification.lean4.verified,
+                has_unsubstantiated_claim: verification.lean4.has_unsubstantiated_claim || false,
+            } : null,
+            adjustments: liveAdj,
+            bonuses: liveBon,
+        };
+
+        const adjCount = Object.keys(liveAdj).filter(k => k.endsWith("_cap")).length;
+        const bonCount = Object.keys(liveBon).filter(k => k.endsWith("_bonus")).length;
+        if (adjCount > 0 || bonCount > 0) {
+            console.log(`[SCORING] Live verification: ${adjCount} caps, ${bonCount} bonuses applied (${verification.verification_time_ms}ms)`);
+        }
+    } catch (liveErr) {
+        console.warn(`[SCORING] Live verification error (non-fatal): ${liveErr.message}`);
+    }
+
     const sectionValues = SECTIONS.map(s => averaged[s]);
     const overall = Math.round((sectionValues.reduce((a, b) => a + b, 0) / SECTIONS.length) * 10) / 10;
 
@@ -554,6 +619,7 @@ export async function scoreGranular(content, paperType = "research") {
         scored_at: new Date().toISOString(),
         paper_type: paperType,
         calibration,
+        live_verification: liveVerification,
     };
 
     console.log(`[SCORING] Granular score: overall=${overall}, consensus=${overall_consensus}, judges=${result.judges.join(",")}`);
