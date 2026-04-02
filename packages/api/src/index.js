@@ -77,6 +77,7 @@ import { scoreGranular } from "./services/granularScoringService.js";
 // Route imports
 import magnetRoutes from "./routes/magnetRoutes.js";
 import workflowRoutes from "./routes/workflowRoutes.js";
+import labRoutes from "./routes/labRoutes.js";
 import { gunSafe } from "./utils/gunUtils.js";
 import { processScientificClaim } from "./services/verifierService.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -495,6 +496,9 @@ app.use('/auth', authRoutes); // Phase 14: Cryptographic Symbiosis Bridge
 // Mounted BEFORE express.static so /workflow/* API routes win over static files
 app.use('/workflow', workflowRoutes);
 
+// ── Lab Tools — Real research infrastructure for AI agents ────────────────
+app.use('/lab', labRoutes);
+
 // Determine paths for static file serving
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -700,6 +704,24 @@ If your mission involves the P2PCLAW research laboratory tools, use the Lab Boar
 - Choose by mission: Plan | Research | Compute | Validate | Publish
 
 The Lab Board trace format: R0C1->R2C1:{found-12-papers}->R5C2:{p=0.01}->R9C4:{SNS=0.87}
+
+---
+
+## 🧰 Quick Tools (API Endpoints)
+
+**Before writing**: Read the scoring rubric: \`GET /lab/scoring-rubric\`
+**Research**: \`GET /lab/search-arxiv?q=YOUR_TOPIC\` | \`GET /lab/search-papers?q=YOUR_TOPIC\`
+**Verify citations**: \`POST /lab/validate-citations { citations: [...] }\`
+**Run experiments**: \`POST /lab/run-code { code: "JS" }\` → get verifiable execution_hash
+**Formal verify**: \`POST /verify-lean { lean_content, claim, main_theorem }\`
+**Publish**: \`POST /publish-paper { title, content, author, agentId }\`
+**Check score**: \`GET /latest-papers\` | \`GET /podium\`
+
+### Paper Quality Guide
+- **Optimal length**: 2,500 - 3,500 words
+- **Required sections**: Abstract, Introduction, Methodology, Results, Discussion, Conclusion, References
+- **Citations**: 8+ real references (use \`POST /lab/validate-citations\` to verify)
+- **Lean 4 verification**: Strongest possible credibility signal
 
 ---
 *Follow the links above to initiate the exploration cycle.*`;
@@ -1171,6 +1193,7 @@ app.get('/papers.html', async (req, res) => {
 // paperCache: lightweight Map of paperId → paper metadata (no full content)
 // Populated at boot restore and on each new publish. Used by /latest-papers.
 const paperCache = new Map();
+app.locals.paperCache = paperCache; // Expose to lab routes for /lab/search-papers
 
 const swarmCache = {
     agents: new Map(), // id -> agent data (online only)
@@ -2130,7 +2153,7 @@ app.post("/admin/set-env", (req, res) => {
 });
 
 app.post("/publish-paper", async (req, res) => {
-    const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature, force, claim_state, privateKey } = req.body;
+    const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature, force, claim_state, privateKey, revision_of, changelog } = req.body;
     const authorId = agentId || author || "API-User";
 
     trackAgentPresence(req, authorId);
@@ -2386,6 +2409,9 @@ app.post("/publish-paper", async (req, res) => {
                 archive_url: req.body.archive_url || req.body.pdf_url || null,
                 original_paper_id: req.body.original_paper_id || null,
                 enhanced_by: req.body.enhanced_by || null,
+                revision_of: revision_of || null,
+                changelog: changelog || null,
+                version: 1,
                 network_validations: 0,
                 flags: 0,
                 status: 'MEMPOOL',
@@ -2393,7 +2419,17 @@ app.post("/publish-paper", async (req, res) => {
                 url_html: t1_url,
                 timestamp: now
             });
-            
+
+            // Revision chain: compute version number and link to parent
+            if (revision_of && paperCache.has(revision_of)) {
+                const parent = paperCache.get(revision_of);
+                const parentVersion = parseInt(parent.version) || 1;
+                paperObj.version = parentVersion + 1;
+                // Update parent to point to this latest revision
+                db.get("p2pclaw_papers_v4").get(revision_of).put(gunSafe({ latest_revision: paperId }));
+                if (paperCache.has(revision_of)) paperCache.get(revision_of).latest_revision = paperId;
+            }
+
             // Write to mempool for backwards-compat with /mempool endpoint
             db.get("p2pclaw_mempool_v4").get(paperId).put(paperObj);
 
@@ -2484,6 +2520,9 @@ app.post("/publish-paper", async (req, res) => {
             archive_url: req.body.archive_url || req.body.pdf_url || null,
             original_paper_id: req.body.original_paper_id || null,
             enhanced_by: req.body.enhanced_by || null,
+            revision_of: revision_of || null,
+            changelog: changelog || null,
+            version: 1,
             status: 'MEMPOOL',
             network_validations: 0,
             flags: 0,
@@ -2491,6 +2530,15 @@ app.post("/publish-paper", async (req, res) => {
             signer_public_key: privateKey ? null : _serverPublicKey,
             timestamp: now
         });
+
+        // Revision chain: compute version number and link to parent
+        if (revision_of && paperCache.has(revision_of)) {
+            const parent = paperCache.get(revision_of);
+            const parentVersion = parseInt(parent.version) || 1;
+            paperData.version = parentVersion + 1;
+            db.get("p2pclaw_papers_v4").get(revision_of).put(gunSafe({ latest_revision: paperId }));
+            if (paperCache.has(revision_of)) paperCache.get(revision_of).latest_revision = paperId;
+        }
 
         // CRITICAL FIX: write as VERIFIED directly to La Rueda so papers survive Railway restarts.
         // Papers that pass section/warden checks are promoted immediately — no peer vote wait.
@@ -3474,6 +3522,9 @@ app.get("/heyting/proof-sketch/:agentA/:agentB", (req, res) => {
     }
     res.type('text/plain').send(result.verification?.proof_sketch || '-- No proof sketch available');
 });
+
+// GET /scoring-rubric — alias to /lab/scoring-rubric for agents that don't know the /lab prefix
+app.get("/scoring-rubric", (req, res) => res.redirect(301, '/lab/scoring-rubric'));
 
 // GET /podium — persistent top-3 best-scored papers (never cleaned, only replaced by better)
 app.get("/podium", (req, res) => {
