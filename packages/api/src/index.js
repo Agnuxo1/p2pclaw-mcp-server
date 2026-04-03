@@ -2633,10 +2633,12 @@ app.post("/publish-paper", async (req, res) => {
             scoreGranular(finalContent, tier || "research").then(async (scores) => {
                 if (scores && scores.overall > 0) {
                     db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
-                    paperCache.set(paperId, { ...verifiedObj, granular_scores: JSON.stringify(scores) });
+                    const tribunalIQ_t1 = req._tribunalData?.ficha?.iq_estimate || req._tribunalData?.iq_estimate || null;
+                    const tribunalGrade_t1 = req._tribunalData?.ficha?.grade || req._tribunalData?.grade || null;
+                    paperCache.set(paperId, { ...verifiedObj, granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_t1, tribunal_grade: tribunalGrade_t1 });
                     saveScores(paperId, scores); // Persist scores to Railway volume
                     podiumTryInsert({ paperId, title, author: author || 'API-User', author_id: authorId, overall: scores.overall, granular_scores: scores, timestamp: now });
-                    console.log(`[SCORING] T1 paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
+                    console.log(`[SCORING] T1 paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}${tribunalIQ_t1 ? ' iq=' + tribunalIQ_t1 : ''}`);
                     // Update dataset entry with scores
                     updateDatasetScores(paperId, scores).catch(() => {});
                     if (scores.overall >= IPFS_SCORE_THRESHOLD) {
@@ -2783,10 +2785,12 @@ app.post("/publish-paper", async (req, res) => {
         scoreGranular(finalContent, tier || "research").then(async (scores) => {
             if (scores && scores.overall > 0) {
                 db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
-                paperCache.set(paperId, { ...verifiedData, granular_scores: JSON.stringify(scores) });
+                const tribunalIQ_uv = req._tribunalData?.ficha?.iq_estimate || req._tribunalData?.iq_estimate || null;
+                const tribunalGrade_uv = req._tribunalData?.ficha?.grade || req._tribunalData?.grade || null;
+                paperCache.set(paperId, { ...verifiedData, granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_uv, tribunal_grade: tribunalGrade_uv });
                 saveScores(paperId, scores); // Persist scores to Railway volume
                 podiumTryInsert({ paperId, title, author: author || 'API-User', author_id: authorId, overall: scores.overall, granular_scores: scores, timestamp: now });
-                console.log(`[SCORING] Paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
+                console.log(`[SCORING] Paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}${tribunalIQ_uv ? ' iq=' + tribunalIQ_uv : ''}`);
                 // Update dataset entry with scores
                 updateDatasetScores(paperId, scores).catch(() => {});
                 if (scores.overall >= IPFS_SCORE_THRESHOLD) {
@@ -3903,14 +3907,58 @@ app.get("/leaderboard", (req, res) => {
 
     // Simple timeout for Gun map population
     setTimeout(() => {
+        // Enrich leaderboard with paper scores + tribunal IQ from paperCache
+        const agentScores = new Map(); // agentId -> { scores: [], iq: null }
+        const BLOCKED_RE = /quality.gate|session.report|diagnostic|bootstrap|daily.digest/i;
+        for (const [, data] of paperCache.entries()) {
+            if (!data || !data.title || BLOCKED_RE.test(data.title)) continue;
+            const agentId = data.author_id || data.author || null;
+            if (!agentId) continue;
+            let gs = data.granular_scores;
+            if (typeof gs === 'string') { try { gs = JSON.parse(gs); } catch(_) { gs = null; } }
+            const score = gs?.overall || 0;
+            if (!agentScores.has(agentId)) agentScores.set(agentId, { scores: [], iq: null, name: data.author });
+            const entry = agentScores.get(agentId);
+            if (score > 0) entry.scores.push(score);
+            if (data.tribunal_iq && (!entry.iq || data.tribunal_iq > entry.iq)) entry.iq = data.tribunal_iq;
+        }
+
+        // Merge scores into leaderboard entries
+        for (const agent of leaderboard) {
+            const scoreData = agentScores.get(agent.agent) || agentScores.get(agent.name);
+            if (scoreData) {
+                agent.papers = scoreData.scores.length;
+                agent.best_score = scoreData.scores.length > 0 ? Math.round(Math.max(...scoreData.scores) * 100) / 100 : 0;
+                agent.avg_score = scoreData.scores.length > 0 ? Math.round((scoreData.scores.reduce((s,v) => s+v, 0) / scoreData.scores.length) * 100) / 100 : 0;
+                agent.iq = scoreData.iq;
+            }
+        }
+
+        // Also add agents from paperCache that aren't in Gun (external agents)
+        for (const [agentId, scoreData] of agentScores.entries()) {
+            if (!leaderboard.some(a => a.agent === agentId || a.name === agentId || a.name === scoreData.name)) {
+                leaderboard.push({
+                    agent: agentId,
+                    name: scoreData.name || agentId,
+                    balance: 0,
+                    contributions: scoreData.scores.length,
+                    rank: 'researcher',
+                    papers: scoreData.scores.length,
+                    best_score: scoreData.scores.length > 0 ? Math.round(Math.max(...scoreData.scores) * 100) / 100 : 0,
+                    avg_score: scoreData.scores.length > 0 ? Math.round((scoreData.scores.reduce((s,v) => s+v, 0) / scoreData.scores.length) * 100) / 100 : 0,
+                    iq: scoreData.iq,
+                });
+            }
+        }
+
         leaderboard.sort((a, b) =>
-            (b.contributions * 10 + b.balance) - (a.contributions * 10 + a.balance)
+            (b.best_score || 0) - (a.best_score || 0) || (b.contributions * 10 + b.balance) - (a.contributions * 10 + a.balance)
         );
         const top3papers = podium.filter(Boolean).map((p, i) => ({
             position: i + 1, medal: ['GOLD', 'SILVER', 'BRONZE'][i],
             paperId: p.paperId, title: p.title, author: p.author, overall_score: p.overall,
         }));
-        res.json({ success: true, podium: top3papers, leaderboard: leaderboard.slice(0, 20) });
+        res.json({ success: true, podium: top3papers, leaderboard: leaderboard.slice(0, 50) });
     }, 1200);
 });
 
@@ -4981,6 +5029,8 @@ app.get("/latest-papers", async (req, res) => {
             github_path: data.github_path || null,
             lean_verified: data.lean_verified || false,
             granular_scores: data.granular_scores ? (typeof data.granular_scores === 'string' ? (() => { try { return JSON.parse(data.granular_scores); } catch(_) { return null; } })() : data.granular_scores) : null,
+            tribunal_iq: data.tribunal_iq || null,
+            tribunal_grade: data.tribunal_grade || null,
         };
     };
 
