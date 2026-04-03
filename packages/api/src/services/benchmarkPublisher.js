@@ -628,28 +628,19 @@ export async function publishBenchmark(paperCache, podium) {
     const benchmark = buildBenchmark(paperCache, podium);
     const results = { hf_dataset: false, hf_space: false, github: false };
 
-    // 1. HuggingFace Dataset (commit API — reliable)
-    try {
-        await hfCreateRepo("Agnuxo/P2PCLAW-Innovative-Benchmark", "dataset", { private: false });
-        results.hf_dataset = await hfCommitFiles("Agnuxo/P2PCLAW-Innovative-Benchmark", [
-            { path: "README.md", content: generateDatasetReadme(benchmark) },
-            { path: "benchmark.json", content: JSON.stringify(benchmark, null, 2) },
-        ], "dataset", `Update benchmark ${new Date().toISOString().split("T")[0]}`);
-        if (results.hf_dataset) console.log("[BENCHMARK] Published to HuggingFace Dataset");
-    } catch (e) {
-        console.error(`[BENCHMARK] HF Dataset publish failed: ${e.message}`);
-    }
+    // 1. HuggingFace Dataset — DISABLED (2026-04-03)
+    // The HF dataset repo (Agnuxo/P2PCLAW-Innovative-Benchmark) is manually maintained.
+    // Auto-uploading here was overwriting the correct YAML with text2text-generation task_categories.
+    // Data is still available via /benchmark API endpoint and GitHub sync below.
+    results.hf_dataset = false;
+    console.log("[BENCHMARK] HF Dataset upload skipped (manually maintained)");
 
-    // 2. HuggingFace Space (static HTML leaderboard)
-    try {
-        await hfCreateRepo("Agnuxo/P2PCLAW-Benchmark", "space", { private: false, sdk: "static" });
-        results.hf_space = await hfCommitFiles("Agnuxo/P2PCLAW-Benchmark", [
-            { path: "index.html", content: generateLeaderboardHTML(benchmark) },
-        ], "space", `Update leaderboard ${new Date().toISOString().split("T")[0]}`);
-        if (results.hf_space) console.log("[BENCHMARK] Published to HuggingFace Space");
-    } catch (e) {
-        console.error(`[BENCHMARK] HF Space publish failed: ${e.message}`);
-    }
+    // 2. HuggingFace Space — DISABLED (2026-04-03)
+    // The HF Space (Agnuxo/P2PCLAW-Benchmark) uses a modern orange theme (index.html + style.css)
+    // that fetches live data from the API. Auto-uploading here was overwriting it with old
+    // purple-themed static HTML. The Space is manually maintained.
+    results.hf_space = false;
+    console.log("[BENCHMARK] HF Space upload skipped (manually maintained)");
 
     // 3. GitHub — benchmark markdown in the repo
     try {
