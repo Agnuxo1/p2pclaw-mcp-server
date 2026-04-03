@@ -90,6 +90,7 @@ import { initializeAbraxasService } from "./services/abraxasService.js";
 import tribunalRoutes from "./routes/tribunalRoutes.js";
 import { validateClearance, markClearanceUsed, generateFichaHeader, validatePaperContent, estimateTokens, MIN_TOKENS, MAX_TOKENS } from "./services/tribunalService.js";
 import { buildDatasetEntry, storeDatasetEntry, updateDatasetScores, getDatasetStats, exportDataset, buildFullExport, getDatasetEntry, classifyQualityTier } from "./services/datasetService.js";
+import { savePaper, saveScores, loadAllPapers, getPersistDir } from "./services/paperPersistence.js";
 import { publishBenchmark, buildBenchmark } from "./services/benchmarkPublisher.js";
 import { initializeSocialService } from "./services/socialService.js";
 import { teamService } from "./services/teamService.js";
@@ -2539,6 +2540,9 @@ app.post("/publish-paper", async (req, res) => {
             // In-memory index so /mempool and auto-validator don't need map().once()
             swarmCache.mempoolPapers.push({ paperId, title, author: author || "API-User", author_id: authorId, tier: 'ALPHA', network_validations: 2, validations_by: 'tier1-auto,tier1-auto', avg_occam_score: 0.95, timestamp: now, status: 'VERIFIED', ipfs_cid: t1_cid || null });
 
+            // Persist to Railway volume (/data/papers/) — survives redeploys
+            savePaper(paperId, { ...verifiedObj, content: finalContent, granular_scores: null });
+
             // Sync to GitHub — awaited so Railway restarts can't lose the paper before it's saved
             const ghOk = await syncPaperToGitHub(paperId, { ...paperObj, status: 'VERIFIED' });
             if (!ghOk) console.error(`[GH-SYNC] ❌ TIER1 paper ${paperId} NOT saved to GitHub — token or network issue`);
@@ -2561,6 +2565,7 @@ app.post("/publish-paper", async (req, res) => {
                 if (scores && scores.overall > 0) {
                     db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
                     paperCache.set(paperId, { ...verifiedObj, granular_scores: JSON.stringify(scores) });
+                    saveScores(paperId, scores); // Persist scores to Railway volume
                     podiumTryInsert({ paperId, title, author: author || 'API-User', author_id: authorId, overall: scores.overall, granular_scores: scores, timestamp: now });
                     console.log(`[SCORING] T1 paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
                     // Update dataset entry with scores
@@ -2649,6 +2654,9 @@ app.post("/publish-paper", async (req, res) => {
         swarmCache.paperStats.verified++;
         swarmCache.paperStats.mempool++;
 
+        // Persist to Railway volume (/data/papers/) — survives redeploys
+        savePaper(paperId, { ...verifiedData, content: finalContent, granular_scores: null });
+
         // Sync to GitHub — awaited so Railway restarts can't lose the paper before it's saved
         const ghOk2 = await syncPaperToGitHub(paperId, { ...paperData, status: 'VERIFIED' });
         if (!ghOk2) console.error(`[GH-SYNC] ❌ paper ${paperId} NOT saved to GitHub — token or network issue`);
@@ -2707,6 +2715,7 @@ app.post("/publish-paper", async (req, res) => {
             if (scores && scores.overall > 0) {
                 db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
                 paperCache.set(paperId, { ...verifiedData, granular_scores: JSON.stringify(scores) });
+                saveScores(paperId, scores); // Persist scores to Railway volume
                 podiumTryInsert({ paperId, title, author: author || 'API-User', author_id: authorId, overall: scores.overall, granular_scores: scores, timestamp: now });
                 console.log(`[SCORING] Paper ${paperId} scored: overall=${scores.overall} judges=${scores.judges.join(",")}`);
                 // Update dataset entry with scores
@@ -5031,7 +5040,33 @@ if (process.env.NODE_ENV !== 'test') {
     // Bootstrap Kademlia DHT from existing Gun.js agents (5s after boot to let Gun.js peers connect)
     setTimeout(() => bootstrapDHT(), 5000);
 
-    // ── Startup: restore papers from GitHub after Railway restart wipes radata ──
+    // ── Startup: restore papers from Railway persistent volume (instant, local) ──
+    // This runs FIRST, before GitHub restore, because it's local disk — sub-second.
+    try {
+        const { count, papers } = loadAllPapers();
+        for (const { paperId, data } of papers) {
+            // Restore to paperCache with truncated content for memory efficiency
+            const cacheEntry = { ...data, content: data.content?.slice(0, 500) };
+            // Parse granular_scores if stored as string
+            if (typeof cacheEntry.granular_scores === 'string') {
+                try { cacheEntry.granular_scores = JSON.parse(cacheEntry.granular_scores); } catch(_) {}
+            }
+            paperCache.set(paperId, cacheEntry);
+            swarmCache.paperStats.verified++;
+            // Restore podium entries
+            if (data.granular_scores) {
+                const scores = typeof data.granular_scores === 'string' ? JSON.parse(data.granular_scores) : data.granular_scores;
+                if (scores.overall > 0) {
+                    podiumTryInsert({ paperId, title: data.title, author: data.author || 'Unknown', author_id: data.author_id || '', overall: scores.overall, granular_scores: scores, timestamp: data.timestamp || 0 });
+                }
+            }
+        }
+        if (count > 0) console.log(`[BOOT] ✅ Restored ${count} papers from Railway volume (${getPersistDir()})`);
+    } catch (e) {
+        console.warn('[BOOT] Railway volume restore failed:', e.message);
+    }
+
+    // ── Startup: restore papers from GitHub (slower, network-dependent, fills gaps) ──
     // Uses git/trees API (single request, full list) so we can sort by date-prefix
     // and pick the 100 most recent REAL papers (skip QUALITY_GATE_* files).
     setTimeout(async () => {
