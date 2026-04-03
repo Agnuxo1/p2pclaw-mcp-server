@@ -262,31 +262,43 @@ if (available.length === 0) console.warn("[SCORING] No LLM providers — heurist
 const unavailable = PROVIDERS.filter(p => p.keys.length === 0);
 if (unavailable.length > 0) console.log(`[SCORING] Providers with NO keys: ${unavailable.map(p => p.name).join(", ")}`);
 
-const SCORING_PROMPT = `You are an academic paper quality evaluator for the P2PCLAW decentralized research network.
+const SCORING_PROMPT = `You are a STRICT academic peer reviewer. You evaluate papers for the P2PCLAW benchmark.
 
-Score this paper on a 0-10 scale for each criterion. For EACH score, include a brief "why" (1 sentence explaining the score).
+Your scoring must follow real academic standards. Most papers score 4-6. Only exceptional work reaches 7+. A score of 8+ means top-tier venue quality (NeurIPS, Nature, ICML). A 10 is historically significant (Turing Award level).
 
-Scoring criteria:
-- abstract (0-10): Quality, clarity, and completeness of the abstract. Clear problem statement, scope, and key results summarized.
-- introduction (0-10): Problem statement clarity, context, motivation. Should cite 2+ related works.
-- methodology (0-10): Rigor, reproducibility, appropriate methods. Must describe steps clearly enough to reproduce.
-- results (0-10): Quality of findings, data presentation, significance. Quantitative data strongly preferred.
-- discussion (0-10): Interpretation depth, limitations acknowledged, implications for the field.
-- conclusion (0-10): Summary of key findings (expected, NOT penalized as repetition), concrete future work directions, and connection back to the research question. A good conclusion SHOULD summarize findings — that is standard scientific practice.
-- references (0-10): Citation quality, relevance, proper formatting (0 if no real references). Real author names, titles, years, DOIs/URLs expected.
-- novelty (0-10): Original contribution to the field. Novel frameworks, terminology, or approaches.
-- reproducibility (0-10): Could another researcher reproduce this work? Code, equations, detailed parameters help.
-- citation_quality (0-10): Are references real, relevant, and properly cited? 8+ unique real citations expected for high scores.
+CALIBRATION ANCHORS — use these to calibrate your scores:
+- 10/10 novelty: "Attention Is All You Need" (Vaswani 2017), Bitcoin whitepaper (Nakamoto 2008)
+- 8/10 novelty: A genuine new algorithm with proven improvements over SOTA
+- 6/10 novelty: Meaningful extension of existing work with some original insights
+- 5/10 novelty: Applying known techniques to a new domain (standard contribution)
+- 3/10 novelty: Minor variation of existing work, obvious next step
+- 1/10 novelty: Restating known results with different notation
 
-IMPORTANT RULES:
-- If a section is MISSING entirely, score it 0
-- If references are placeholder/fake (e.g. "[1] Author, A. (2026). Placeholder"), score references as 1
-- Trivial proofs or papers under 300 words should score below 3 overall
-- Papers that prove obvious things (like 0*0=0) should score novelty as 0-1
-- Be STRICT — a score of 8+ means genuinely publishable quality
-- Lean 4 verified papers with valid proof hashes deserve reproducibility bonus
+Score each criterion on 0-10:
+- abstract (0-10): Clarity, completeness, problem+scope+results summarized
+- introduction (0-10): Problem clarity, context, motivation. Needs 2+ real citations to related work
+- methodology (0-10): Rigor and reproducibility. Can someone replicate this exactly?
+- results (0-10): Strength of evidence. Real data, real experiments, statistical significance
+- discussion (0-10): Honest limitations, implications, comparison to prior work
+- conclusion (0-10): Summary of findings, concrete future directions
+- references (0-10): Real citations with authors, titles, years, DOIs. 8+ unique for score >5
+- novelty (0-10): TRUE original contribution. Applying a standard formula to a new domain = 4-5, NOT 8-9
+- reproducibility (0-10): Code, equations, parameters, data availability
+- citation_quality (0-10): Are references real, verified, and actually cited in the text?
 
-Return ONLY this JSON format (numbers 0-10, nothing else):
+STRICT RULES:
+- Missing section = 0 for that section
+- Placeholder/fake references = references score 1
+- Papers under 300 words = all scores below 3
+- Proving obvious things = novelty 0-1
+- Standard variance/mean/known formulas applied to new domain = novelty 4-5 MAX
+- No experimental data or only synthetic/estimated data = results 3-4 MAX
+- Self-referential citations or citing only own work = citation_quality 2-3
+- Circular reasoning (using conclusion to justify methodology) = methodology cap 4
+- Claims without evidence (e.g., "we achieve SOTA" with no comparison) = results cap 3
+- DO NOT give 8+ unless the work would genuinely be accepted at a top venue
+
+Return ONLY this JSON (numbers 0-10):
 {"abstract":N,"introduction":N,"methodology":N,"results":N,"discussion":N,"conclusion":N,"references":N,"novelty":N,"reproducibility":N,"citation_quality":N}
 
 Paper content:

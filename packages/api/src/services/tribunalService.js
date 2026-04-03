@@ -521,41 +521,43 @@ export function generateFichaHeader(ficha) {
 `;
 }
 
-// ── Paper Content Validation (token limits + Lean4 mandatory) ─────────────────
+// ── Paper Content Validation (soft scoring — nothing blocks except malicious) ──
 
 export function validatePaperContent(content) {
     const issues = [];
     const tokens = estimateTokens(content);
 
+    // Token count: WARNING only — papers publish regardless, scored lower if too short/long
     if (tokens < MIN_TOKENS) {
         issues.push({
             field: "token_count",
-            message: `Paper has approximately ${tokens} tokens. Minimum required: ${MIN_TOKENS} tokens (~${Math.ceil(MIN_TOKENS / 1.33)} words). Your paper needs ${MIN_TOKENS - tokens} more tokens.`,
-            severity: "BLOCKING",
+            message: `Paper has ~${tokens} tokens (recommended: ${MIN_TOKENS}+). Short papers will score lower on depth dimensions.`,
+            severity: "WARNING",
+            scoring_impact: "methodology, results, discussion may score 0-3 due to insufficient content",
         });
     }
 
     if (tokens > MAX_TOKENS) {
         issues.push({
             field: "token_count",
-            message: `Paper has approximately ${tokens} tokens. Maximum allowed: ${MAX_TOKENS} tokens (~${Math.ceil(MAX_TOKENS / 1.33)} words). Please reduce by ${tokens - MAX_TOKENS} tokens.`,
-            severity: "BLOCKING",
+            message: `Paper has ~${tokens} tokens (recommended max: ${MAX_TOKENS}). Only the first ${MAX_TOKENS} tokens will be scored.`,
+            severity: "WARNING",
         });
     }
 
-    // Lean4 mandatory check
+    // Lean4: WARNING only — papers without Lean4 get lean4_verification=0 in scoring
     const hasLean4 = /```lean|```lean4|lean\s*4|theorem\s+\w+|#check|#eval|import\s+Mathlib/i.test(content);
     const hasLeanSection = /formal\s*verif|lean\s*4?\s*proof|proof\s*assistant/i.test(content);
     if (!hasLean4 && !hasLeanSection) {
         issues.push({
             field: "lean4_verification",
-            message: "Lean 4 formal verification is MANDATORY. Your paper must include at least one Lean 4 proof block (```lean4 ... ```) or reference a verified proof hash from POST /verify-lean. This is the strongest credibility signal in P2PCLAW.",
-            severity: "BLOCKING",
-            hint: "Use POST /verify-lean { lean_content, claim, main_theorem } to verify your proofs and get a proof_hash to include.",
+            message: "No Lean 4 formal verification detected. Paper will score 0 on lean4_verification dimension. Add Lean 4 proofs for higher scores.",
+            severity: "WARNING",
+            hint: "Use POST /verify-lean { lean_content, claim, main_theorem } to verify proofs.",
         });
     }
 
-    // All 7 sections check
+    // Sections: WARNING only — missing sections get scored 0 individually
     const sectionChecks = [
         { rx: /##\s*abstract/i, label: "Abstract" },
         { rx: /##\s*(introduction|background|overview|motivation)/i, label: "Introduction" },
@@ -570,14 +572,15 @@ export function validatePaperContent(content) {
     if (missing.length > 0) {
         issues.push({
             field: "sections",
-            message: `Missing mandatory sections: ${missing.join(", ")}. All 7 sections are required.`,
-            severity: "BLOCKING",
+            message: `Missing sections: ${missing.join(", ")}. These will score 0 individually.`,
+            severity: "WARNING",
             missing,
+            scoring_impact: "Each missing section scores 0, lowering the overall score",
         });
     }
 
     return {
-        valid: issues.filter(i => i.severity === "BLOCKING").length === 0,
+        valid: true, // Papers always pass validation — only malicious content is blocked
         tokens,
         issues,
     };
@@ -585,4 +588,4 @@ export function validatePaperContent(content) {
 
 // ── Startup log ───────────────────────────────────────────────────────────────
 
-console.log(`[TRIBUNAL] Service initialized. Token limits: ${MIN_TOKENS}-${MAX_TOKENS}. Lean4: mandatory. Question pool: ${IQ_QUESTIONS.length} questions.`);
+console.log(`[TRIBUNAL] Service initialized. Token limits: ${MIN_TOKENS}-${MAX_TOKENS} (soft). Lean4: scored (not mandatory). Sections: scored (not mandatory). Question pool: ${IQ_QUESTIONS.length} questions.`);
