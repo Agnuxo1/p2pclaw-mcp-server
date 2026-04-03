@@ -1019,7 +1019,7 @@ function calibrateScores(rawScores, signals, fieldBenchmarks) {
 
     // 1. RED FLAG PENALTY — most severe, direct fraud indicators
     if (signals.red_flag_count > 0) {
-        const penalty = Math.min(4, signals.red_flag_count * 1.5);
+        const penalty = Math.min(3, signals.red_flag_count * 1.0);
         for (const field of Object.keys(calibrated)) {
             if (typeof calibrated[field] === "number") {
                 const oldVal = calibrated[field];
@@ -1322,7 +1322,7 @@ function calibrateScores(rawScores, signals, fieldBenchmarks) {
     // Formula: score = score * 0.75 (compresses 8→6, 6→4.5, 4→3)
     // Then add back 0.5 to avoid crushing genuinely low scores too much.
     // Net effect: a raw 8 becomes 6.5, a raw 6 becomes 5, a raw 4 becomes 3.5
-    const LLM_DEFLATION_FACTOR = 0.75;
+    const LLM_DEFLATION_FACTOR = 0.82;
     const LLM_DEFLATION_FLOOR = 0.5;
     for (const field of Object.keys(calibrated)) {
         if (typeof calibrated[field] === "number" && calibrated[field] > 0) {
