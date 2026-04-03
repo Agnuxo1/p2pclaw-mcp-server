@@ -2274,26 +2274,21 @@ app.post("/publish-paper", async (req, res) => {
         req._tribunalData = clearanceCheck;
     }
 
-    // ── TOKEN COUNT VALIDATION (3,000 - 15,000 tokens) ─────────────────
+    // ── SOFT VALIDATION (warnings only — nothing blocks publication) ────
+    let paperWarnings = [];
     if (content && content.trim().length > 0) {
         const paperValidation = validatePaperContent(content);
-        const blockingIssues = paperValidation.issues.filter(i => i.severity === "BLOCKING");
-        if (blockingIssues.length > 0) {
-            return res.status(400).json({
-                success: false,
-                error: "PAPER_REQUIREMENTS_NOT_MET",
-                estimated_tokens: paperValidation.tokens,
-                token_range: `${MIN_TOKENS}-${MAX_TOKENS}`,
-                issues: blockingIssues,
-                hint: "Use POST /tribunal/validate-paper to pre-check your paper before submitting.",
-            });
-        }
+        paperWarnings = paperValidation.issues; // All warnings now, no blockers
     }
 
-    const errors = [];
-
+    // ── HARD GATES: only block truly invalid submissions ──────────────
     if (!title || title.trim().length < 5) {
-        errors.push('Missing or too-short title');
+        return res.status(400).json({
+            success: false,
+            error: 'VALIDATION_FAILED',
+            issues: ['Missing or too-short title (minimum 5 characters)'],
+            hint: 'POST body must include: { title, content, author, agentId }',
+        });
     }
 
     if (!content || content.trim().length === 0) {
@@ -2301,18 +2296,23 @@ app.post("/publish-paper", async (req, res) => {
             success: false,
             error: 'VALIDATION_FAILED',
             issues: ['Missing content field'],
-            hint: 'POST body must include: { title, content, author, agentId, tribunal_clearance }',
-            docs: 'GET /tribunal/info for full process'
+            hint: 'POST body must include: { title, content, author, agentId }',
         });
     }
 
-    // Word count (kept for backwards compat, but token check above is the real gate)
     const wordCount = content.trim().split(/\s+/).length;
 
-    // â"€â"€ Section validation (case-insensitive, accepts common variants) â"€â"€â"€â"€â"€â"€
-    // hasSection(rx) â†' true if content has "## <match>" (any case)
-    const hasSection = (rx) => new RegExp(`##\\s+(${rx})`, 'i').test(content);
+    // Minimum 30 words — anything shorter is spam/empty, not a real paper
+    if (wordCount < 30) {
+        return res.status(400).json({
+            success: false,
+            error: 'VALIDATION_FAILED',
+            issues: ['Paper must contain at least 30 words.'],
+        });
+    }
 
+    // ── SOFT CHECKS: sections, length, etc. → warnings only, scored as 0 if missing ──
+    const hasSection = (rx) => new RegExp(`##\\s+(${rx})`, 'i').test(content);
     const sectionChecks = [
         { rx: 'abstract',                                                                    label: '## Abstract' },
         { rx: 'introduction|background|overview|motivation|related\\s+work',                label: '## Introduction' },
@@ -2322,35 +2322,21 @@ app.post("/publish-paper", async (req, res) => {
         { rx: 'conclusions?|summary|future\\s+work|remarks',                                label: '## Conclusion' },
         { rx: 'references?|bibliography|citations?|works\\s+cited',                         label: '## References' },
     ];
-    sectionChecks.forEach(({ rx, label }) => {
-        if (!hasSection(rx)) errors.push(`Missing mandatory section: ${label}`);
-    });
 
-    if (wordCount < (authorId?.includes('agent') ? 30 : 200)) {
-        errors.push('Quality Control: Papers must contain at least 200 words.');
+    const missingSections = sectionChecks.filter(({ rx }) => !hasSection(rx)).map(({ label }) => label);
+    if (missingSections.length > 0) {
+        paperWarnings.push({ field: "sections", message: `Missing sections (will score 0): ${missingSections.join(", ")}`, severity: "WARNING" });
+    }
+    if (wordCount < 200) {
+        paperWarnings.push({ field: "word_count", message: `Only ${wordCount} words — short papers score lower on depth dimensions.`, severity: "WARNING" });
     }
 
-    // **Investigation:** and **Agent:** are RECOMMENDED but not blocking
-    // (agents that omit them still get their paper published - just warned)
-    const warnings = [];
+    const warnings = [...paperWarnings.map(w => w.message)];
     if (!content.includes('**Investigation:**') && !content.includes('investigation_id')) {
         warnings.push('Recommended header missing: **Investigation:** [id]');
     }
     if (!content.includes('**Agent:**') && !content.includes('agentId')) {
         warnings.push('Recommended header missing: **Agent:** [id]');
-    }
-
-    if (errors.length > 0) {
-        return res.status(400).json({
-            success: false,
-            error: 'VALIDATION_FAILED',
-            issues: errors,
-            warnings,
-            word_count: wordCount,
-            sections_found: sectionChecks.filter(({ rx }) => hasSection(rx)).map(({ label }) => label),
-            template: "# [Title]\n**Investigation:** [id]\n**Agent:** [id]\n**Date:** [ISO]\n\n## Abstract\n\n## Introduction\n\n## Methodology\n\n## Results\n\n## Discussion\n\n## Conclusion\n\n## References\n`[ref]` Author, Title, URL, Year",
-            docs: 'GET /agent-briefing for full API schema'
-        });
     }
 
     const isForce = force === true || force === "true";

@@ -1111,14 +1111,34 @@ function calibrateScores(rawScores, signals, fieldBenchmarks) {
         }
     }
 
-    // 7. NOVELTY REALITY CHECK — novelty > 7 requires real contribution evidence
-    if ((calibrated.novelty || 0) > 7) {
+    // 7. NOVELTY REALITY CHECK — novelty is the most inflated dimension by LLMs
+    // Novelty > 5 requires REAL evidence of original contribution
+    if ((calibrated.novelty || 0) > 5) {
         const has_novelty_evidence = signals.has_formal_proofs || signals.has_code ||
             signals.numerical_claims_count > 3 || signals.has_statistical_tests;
         if (!has_novelty_evidence) {
             calibrated.novelty = Math.min(calibrated.novelty, 5);
             adjustments.novelty = adjustments.novelty || [];
-            adjustments.novelty.push("high_novelty_claim_without_evidence: capped at 5");
+            adjustments.novelty.push("novelty_above_5_without_evidence: capped at 5");
+        }
+    }
+    // Novelty > 7 requires EXTRAORDINARY evidence (new algorithm, formal proof of new theorem, etc.)
+    if ((calibrated.novelty || 0) > 7) {
+        const has_extraordinary = signals.has_formal_proofs && signals.has_code && signals.numerical_claims_count > 5;
+        if (!has_extraordinary) {
+            calibrated.novelty = Math.min(calibrated.novelty, 7);
+            adjustments.novelty = adjustments.novelty || [];
+            adjustments.novelty.push("novelty_above_7_requires_formal_proofs+code+data: capped at 7");
+        }
+    }
+
+    // 7b. RESULTS WITHOUT REAL DATA — synthetic/estimated/theoretical results cap
+    if (!signals.has_statistical_tests && !signals.has_real_data) {
+        // No p-values, confidence intervals, or real datasets
+        if ((calibrated.results || 0) > 5) {
+            calibrated.results = Math.min(calibrated.results, 5);
+            adjustments.results = adjustments.results || [];
+            adjustments.results.push("no_statistical_tests_or_real_data: results capped at 5");
         }
     }
 
@@ -1296,7 +1316,26 @@ function calibrateScores(rawScores, signals, fieldBenchmarks) {
         }
     }
 
-    // 14. OVERALL CONSISTENCY CHECK — no single dimension should be >3 above average of others
+    // 14. LLM INFLATION CORRECTION — systematic deflation to compensate for known LLM bias
+    // LLMs consistently score 1.5-2 points too high across all dimensions.
+    // Apply a compression that maps [0-10] toward a realistic [0-8] range for most papers.
+    // Formula: score = score * 0.75 (compresses 8→6, 6→4.5, 4→3)
+    // Then add back 0.5 to avoid crushing genuinely low scores too much.
+    // Net effect: a raw 8 becomes 6.5, a raw 6 becomes 5, a raw 4 becomes 3.5
+    const LLM_DEFLATION_FACTOR = 0.75;
+    const LLM_DEFLATION_FLOOR = 0.5;
+    for (const field of Object.keys(calibrated)) {
+        if (typeof calibrated[field] === "number" && calibrated[field] > 0) {
+            const before = calibrated[field];
+            calibrated[field] = Math.round(Math.max(0, (before * LLM_DEFLATION_FACTOR) + LLM_DEFLATION_FLOOR) * 10) / 10;
+            if (calibrated[field] !== before) {
+                adjustments[field] = adjustments[field] || [];
+                adjustments[field].push(`llm_inflation_correction: ${before} -> ${calibrated[field]}`);
+            }
+        }
+    }
+
+    // 15. OVERALL CONSISTENCY CHECK — no single dimension should be >3 above average of others
     const allVals = Object.values(calibrated).filter(v => typeof v === "number");
     if (allVals.length > 0) {
         const mean = allVals.reduce((a, b) => a + b, 0) / allVals.length;
