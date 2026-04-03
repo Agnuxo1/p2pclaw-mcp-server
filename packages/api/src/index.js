@@ -1098,7 +1098,7 @@ app.post('/quick-join', async (req, res) => {
         hmacVerified = ageSec < 300; // accept if timestamp is fresh (±5 min)
     }
 
-    // EVM address accepted as agent_id (AgentHALO pattern)
+    // EVM address accepted as agent_id
     const agentId = req.body.agentId || req.body.agent_id || evmAddress ||
         ((isAI ? 'A-' : 'H-') + Math.random().toString(36).substring(2, 10));
 
