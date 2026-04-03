@@ -15,7 +15,10 @@
  *   9. Xiaomi MiMo  — mimo-v2-flash (3 keys, free)
  *  10. Xiaomi MiMo  — mimo-v2-pro (3 keys, free, reasoning)
  *  11. Cohere       — command-a-reasoning (8 keys, reasoning model)
- *  12. Deterministic heuristic fallback (never blocks)
+ *  12. Cloudflare  — llama-4-scout-17b (account 7, free)
+ *  13. Cloudflare  — mistral-small-3.1-24b (account 8, free)
+ *  14. Cloudflare  — deepseek-r1-distill-qwen-32b (account 9, free)
+ *  15. Deterministic heuristic fallback (never blocks)
  *
  * ALL available judges score independently. Final score = average across all judges.
  * Each model evaluates each section independently for maximum consensus diversity.
@@ -188,8 +191,8 @@ const PROVIDERS = [
     {
         id: "cloudflare-gemma4",
         name: "Cloudflare-Gemma4",
-        url: `https://api.cloudflare.com/client/v4/accounts/a7995d3f33b6ba57955749337c9abbe0/ai/run/@cf/google/gemma-4-26B-A4B-it`,
-        model: "@cf/google/gemma-4-26B-A4B-it",
+        url: `https://api.cloudflare.com/client/v4/accounts/a7995d3f33b6ba57955749337c9abbe0/ai/run/@cf/google/gemma-4-26b-a4b-it`,
+        model: "@cf/google/gemma-4-26b-a4b-it",
         keys: loadKeys("CF_AI_TOKEN_2"),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
@@ -240,6 +243,44 @@ const PROVIDERS = [
         url: `https://api.cloudflare.com/client/v4/accounts/df4a7888befcbb6ce3e0a0b346ea1990/ai/run/@cf/qwen/qwen3-30b-a3b-fp8`,
         model: "@cf/qwen/qwen3-30b-a3b-fp8",
         keys: loadKeys("CF_AI_TOKEN_6"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    // --- Cloudflare Workers AI: 3 NEW accounts (accounts 7/8/9) ---
+    {
+        id: "cloudflare-llama4scout",
+        name: "Cloudflare-Llama4Scout",
+        url: `https://api.cloudflare.com/client/v4/accounts/3cd084561890e5ab468456fae547ded0/ai/run/@cf/meta/llama-4-scout-17b-16e-instruct`,
+        model: "@cf/meta/llama-4-scout-17b-16e-instruct",
+        keys: loadKeys("CF_AI_TOKEN_7"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    {
+        id: "cloudflare-mistral31",
+        name: "Cloudflare-MistralSmall31",
+        url: `https://api.cloudflare.com/client/v4/accounts/27920eccf7d83f7ee267130cd6018eaf/ai/run/@cf/mistralai/mistral-small-3.1-24b-instruct`,
+        model: "@cf/mistralai/mistral-small-3.1-24b-instruct",
+        keys: loadKeys("CF_AI_TOKEN_8"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    {
+        id: "cloudflare-deepseekr1",
+        name: "Cloudflare-DeepSeekR1",
+        url: `https://api.cloudflare.com/client/v4/accounts/60c2dcaa7fc3377f036114648f6397ba/ai/run/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b`,
+        model: "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+        keys: loadKeys("CF_AI_TOKEN_9"),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
         stripThinkTags: true,
