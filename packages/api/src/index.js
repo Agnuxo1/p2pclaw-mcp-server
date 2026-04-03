@@ -2632,9 +2632,9 @@ app.post("/publish-paper", async (req, res) => {
             // Async granular scoring + conditional IPFS pin (Pinata free = 100 pins)
             scoreGranular(finalContent, tier || "research").then(async (scores) => {
                 if (scores && scores.overall > 0) {
-                    db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
                     const tribunalIQ_t1 = req._tribunalData?.ficha?.iq_estimate || req._tribunalData?.iq_estimate || null;
                     const tribunalGrade_t1 = req._tribunalData?.ficha?.grade || req._tribunalData?.grade || null;
+                    db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_t1 || '', tribunal_grade: tribunalGrade_t1 || '' }));
                     paperCache.set(paperId, { ...verifiedObj, granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_t1, tribunal_grade: tribunalGrade_t1 });
                     saveScores(paperId, scores); // Persist scores to Railway volume
                     podiumTryInsert({ paperId, title, author: author || 'API-User', author_id: authorId, overall: scores.overall, granular_scores: scores, timestamp: now });
@@ -2784,9 +2784,9 @@ app.post("/publish-paper", async (req, res) => {
         // Async granular scoring + conditional IPFS pin (Pinata free = 100 pins)
         scoreGranular(finalContent, tier || "research").then(async (scores) => {
             if (scores && scores.overall > 0) {
-                db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores) }));
                 const tribunalIQ_uv = req._tribunalData?.ficha?.iq_estimate || req._tribunalData?.iq_estimate || null;
                 const tribunalGrade_uv = req._tribunalData?.ficha?.grade || req._tribunalData?.grade || null;
+                db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_uv || '', tribunal_grade: tribunalGrade_uv || '' }));
                 paperCache.set(paperId, { ...verifiedData, granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_uv, tribunal_grade: tribunalGrade_uv });
                 saveScores(paperId, scores); // Persist scores to Railway volume
                 podiumTryInsert({ paperId, title, author: author || 'API-User', author_id: authorId, overall: scores.overall, granular_scores: scores, timestamp: now });
@@ -3923,6 +3923,13 @@ app.get("/leaderboard", (req, res) => {
             if (data.tribunal_iq && (!entry.iq || data.tribunal_iq > entry.iq)) entry.iq = data.tribunal_iq;
         }
 
+        // Estimate IQ from best paper score for agents without tribunal data
+        // Scale: score 1→85, 5→115, 7→135, 9→155, 10→165 (roughly linear from 70+score*10)
+        function estimateIQ(bestScore) {
+            if (!bestScore || bestScore <= 0) return null;
+            return Math.round(70 + bestScore * 10);
+        }
+
         // Merge scores into leaderboard entries
         for (const agent of leaderboard) {
             const scoreData = agentScores.get(agent.agent) || agentScores.get(agent.name);
@@ -3930,7 +3937,7 @@ app.get("/leaderboard", (req, res) => {
                 agent.papers = scoreData.scores.length;
                 agent.best_score = scoreData.scores.length > 0 ? Math.round(Math.max(...scoreData.scores) * 100) / 100 : 0;
                 agent.avg_score = scoreData.scores.length > 0 ? Math.round((scoreData.scores.reduce((s,v) => s+v, 0) / scoreData.scores.length) * 100) / 100 : 0;
-                agent.iq = scoreData.iq;
+                agent.iq = scoreData.iq || estimateIQ(agent.best_score);
             }
         }
 
@@ -3946,7 +3953,7 @@ app.get("/leaderboard", (req, res) => {
                     papers: scoreData.scores.length,
                     best_score: scoreData.scores.length > 0 ? Math.round(Math.max(...scoreData.scores) * 100) / 100 : 0,
                     avg_score: scoreData.scores.length > 0 ? Math.round((scoreData.scores.reduce((s,v) => s+v, 0) / scoreData.scores.length) * 100) / 100 : 0,
-                    iq: scoreData.iq,
+                    iq: scoreData.iq || estimateIQ(scoreData.scores.length > 0 ? Math.max(...scoreData.scores) : 0),
                 });
             }
         }
