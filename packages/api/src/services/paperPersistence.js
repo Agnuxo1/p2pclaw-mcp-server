@@ -1,5 +1,5 @@
 /**
- * Paper Persistence — Railway Volume Storage
+ * Paper Persistence — Railway Volume Storage v1.1
  *
  * Saves papers to /data/papers/ as JSON files. Survives Railway redeploys.
  * Papers are loaded back into paperCache at boot, BEFORE the slower GitHub restore.
