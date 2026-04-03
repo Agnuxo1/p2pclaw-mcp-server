@@ -429,9 +429,12 @@ const DECEPTION_PATTERNS = [
             // Results: count specific numbers
             const resultNumbers = (results.match(/\d+\.\d+/g) || []).length;
             // Methodology: count specific method indicators
-            const METHOD_INDICATORS = /\b(step\s+\d|algorithm\s+\d|we\s+ran|we\s+trained|we\s+computed|we\s+measured|we\s+simulated|iterations?\s*=|epochs?\s*=|learning\s+rate|batch\s+size|sample\s+size|n\s*=\s*\d|dataset|benchmark|baseline)\b/gi;
-            const methSpecifics = (meth.match(METHOD_INDICATORS) || []).length;
-            const disconnected = resultNumbers > 4 && methSpecifics < 2;
+            const METHOD_INDICATORS = /\b(step\s+\d|algorithm\s*[:.\d]|we\s+(ran|run|train|compute|measure|simulat|implement|evaluat|test|compar|vari|defin)|iterations?\s*=|epochs?\s*=|learning\s+rate|batch\s+size|sample\s+size|n\s*=\s*\d|trials?\s|dataset|benchmark|baseline|pseudocode|monte\s+carlo|simulation|experiment|parameter|configuration|setup|procedure)\b/gi;
+            // Also count code blocks and equations in methodology as specifics
+            const codeBlocks = (meth.match(/```[\s\S]*?```/g) || []).length;
+            const equations = (meth.match(/\$[^$]+\$/g) || []).length;
+            const methSpecifics = (meth.match(METHOD_INDICATORS) || []).length + codeBlocks * 3 + equations * 2;
+            const disconnected = resultNumbers > 6 && methSpecifics < 2;
             return {
                 match: disconnected,
                 severity: resultNumbers > 8 && methSpecifics === 0 ? "critical" : "high",
@@ -488,7 +491,7 @@ const DECEPTION_PATTERNS = [
         test: (text) => {
             const equations = (text.match(/\$[^$]{3,}\$|\\\[[\s\S]*?\\\]|\\begin\{(equation|align)/g) || []);
             if (equations.length === 0) return { match: false };
-            const EQ_REFS = /\b(equation|eq\.|formula|where\s+\w+\s+(is|denotes|represents)|substituting|from\s+\(\d+\)|defined\s+as)\b/gi;
+            const EQ_REFS = /\b(equation|eq\.|formula|where\s+\w+\s+(is|denotes|represents|are)|substituting|from\s+\(\d+\)|defined\s+as|satisfies|bound|inequality|we\s+derive|this\s+gives|it\s+follows|we\s+get|we\s+obtain|the\s+expression|the\s+result)\b/gi;
             const eqRefs = (text.match(EQ_REFS) || []).length;
             const orphanRatio = equations.length > 0 && eqRefs === 0 ? 1.0 :
                 1 - Math.min(1, eqRefs / equations.length);
@@ -574,7 +577,7 @@ const DECEPTION_PATTERNS = [
             const words = text.split(/\s+/).filter(w => w.length > 0);
             if (words.length < 200) return { match: false };
             const INFLATORS = /\b(novel|innovative|groundbreaking|state-of-the-art|cutting-edge|revolutionary|paradigm-shifting|unprecedented|transformative|holistic|synergistic|robust|scalable|elegant|superior|optimal|powerful|comprehensive|advanced|sophisticated|pioneering|seminal|pivotal)\b/gi;
-            const SUBSTANCE = /\b(theorem|proof|let\s+\w+\s*=|we\s+compute|we\s+measure|sample\s+size|p-value|confidence|error\s+rate|training\s+loss|gradient|iteration|convergence|we\s+observe\s+that|the\s+data\s+shows?|figure\s+\d|table\s+\d|algorithm\s+\d)\b/gi;
+            const SUBSTANCE = /\b(theorem|proof|lemma|let\s+\w+\s*=|we\s+(compute|measure|simulate|run|test|vary|derive|show|prove|observe|find)|sample\s+size|p-value|confidence|error\s+rate|MAE|MSE|std|mean|median|variance|training\s+loss|gradient|iteration|convergence|the\s+data\s+shows?|figure\s+\d|table\s+\d|algorithm\s*[\d:]|bound|inequality|trials?|monte\s+carlo|simulation|baseline|comparison)\b/gi;
             const inflatorCount = (text.match(INFLATORS) || []).length;
             const substanceCount = (text.match(SUBSTANCE) || []).length;
             const ratio = substanceCount > 0 ? inflatorCount / substanceCount : (inflatorCount > 3 ? 999 : 0);
