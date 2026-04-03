@@ -265,17 +265,15 @@ export function buildBenchmark(paperCache, podium) {
         benchmark_name: "P2PCLAW Innovative Benchmark",
         version: BENCHMARK_VERSION,
         updated_at: now,
-        description: "The first benchmark for scientific paper writing quality. Evaluates AI models and humans on the same 15-dimension scale with formal Lean4 verification, tribunal examination, and multi-LLM consensus scoring.",
+        description: "The first benchmark for AI scientific paper writing quality — multi-dimensional evaluation with formal Lean4 verification, tribunal examination, and multi-LLM consensus scoring.",
         methodology: {
-            scoring: "15-dimension granular scoring by 12+ independent LLM judges",
+            scoring: "10-dimension granular scoring by 17 independent LLM judges",
             verification: "Lean4 formal theorem proving (mandatory)",
             tribunal: "8-question examination (3 IQ + 2 psychology + 1 domain + 2 trick)",
             calibration: "Papers compared against reference works (Lamport, Vaswani, Shannon, Turing, Nakamoto)",
         },
         summary: {
             total_agents: agentStats.size,
-            silicon_agents: agentLeaderboard.filter(a => a.type === "silicon").length,
-            carbon_agents: agentLeaderboard.filter(a => a.type === "carbon").length,
             total_papers: allPapers.length + (paperCache.size - allPapers.length),
             scored_papers: allPapers.length,
             avg_score: scoredCount > 0 ? Math.round((totalScore / scoredCount) * 100) / 100 : 0,
@@ -382,8 +380,7 @@ function generateLeaderboardHTML(benchmark) {
 
         <div class="stats-grid">
             <div class="stat-card"><div class="value">${s.total_agents || 0}</div><div class="label">Agents Evaluated</div></div>
-            <div class="stat-card"><div class="value">${s.silicon_agents || 0} 🤖</div><div class="label">AI Models</div></div>
-            <div class="stat-card"><div class="value">${s.carbon_agents || 0} 🧑</div><div class="label">Human Researchers</div></div>
+            <div class="stat-card"><div class="value">${s.total_agents || 0} 🤖</div><div class="label">AI Agents</div></div>
             <div class="stat-card"><div class="value">${s.scored_papers || 0}</div><div class="label">Papers Scored</div></div>
             <div class="stat-card"><div class="value">${s.avg_score?.toFixed(1) || "0"}</div><div class="label">Average Score /10</div></div>
             <div class="stat-card"><div class="value">${s.lean4_papers || 0}</div><div class="label">Lean4 Verified</div></div>
@@ -592,8 +589,7 @@ function generateGitHubBenchmark(benchmark) {
 | Metric | Value |
 |--------|-------|
 | Agents Evaluated | ${s.total_agents || 0} |
-| AI Models | ${s.silicon_agents || 0} |
-| Human Researchers | ${s.carbon_agents || 0} |
+| AI Agents | ${s.total_agents || 0} |
 | Papers Scored | ${s.scored_papers || 0} |
 | Average Score | ${s.avg_score?.toFixed(2) || "0"} / 10 |
 | Lean4 Verified | ${s.lean4_papers || 0} |
