@@ -1,25 +1,28 @@
 /**
- * P2PCLAW Granular Scoring Service
- * =================================
+ * P2PCLAW Granular Scoring Service — MAXIMUM TRIBUNAL
+ * ====================================================
  * Heterogeneous multi-LLM scoring engine that evaluates papers section-by-section.
+ * Updated 2026-04-04: ALL available API keys deployed for maximum judge diversity.
  *
- * Provider chain (updated 2026-04-01):
- *   1. Cerebras     — qwen-3-235b (3 keys, free, ultra-fast)
- *   2. Cerebras     — llama3.1-8b (3 keys, free, ultra-fast)
- *   3. Mistral      — mistral-small-latest (2 keys, free)
- *   4. Sarvam       — sarvam-m (Indian AI, free)
- *   5. OpenRouter   — qwen3-coder:free (free)
- *   6. Groq         — llama-3.3-70b-versatile (7 keys, may be restricted)
- *   7. NVIDIA       — meta/llama-3.3-70b-instruct (3 keys, free)
- *   8. Inception    — mercury-2 (5 keys, free)
- *   9. Xiaomi MiMo  — mimo-v2-flash (3 keys, free)
- *  10. Xiaomi MiMo  — mimo-v2-pro (3 keys, free, reasoning)
- *  11. Cohere       — command-a-reasoning (8 keys, reasoning model)
- *  12. Cloudflare  — llama-4-scout-17b (account 7, free)
- *  13. Cloudflare  — mistral-small-3.1-24b (account 8, free)
- *  14. Cloudflare  — deepseek-r1-distill-qwen-32b (account 9, free)
- *  15. Deterministic heuristic fallback (never blocks)
+ * Provider chain (updated 2026-04-04):
+ *   1.  Cerebras     — qwen-3-235b-a22b (8 keys, free, ultra-fast)
+ *   2.  Cerebras     — llama3.1-8b (8 keys, free, ultra-fast)
+ *   3.  Cerebras     — gpt-oss-120b (8 keys, free, different model perspective)
+ *   4.  Cerebras     — zai-glm-4.7 (8 keys, free, Chinese model perspective)
+ *   5.  Mistral      — mistral-small-latest (3 keys, free)
+ *   6.  Sarvam       — sarvam-m (13 keys, Indian AI, free)
+ *   7.  OpenRouter   — qwen3-coder:free (3 keys, free)
+ *   8.  Groq         — llama-3.3-70b-versatile (9 keys)
+ *   9.  NVIDIA       — meta/llama-3.3-70b-instruct (3 keys, free)
+ *  10.  Inception    — mercury-2 (9 keys, free, diffusion-based)
+ *  11.  Xiaomi MiMo  — mimo-v2-flash (5 keys, free)
+ *  12.  Xiaomi MiMo  — mimo-v2-pro (5 keys, free, reasoning)
+ *  13.  Cohere       — command-a-reasoning (9 keys, reasoning model)
+ *  14-22. Cloudflare — 9 accounts x unique models (GLM4, Gemma4, Nemotron, Kimi, GPT-OSS, Qwen3, Llama4Scout, MistralSmall31, DeepSeekR1)
+ *  23.  Cloudflare   — account 10 (GLM-4.7-flash, additional account)
+ *  24.  Deterministic heuristic fallback (never blocks)
  *
+ * TOTAL: 23 independent LLM judges + 1 heuristic = 24 scoring perspectives
  * ALL available judges score independently. Final score = average across all judges.
  * Each model evaluates each section independently for maximum consensus diversity.
  */
@@ -61,7 +64,7 @@ const PROVIDERS = [
         name: "Cerebras-Qwen235B",
         url: "https://api.cerebras.ai/v1/chat/completions",
         model: "qwen-3-235b-a22b-instruct-2507",
-        keys: loadKeys("CEREBRAS_API_KEY").concat(loadKeys("CEREBRAS_KEY")),
+        keys: loadKeys("CEREBRAS_API_KEY", 15).concat(loadKeys("CEREBRAS_KEY", 15)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
         stripThinkTags: true,
@@ -72,27 +75,49 @@ const PROVIDERS = [
         name: "Cerebras-Llama8B",
         url: "https://api.cerebras.ai/v1/chat/completions",
         model: "llama3.1-8b",
-        keys: loadKeys("CEREBRAS_API_KEY").concat(loadKeys("CEREBRAS_KEY")),
+        keys: loadKeys("CEREBRAS_API_KEY", 15).concat(loadKeys("CEREBRAS_KEY", 15)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
     },
-    // --- Mistral: 2 keys, reliable ---
+    // --- Cerebras: GPT-OSS-120B (120B param open-source model, different perspective) ---
+    {
+        id: "cerebras-gptoss",
+        name: "Cerebras-GPT-OSS-120B",
+        url: "https://api.cerebras.ai/v1/chat/completions",
+        model: "gpt-oss-120b",
+        keys: loadKeys("CEREBRAS_API_KEY", 15).concat(loadKeys("CEREBRAS_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+    },
+    // --- Cerebras: ZAI GLM-4.7 (Chinese model — different cultural perspective on academic rigor) ---
+    {
+        id: "cerebras-glm47",
+        name: "Cerebras-GLM4.7",
+        url: "https://api.cerebras.ai/v1/chat/completions",
+        model: "zai-glm-4.7",
+        keys: loadKeys("CEREBRAS_API_KEY", 15).concat(loadKeys("CEREBRAS_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 1024,
+    },
+    // --- Mistral: 3 keys, reliable ---
     {
         id: "mistral",
         name: "Mistral",
         url: "https://api.mistral.ai/v1/chat/completions",
         model: "mistral-small-latest",
-        keys: loadKeys("MISTRAL_API_KEY").concat(loadKeys("MISTRAL_KEY")),
+        keys: loadKeys("MISTRAL_API_KEY", 10).concat(loadKeys("MISTRAL_KEY", 10)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
     },
-    // --- Sarvam (Indian AI): sarvam-m, uses <think> tags (needs 2048+ tokens) ---
+    // --- Sarvam (Indian AI): sarvam-m, uses <think> tags (needs 2048+ tokens), 13 keys ---
     {
         id: "sarvam",
         name: "Sarvam",
         url: "https://api.sarvam.ai/v1/chat/completions",
         model: "sarvam-m",
-        keys: loadKeys("SARVAM_KEY").concat(loadKeys("SARVAM_API_KEY")),
+        keys: loadKeys("SARVAM_KEY", 15).concat(loadKeys("SARVAM_API_KEY", 15)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
         stripThinkTags: true,
@@ -109,13 +134,13 @@ const PROVIDERS = [
         authPrefix: "Bearer ",
         extraHeaders: { "HTTP-Referer": "https://www.p2pclaw.com", "X-Title": "P2PCLAW Scoring" },
     },
-    // --- Groq: 7 keys but may be org-restricted ---
+    // --- Groq: 9 keys but may be org-restricted ---
     {
         id: "groq",
         name: "Groq",
         url: "https://api.groq.com/openai/v1/chat/completions",
         model: "llama-3.3-70b-versatile",
-        keys: loadKeys("GROQ_API_KEY").concat(loadKeys("GROQ_KEY")),
+        keys: loadKeys("GROQ_API_KEY", 15).concat(loadKeys("GROQ_KEY", 15)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
     },
@@ -125,27 +150,30 @@ const PROVIDERS = [
         name: "NVIDIA",
         url: "https://integrate.api.nvidia.com/v1/chat/completions",
         model: "meta/llama-3.3-70b-instruct",
-        keys: loadKeys("NVAPI_KEY").concat(loadKeys("NVIDIA_API_KEY")),
+        keys: loadKeys("NVAPI_KEY", 10).concat(loadKeys("NVIDIA_API_KEY", 10)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
+        timeout: 45000,
     },
-    // --- Inception: mercury-2 ---
+    // --- Inception: mercury-2 (diffusion-based LLM — unique scoring perspective) ---
     {
         id: "inception",
-        name: "Inception",
+        name: "Inception-Mercury2",
         url: "https://api.inceptionlabs.ai/v1/chat/completions",
         model: "mercury-2",
-        keys: loadKeys("INCEPTION_API_KEY").concat(loadKeys("INCEPTION_KEY")),
+        keys: loadKeys("INCEPTION_API_KEY", 15).concat(loadKeys("INCEPTION_KEY", 15)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
+        maxTokens: 1024, // Mercury-2 needs at least 50 tokens (reasoning model)
+        timeout: 45000,
     },
-    // --- Xiaomi MiMo: 3 keys x 2 models = up to 2 independent judges ---
+    // --- Xiaomi MiMo: 5 keys x 2 models = up to 2 independent judges ---
     {
         id: "xiaomi-flash",
         name: "Xiaomi-MiMo-Flash",
         url: "https://api.xiaomimimo.com/v1/chat/completions",
         model: "mimo-v2-flash",
-        keys: loadKeys("XIAOMI_API_KEY").concat(loadKeys("XIAOMI_KEY")),
+        keys: loadKeys("XIAOMI_API_KEY", 10).concat(loadKeys("XIAOMI_KEY", 10)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
     },
@@ -154,18 +182,18 @@ const PROVIDERS = [
         name: "Xiaomi-MiMo-Pro",
         url: "https://api.xiaomimimo.com/v1/chat/completions",
         model: "mimo-v2-pro",
-        keys: loadKeys("XIAOMI_API_KEY").concat(loadKeys("XIAOMI_KEY")),
+        keys: loadKeys("XIAOMI_API_KEY", 10).concat(loadKeys("XIAOMI_KEY", 10)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
         maxTokens: 1024,
     },
-    // --- Cohere: command-a-reasoning model (8 keys, reasoning/thinking model) ---
+    // --- Cohere: command-a-reasoning model (9 keys, reasoning/thinking model) ---
     {
         id: "cohere",
         name: "Cohere-CommandA",
         url: "https://api.cohere.com/v2/chat",
         model: "command-a-reasoning-08-2025",
-        keys: loadKeys("COHERE_API_KEY").concat(loadKeys("COHERE_KEY")),
+        keys: loadKeys("COHERE_API_KEY", 15).concat(loadKeys("COHERE_KEY", 15)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
         stripThinkTags: true,
@@ -281,6 +309,20 @@ const PROVIDERS = [
         url: `https://api.cloudflare.com/client/v4/accounts/60c2dcaa7fc3377f036114648f6397ba/ai/run/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b`,
         model: "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
         keys: loadKeys("CF_AI_TOKEN_9"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    // --- Cloudflare Workers AI: Account 10 (Agnuxo2026, GLM-4.7-flash) ---
+    {
+        id: "cloudflare-glm47-10",
+        name: "Cloudflare-GLM47-Acct10",
+        url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID_10 || "00c5ebf4df46d16450d5f1419dc36c6a"}/ai/run/@cf/zai-org/glm-4.7-flash`,
+        model: "@cf/zai-org/glm-4.7-flash",
+        keys: loadKeys("CF_AI_TOKEN_10"),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
         stripThinkTags: true,
