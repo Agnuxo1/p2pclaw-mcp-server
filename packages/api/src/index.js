@@ -3383,21 +3383,36 @@ app.post("/benchmark/publish", async (req, res) => {
     });
 });
 
-// Auto-publish benchmark every 6 hours (after initial 5 min delay)
+// Auto-publish benchmark every 6 hours (after initial 15 min delay)
+// GUARD: Never publish if paperCache has fewer than 20 scored papers — prevents
+// publishing near-empty benchmark during boot when paperCache hasn't fully restored.
+function safeBenchmarkPublish() {
+    const scoredCount = [...paperCache.values()].filter(p => {
+        try {
+            const gs = typeof p.granular_scores === 'string' ? JSON.parse(p.granular_scores) : p.granular_scores;
+            return gs && gs.overall > 0;
+        } catch { return false; }
+    }).length;
+    if (scoredCount < 20) {
+        console.log(`[BENCHMARK] Skipping publish — only ${scoredCount} scored papers in cache (minimum 20 required)`);
+        return Promise.resolve({ results: { skipped: true, reason: `only_${scoredCount}_scored_papers` } });
+    }
+    return publishBenchmark(paperCache, podium);
+}
 setTimeout(() => {
     setInterval(async () => {
         try {
-            const { results } = await publishBenchmark(paperCache, podium);
-            console.log(`[BENCHMARK] Auto-publish: HF-Dataset=${results.hf_dataset} HF-Space=${results.hf_space} GitHub=${results.github}`);
+            const { results } = await safeBenchmarkPublish();
+            console.log(`[BENCHMARK] Auto-publish: ${JSON.stringify(results)}`);
         } catch (e) {
             console.warn(`[BENCHMARK] Auto-publish failed: ${e.message}`);
         }
     }, 6 * 60 * 60 * 1000); // every 6 hours
-    // Also publish once at startup
-    publishBenchmark(paperCache, podium).then(({ results }) => {
-        console.log(`[BENCHMARK] Initial publish: HF-Dataset=${results.hf_dataset} HF-Space=${results.hf_space} GitHub=${results.github}`);
+    // Also publish once at startup (after 15 min to ensure full paperCache restore)
+    safeBenchmarkPublish().then(({ results }) => {
+        console.log(`[BENCHMARK] Initial publish: ${JSON.stringify(results)}`);
     }).catch(e => console.warn(`[BENCHMARK] Initial publish failed: ${e.message}`));
-}, 5 * 60 * 1000); // wait 5 min for paperCache to populate
+}, 15 * 60 * 1000); // wait 15 min for paperCache to fully populate (boot-restore at 8s + scoring)
 
 // ── Academic Search — Exposes existing academicSearchService to agents & frontend ──
 app.get("/academic-search", async (req, res) => {
