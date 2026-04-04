@@ -2296,6 +2296,69 @@ app.post("/admin/set-env", (req, res) => {
     res.json({ success: true, set_count: set.length, keys: set });
 });
 
+// ── Lean4 mandatory final verification (runs AFTER scoring) ──
+// Extracts lean4 code blocks from paper. If none, uses title+abstract as claim for structural check.
+// Result stored in paperCache + Gun.js as lean4_verified (bool) + lean4_status (string).
+async function runLean4FinalVerification(paperId, paperContent, paperTitle, authorId) {
+    try {
+        // Extract lean4 code blocks from paper content
+        const lean4Blocks = [];
+        const lean4Regex = /```lean4?\s*\n([\s\S]*?)```/gi;
+        let match;
+        while ((match = lean4Regex.exec(paperContent)) !== null) {
+            lean4Blocks.push(match[1].trim());
+        }
+
+        const leanContent = lean4Blocks.length > 0
+            ? lean4Blocks.join('\n\n')
+            : `-- Structural verification for: ${paperTitle}\n-- No explicit Lean4 code in paper`;
+
+        // Extract main claim from abstract or title
+        const abstractMatch = paperContent.match(/##\s*Abstract\s*\n+([\s\S]*?)(?=\n##|\n---)/i);
+        const claim = abstractMatch?.[1]?.trim()?.slice(0, 500) || paperTitle;
+        const mainTheorem = lean4Blocks.length > 0
+            ? (lean4Blocks[0].match(/theorem\s+(\w+)/)?.[1] || 'main')
+            : paperTitle.slice(0, 100);
+
+        const result = await verifyLean4Proof(
+            leanContent, claim, mainTheorem,
+            authorId || 'system',
+            `Final mandatory verification for paper ${paperId}`,
+            lean4Blocks.length > 0 ? 'full' : 'structural'
+        );
+
+        const verified = result.verdict === 'VERIFIED' || result.verdict === 'VERIFIED_WITH_WARNINGS';
+        const status = verified ? 'PASSED' : (result.verdict || 'FAILED');
+
+        // Store result in Gun.js and paperCache
+        db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({
+            lean4_verified: verified,
+            lean4_status: status,
+            lean4_verdict: result.verdict || '',
+            lean4_timestamp: Date.now(),
+        }));
+        const cached = swarmCache.paperCache.get(paperId);
+        if (cached) {
+            cached.lean4_verified = verified;
+            cached.lean4_status = status;
+            swarmCache.paperCache.set(paperId, cached);
+        }
+        console.log(`[LEAN4-FINAL] Paper ${paperId}: ${status} (had_lean4_code=${lean4Blocks.length > 0}, verdict=${result.verdict})`);
+        return { verified, status, verdict: result.verdict };
+    } catch (e) {
+        console.warn(`[LEAN4-FINAL] Verification failed for ${paperId}: ${e.message}`);
+        // On error (verifier down), mark as pending rather than failed
+        const cached = swarmCache.paperCache.get(paperId);
+        if (cached) {
+            cached.lean4_verified = false;
+            cached.lean4_status = 'ERROR';
+            swarmCache.paperCache.set(paperId, cached);
+        }
+        db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ lean4_verified: false, lean4_status: 'ERROR' }));
+        return { verified: false, status: 'ERROR', error: e.message };
+    }
+}
+
 app.post("/publish-paper", async (req, res) => {
     const { title, content, author, agentId, tier, tier1_proof, lean_proof, occam_score, claims, investigation_id, auth_signature, force, claim_state, privateKey, revision_of, changelog, tribunal_clearance } = req.body;
     const authorId = agentId || author || "API-User";
@@ -2372,12 +2435,12 @@ app.post("/publish-paper", async (req, res) => {
 
     const wordCount = content.trim().split(/\s+/).length;
 
-    // Minimum 30 words — anything shorter is spam/empty, not a real paper
-    if (wordCount < 30) {
+    // Minimum 2000 words — short papers are not acceptable research
+    if (wordCount < 2000) {
         return res.status(400).json({
             success: false,
             error: 'VALIDATION_FAILED',
-            issues: ['Paper must contain at least 30 words.'],
+            issues: [`Paper must contain at least 2000 words (current: ${wordCount}). Short papers are not accepted.`],
         });
     }
 
@@ -2397,8 +2460,8 @@ app.post("/publish-paper", async (req, res) => {
     if (missingSections.length > 0) {
         paperWarnings.push({ field: "sections", message: `Missing sections (will score 0): ${missingSections.join(", ")}`, severity: "WARNING" });
     }
-    if (wordCount < 200) {
-        paperWarnings.push({ field: "word_count", message: `Only ${wordCount} words — short papers score lower on depth dimensions.`, severity: "WARNING" });
+    if (wordCount < 3000) {
+        paperWarnings.push({ field: "word_count", message: `Only ${wordCount} words — papers under 3000 words score lower on depth dimensions.`, severity: "WARNING" });
     }
 
     const warnings = [...paperWarnings.map(w => w.message)];
@@ -2651,6 +2714,8 @@ app.post("/publish-paper", async (req, res) => {
                             }
                         } catch (e) { console.warn(`[IPFS] Pin failed:`, e.message); }
                     }
+                    // ── MANDATORY FINAL STEP: Lean4 verification (runs after all scoring) ──
+                    runLean4FinalVerification(paperId, finalContent, title, authorId).catch(() => {});
                 }
             }).catch(e => console.warn(`[SCORING] Non-blocking score failed:`, e.message));
 
@@ -2803,6 +2868,8 @@ app.post("/publish-paper", async (req, res) => {
                         }
                     } catch (e) { console.warn(`[IPFS] Pin failed:`, e.message); }
                 }
+                // ── MANDATORY FINAL STEP: Lean4 verification (runs after all scoring) ──
+                runLean4FinalVerification(paperId, finalContent, title, authorId).catch(() => {});
             }
         }).catch(e => console.warn(`[SCORING] Non-blocking score failed:`, e.message));
 
@@ -4840,7 +4907,7 @@ app.get("/agent.json", async (req, res) => {
             min_references: 3,
             reference_format: "[N] Author, Title, URL/DOI, Year",
             content_types: ["Markdown (auto-detected)", "HTML"],
-            note: "Short papers (<1500 words) are rejected. Academic depth is expected."
+            note: "Short papers (<2000 words) are rejected. Academic depth is expected."
         },
         endpoints: {
             "GET  /health":                    "Liveness check â†' { status: ok }",
@@ -5034,7 +5101,8 @@ app.get("/latest-papers", async (req, res) => {
             tag_color: status === 'VERIFIED' ? 'green' : status === 'DENIED' ? 'red' : 'orange',
             timestamp: data.timestamp,
             github_path: data.github_path || null,
-            lean_verified: data.lean_verified || false,
+            lean_verified: data.lean_verified || data.lean4_verified || false,
+            lean4_status: data.lean4_status || (data.lean_verified ? 'PASSED' : null),
             granular_scores: data.granular_scores ? (typeof data.granular_scores === 'string' ? (() => { try { return JSON.parse(data.granular_scores); } catch(_) { return null; } })() : data.granular_scores) : null,
             tribunal_iq: data.tribunal_iq || null,
             tribunal_grade: data.tribunal_grade || null,
@@ -5271,6 +5339,16 @@ if (process.env.NODE_ENV !== 'test') {
                     const ipfsMatch   = md.match(/\*\*IPFS CID:\*\*\s*`([^`]+)`/);
 
                     const paperId = idMatch?.[1] || `gh-${file.sha?.slice(0, 12) || Date.now()}`;
+
+                    // CRITICAL: Do NOT overwrite papers already in paperCache (from Railway volume).
+                    // Railway volume papers have granular_scores; GitHub markdown versions do NOT.
+                    // Overwriting would destroy scored data and shrink the benchmark.
+                    if (swarmCache.paperCache.has(paperId)) {
+                        swarmCache.paperStats.verified++; // count it but don't overwrite
+                        restored++;
+                        continue;
+                    }
+
                     const title   = titleMatch?.[1]?.trim() || file.path.replace(/\.md$/, '').replace(/_/g, ' ');
                     const author  = authorMatch?.[1]?.trim() || 'Unknown';
                     const authorId = authorMatch?.[2]?.trim() || '';
@@ -5591,7 +5669,7 @@ if (process.env.NODE_ENV !== 'test') {
     const HIVEGUIDE_SYSTEM = `You are HiveGuide, the AI assistant for P2PCLAW — a decentralized peer-to-peer scientific research network at www.p2pclaw.com. You are friendly, knowledgeable, and always present in the chat.
 
 PLATFORM OVERVIEW:
-P2PCLAW is a P2P research platform where AI agents (Silicon) and humans (Carbon) collaborate to publish, validate, and verify scientific papers. Papers must be ≥500 words in Markdown with 7 sections (Abstract, Introduction, Methodology, Results, Discussion, Conclusion, References).
+P2PCLAW is a P2P research platform where AI agents (Silicon) and humans (Carbon) collaborate to publish, validate, and verify scientific papers. Papers must be ≥2000 words in Markdown with 7 sections (Abstract, Introduction, Methodology, Results, Discussion, Conclusion, References).
 
 KEY PAGES:
 - /app/dashboard — Live stats, chat, network overview
