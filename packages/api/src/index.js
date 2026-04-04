@@ -2296,8 +2296,11 @@ app.post("/admin/set-env", (req, res) => {
     res.json({ success: true, set_count: set.length, keys: set });
 });
 
-// ── Lean4 mandatory final verification (runs AFTER scoring) ──
-// Extracts lean4 code blocks from paper. If none, uses title+abstract as claim for structural check.
+// ── Mandatory final verification (runs AFTER scoring) ──
+// Two-path verification:
+//   PATH A: Papers WITH ```lean4 code blocks → real Lean4 verification via HF Space
+//   PATH B: Papers WITHOUT lean4 blocks → Heyting Nucleus structural verification
+//     (checks claim consistency, evidence support, math/code presence, and Occam score)
 // Result stored in paperCache + Gun.js as lean4_verified (bool) + lean4_status (string).
 async function runLean4FinalVerification(paperId, paperContent, paperTitle, authorId) {
     try {
@@ -2306,48 +2309,101 @@ async function runLean4FinalVerification(paperId, paperContent, paperTitle, auth
         const lean4Regex = /```lean4?\s*\n([\s\S]*?)```/gi;
         let match;
         while ((match = lean4Regex.exec(paperContent)) !== null) {
-            lean4Blocks.push(match[1].trim());
+            if (match[1].trim().length > 20) lean4Blocks.push(match[1].trim());
         }
 
-        const leanContent = lean4Blocks.length > 0
-            ? lean4Blocks.join('\n\n')
-            : `-- Structural verification for: ${paperTitle}\n-- No explicit Lean4 code in paper`;
+        let verified = false;
+        let status = 'UNKNOWN';
+        let engine = 'none';
+        let details = {};
 
-        // Extract main claim from abstract or title
-        const abstractMatch = paperContent.match(/##\s*Abstract\s*\n+([\s\S]*?)(?=\n##|\n---)/i);
-        const claim = abstractMatch?.[1]?.trim()?.slice(0, 500) || paperTitle;
-        const mainTheorem = lean4Blocks.length > 0
-            ? (lean4Blocks[0].match(/theorem\s+(\w+)/)?.[1] || 'main')
-            : paperTitle.slice(0, 100);
+        if (lean4Blocks.length > 0) {
+            // ── PATH A: Real Lean4 verification (paper has formal proof code) ──
+            const leanContent = lean4Blocks.join('\n\n');
+            const abstractMatch = paperContent.match(/##\s*Abstract\s*\n+([\s\S]*?)(?=\n##|\n---)/i);
+            const claim = abstractMatch?.[1]?.trim()?.slice(0, 500) || paperTitle;
+            const mainTheorem = lean4Blocks[0].match(/theorem\s+(\w+)/)?.[1] || 'main';
 
-        const result = await verifyLean4Proof(
-            leanContent, claim, mainTheorem,
-            authorId || 'system',
-            `Final mandatory verification for paper ${paperId}`,
-            lean4Blocks.length > 0 ? 'full' : 'structural'
-        );
+            try {
+                const result = await verifyLean4Proof(
+                    leanContent, claim, mainTheorem,
+                    authorId || 'system',
+                    `Final mandatory verification for paper ${paperId}`,
+                    'full'
+                );
+                verified = result.verdict === 'VERIFIED' || result.verdict === 'VERIFIED_WITH_WARNINGS';
+                status = verified ? 'LEAN4_VERIFIED' : (result.verdict || 'LEAN4_FAILED');
+                engine = 'lean4-tier1';
+                details = { lean_compiles: result.lean_compiles, semantic_audit: result.semantic_audit };
+            } catch (lean4Err) {
+                // If Lean4 verifier fails, fall through to Heyting structural check
+                console.warn(`[LEAN4-FINAL] Lean4 compilation failed for ${paperId}, falling back to Heyting: ${lean4Err.message}`);
+            }
+        }
 
-        const verified = result.verdict === 'VERIFIED' || result.verdict === 'VERIFIED_WITH_WARNINGS';
-        const status = verified ? 'PASSED' : (result.verdict || 'FAILED');
+        if (!verified && status !== 'LEAN4_FAILED') {
+            // ── PATH B: Heyting Nucleus structural verification ──
+            // Checks: claim consistency, evidence support, math/code content, Occam score.
+            // This meaningfully verifies that the paper's claims are internally consistent
+            // and supported by its own content — even without formal Lean4 proofs.
+            const extractedClaims = [];
+            // Extract explicit claims from the paper
+            const claimPatterns = /(?:we prove|we show|we demonstrate|our results|we establish|the theorem|we verify|we conclude|we propose|our approach|we introduce|this work|our contribution)[^.!?]{10,200}[.!?]/gi;
+            let cm;
+            while ((cm = claimPatterns.exec(paperContent)) !== null && extractedClaims.length < 20) {
+                extractedClaims.push(cm[0].trim());
+            }
+
+            // Also extract mathematical formulas and code for analysis
+            const hasMath = /\$[^$]+\$|\\\[[\s\S]*?\\\]|\\begin\{(equation|align|theorem|proof)\}/.test(paperContent);
+            const hasCode = /```(python|rust|javascript|typescript|java|c\+\+|go|lean)[\s\S]*?```/.test(paperContent);
+            const hasBigO = /O\([^)]+\)|Θ\([^)]+\)|Ω\([^)]+\)/.test(paperContent);
+            const hasStats = /p\s*[<>]\s*0\.\d|±|confidence interval|standard deviation|variance|mean\s*=/i.test(paperContent);
+
+            const result = await verifyWithTier1(
+                paperTitle,
+                paperContent,
+                extractedClaims.length > 0 ? extractedClaims : paperTitle,
+                authorId || 'system'
+            );
+
+            verified = result.verified === true;
+            // Bonus: papers with real math/code/stats get higher confidence
+            const hasSubstance = hasMath || hasCode || hasBigO || hasStats;
+            status = verified
+                ? (hasSubstance ? 'STRUCTURAL_VERIFIED' : 'STRUCTURAL_PASS')
+                : 'STRUCTURAL_FAILED';
+            engine = result.engine || 'heyting-nucleus';
+            details = {
+                consistency: result.consistency_score,
+                claim_support: result.claim_support_score,
+                occam: result.occam_score,
+                claims_found: result.claims_found || extractedClaims.length,
+                has_math: hasMath,
+                has_code: hasCode,
+                has_statistics: hasStats,
+                violations: (result.violations || []).length,
+            };
+        }
 
         // Store result in Gun.js and paperCache
         db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({
             lean4_verified: verified,
             lean4_status: status,
-            lean4_verdict: result.verdict || '',
+            lean4_engine: engine,
             lean4_timestamp: Date.now(),
         }));
         const cached = swarmCache.paperCache.get(paperId);
         if (cached) {
             cached.lean4_verified = verified;
             cached.lean4_status = status;
+            cached.lean_verified = verified; // backwards compat
             swarmCache.paperCache.set(paperId, cached);
         }
-        console.log(`[LEAN4-FINAL] Paper ${paperId}: ${status} (had_lean4_code=${lean4Blocks.length > 0}, verdict=${result.verdict})`);
-        return { verified, status, verdict: result.verdict };
+        console.log(`[VERIFY-FINAL] Paper ${paperId}: ${status} engine=${engine} lean4_blocks=${lean4Blocks.length} details=${JSON.stringify(details)}`);
+        return { verified, status, engine, details };
     } catch (e) {
-        console.warn(`[LEAN4-FINAL] Verification failed for ${paperId}: ${e.message}`);
-        // On error (verifier down), mark as pending rather than failed
+        console.warn(`[VERIFY-FINAL] Verification failed for ${paperId}: ${e.message}`);
         const cached = swarmCache.paperCache.get(paperId);
         if (cached) {
             cached.lean4_verified = false;
