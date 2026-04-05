@@ -24,18 +24,34 @@ const MAX_MEMORY_MB = 512;
 
 // Allowed Python imports per domain — anything else is blocked by the wrapper
 const ALLOWED_IMPORTS = {
-    // Universal (all domains)
+    // Universal (all domains) — includes stdlib modules needed by scientific packages
     _universal: [
         'json', 'math', 'sys', 'os', 'io', 're', 'hashlib', 'decimal',
         'fractions', 'statistics', 'collections', 'itertools', 'functools',
-        'numpy', 'scipy', 'pandas', 'matplotlib', 'csv', 'datetime'
+        'numpy', 'scipy', 'pandas', 'matplotlib', 'csv', 'datetime',
+        // Stdlib modules commonly imported by scientific packages
+        'abc', 'array', 'ast', 'base64', 'binascii', 'bisect', 'builtins',
+        'calendar', 'codecs', 'contextlib', 'copy', 'copyreg', 'ctypes',
+        'dataclasses', 'difflib', 'dis', 'email', 'encodings', 'enum',
+        'errno', 'fnmatch', 'gc', 'gettext', 'glob', 'gzip', 'heapq',
+        'html', 'http', 'importlib', 'inspect', 'keyword', 'linecache',
+        'locale', 'logging', 'lzma', 'mmap', 'numbers', 'operator',
+        'pathlib', 'pickle', 'pkgutil', 'platform', 'pprint', 'posixpath',
+        'queue', 'random', 'reprlib', 'select', 'selectors', 'shutil',
+        'signal', 'site', 'socket', 'sre_compile', 'sre_constants', 'sre_parse',
+        'string', 'struct', 'textwrap', 'threading', 'time', 'token', 'tokenize',
+        'traceback', 'types', 'typing', 'unicodedata', 'unittest', 'urllib',
+        'uuid', 'warnings', 'weakref', 'xml', 'zipfile', 'zipimport', 'zlib',
+        // Commonly needed by numpy/scipy/pandas
+        'concurrent', 'multiprocessing', 'tempfile', 'configparser',
+        'ntpath', 'posixpath', 'genericpath', 'stat'
     ],
     physics: [
         'sympy', 'astropy', 'pyhf', 'qiskit', 'qutip', 'pennylane',
         'einsteinpy', 'dedalus', 'tenpy'
     ],
     chemistry: [
-        'rdkit', 'pyscf', 'ase', 'openbabel', 'cclib', 'selfies', 'mordred',
+        'rdkit', 'Chem', 'pyscf', 'ase', 'openbabel', 'cclib', 'selfies', 'mordred',
         'pubchempy', 'thermo', 'CoolProp', 'cantera', 'chemprop',
         'deepchem', 'xtb'
     ],
@@ -44,7 +60,8 @@ const ALLOWED_IMPORTS = {
     ],
     biology: [
         'Bio', 'biopython', 'biotite', 'prody', 'networkx', 'statsmodels',
-        'rdkit', 'MDAnalysis', 'scanpy', 'sklearn', 'scikit_bio'
+        'rdkit', 'MDAnalysis', 'scanpy', 'sklearn', 'scikit_bio',
+        'Chem'  // rdkit.Chem
     ],
     mathematics: [
         'sympy', 'z3', 'networkx', 'cvxpy', 'sage'
@@ -85,9 +102,10 @@ _original_import = __builtins__.__import__ if hasattr(__builtins__, '__import__'
 
 def _safe_import(name, *args, **kwargs):
     root = name.split('.')[0]
-    if root not in ALLOWED:
-        raise ImportError(f"Module '{root}' is not allowed. Permitted: {sorted(ALLOWED)}")
-    return _original_import(name, *args, **kwargs)
+    # Allow internal/private modules (needed by scientific packages)
+    if root.startswith('_') or root in ALLOWED:
+        return _original_import(name, *args, **kwargs)
+    raise ImportError(f"Module '{root}' is not allowed. Permitted: {sorted(ALLOWED)}")
 
 try:
     __builtins__.__import__ = _safe_import
@@ -325,16 +343,20 @@ export async function checkInstalledTools(domain) {
     const hasPython = await checkPythonAvailable();
     if (!hasPython) return [];
 
-    const allImports = [
-        ...(ALLOWED_IMPORTS[domain] || []),
-    ];
+    // Check both universal scientific packages and domain-specific ones
+    // Exclude stdlib modules (only check pip-installed packages)
+    const SCIENTIFIC_UNIVERSAL = ['numpy', 'scipy', 'pandas', 'matplotlib'];
+    const domainSpecific = (ALLOWED_IMPORTS[domain] || []).filter(m =>
+        !m.startsWith('_') && m.length > 1 && m !== 'Chem'
+    );
+    const allImports = [...new Set([...SCIENTIFIC_UNIVERSAL, ...domainSpecific])];
 
-    // Quick import check
-    const checkCode = allImports.map(mod =>
-        `try:\n    __import__("${mod}")\n    print("OK:${mod}")\nexcept:\n    print("MISS:${mod}")`
+    // Use importlib directly (bypasses our safe_import hook)
+    const checkCode = `import importlib\n` + allImports.map(mod =>
+        `try:\n    importlib.import_module("${mod}")\n    print("OK:${mod}")\nexcept:\n    print("MISS:${mod}")`
     ).join('\n');
 
-    const result = await runPythonTool(checkCode, { domain, timeout: 15_000, tool: 'import_check' });
+    const result = await runPythonTool(checkCode, { domain, timeout: 30_000, tool: 'import_check' });
 
     const installed = [];
     if (result.success && result.stdout) {
