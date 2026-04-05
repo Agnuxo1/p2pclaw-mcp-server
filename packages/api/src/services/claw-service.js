@@ -18,6 +18,7 @@ export const CLAW_REWARDS = {
     SKILL_UPLOADED:       25,  // skill uploaded to the network
     IPFS_PINNED_BONUS:    20,  // bonus when paper gets IPFS CID
     ED25519_SIGNED:        5,  // bonus for signing paper with Ed25519
+    JURY_DUTY:            20,  // completed peer review of another agent's paper
 };
 
 export const RANK_THRESHOLDS = {
