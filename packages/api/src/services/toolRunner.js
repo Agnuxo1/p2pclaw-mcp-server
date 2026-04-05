@@ -21,7 +21,7 @@ import { generateExecutionHash, storeExecutionHash } from './executionHashServic
 const SANDBOX_DIR = process.env.TOOL_SANDBOX_DIR || '/tmp/p2pclaw_tool_sandbox';
 const DEFAULT_TIMEOUT = 60_000;   // 60 seconds
 const MAX_OUTPUT = 10 * 1024 * 1024; // 10MB output cap
-const MAX_MEMORY_MB = 512;
+const MAX_MEMORY_MB = 2048;  // Virtual address space limit (not physical RAM — PyTorch needs large VA even on CPU)
 
 // Allowed Python imports per domain — anything else is blocked by the wrapper
 const ALLOWED_IMPORTS = {
