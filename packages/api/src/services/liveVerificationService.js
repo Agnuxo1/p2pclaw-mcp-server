@@ -654,6 +654,14 @@ function verificationToAdjustments(verification) {
         adjustments.reproducibility_cap = 3;
     }
 
+    // 5. Execution proof bonus — papers with verified code blocks get an overall score boost
+    const codeForBonus = verification.code_execution;
+    if (codeForBonus && codeForBonus.passed > 0) {
+        const execBonus = Math.min(1.5, codeForBonus.passed * 0.5);
+        bonuses.execution_proof_bonus = execBonus;
+        bonuses.execution_proof_note = `${codeForBonus.passed} code block(s) executed successfully: +${execBonus} overall bonus (capped at 1.5)`;
+    }
+
     return { adjustments, bonuses };
 }
 
