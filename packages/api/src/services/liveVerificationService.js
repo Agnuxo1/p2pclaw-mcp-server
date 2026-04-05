@@ -316,76 +316,42 @@ function executeJsSandbox(code) {
  * Falls back to static syntax analysis if not.
  */
 async function executePython(code) {
-    // Safety: reject code with dangerous patterns
-    const DANGEROUS = /\b(import\s+os|import\s+sys|import\s+subprocess|__import__|eval\s*\(|exec\s*\(|open\s*\(|os\.system|os\.popen|subprocess\.|shutil\.|pathlib\.|socket\.|http\.|urllib\.|requests\.)/;
-    if (DANGEROUS.test(code)) {
-        return {
-            executed: false,
-            success: false,
-            error: "blocked_dangerous_code",
-            note: "Code contains dangerous imports (os, subprocess, etc.) — execution blocked for safety",
-            static_analysis: analyzePythonStatic(code),
-        };
-    }
-
-    // Try executing with python3
+    // Fix #3b: Use the proper toolRunner sandbox instead of raw execSync.
+    // toolRunner has proper timeout, memory limits, and supports scientific packages.
     try {
-        const { execSync } = await import("child_process");
-
-        // Wrap code in a safe execution envelope with timeout
-        const wrappedCode = `
-import signal, sys, json, hashlib
-signal.alarm(5)  # 5 second timeout
-_stdout_capture = []
-_orig_print = print
-def print(*args, **kwargs):
-    _stdout_capture.append(' '.join(str(a) for a in args))
-    _orig_print(*args, **kwargs)
-try:
-${code.split("\n").map(l => "    " + l).join("\n")}
-except Exception as e:
-    print(f"ERROR: {e}")
-output = '\\n'.join(_stdout_capture)
-h = hashlib.sha256((${JSON.stringify(code)} + output).encode()).hexdigest()
-_orig_print(f"\\n__EXEC_HASH__:{h}")
-`;
-
-        const result = execSync(`python3 -c ${JSON.stringify(wrappedCode)}`, {
-            timeout: 8000,
-            maxBuffer: 1024 * 50,
-            stdio: ["pipe", "pipe", "pipe"],
-        });
-
-        const output = result.toString("utf-8");
-        const hashMatch = output.match(/__EXEC_HASH__:(\w+)/);
-        const cleanOutput = output.replace(/\n__EXEC_HASH__:\w+\s*$/, "").trim();
-
-        return {
-            executed: true,
-            success: true,
-            output: cleanOutput.substring(0, 500),
-            execution_hash: hashMatch ? `sha256:${hashMatch[1]}` : null,
-            runtime: "python3",
-        };
-    } catch (e) {
-        // If python3 not found, fall back to static analysis
-        if (e.code === "ENOENT" || (e.message && e.message.includes("not found"))) {
+        const { runPythonTool, checkPythonAvailable } = await import("./toolRunner.js");
+        const hasPython = await checkPythonAvailable();
+        if (!hasPython) {
             return {
                 executed: false,
                 success: false,
-                note: "python3_not_available_on_server",
+                error: "python_not_available",
                 static_analysis: analyzePythonStatic(code),
             };
         }
-        // Python execution error (syntax error, runtime error, timeout)
-        const stderr = e.stderr ? e.stderr.toString("utf-8").substring(0, 300) : "";
-        const stdout = e.stdout ? e.stdout.toString("utf-8").substring(0, 300) : "";
+
+        const result = await runPythonTool(code, {
+            domain: "mathematics",  // universal — allows all scientific imports
+            timeout: 15000,         // 15s per block (live verification)
+            tool: "live_verification",
+        });
+
         return {
             executed: true,
-            success: false,
-            error: e.killed ? "TIMEOUT_8s" : stderr || e.message.substring(0, 100),
-            output: stdout.substring(0, 200),
+            success: result.success,
+            output: (result.stdout || "").substring(0, 500),
+            execution_hash: result.execution_hash ? `sha256:${result.execution_hash}` : null,
             runtime: "python3",
+        };
+    } catch (e) {
+        // Fallback: static analysis if toolRunner import fails or other error
+        console.warn(`[LIVE-VERIFY] Python execution error: ${e.message}`);
+        return {
+            executed: false,
+            success: false,
+            error: e.message?.substring(0, 200) || "unknown_error",
+            static_analysis: analyzePythonStatic(code),
+            runtime: "toolRunner_fallback",
         };
     }
 }

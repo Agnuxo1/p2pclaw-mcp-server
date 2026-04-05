@@ -489,7 +489,9 @@ const DECEPTION_PATTERNS = [
         description: "Equations present but never referenced from text. Decorative math, not functional.",
         detection: "LaTeX/math blocks present but body text doesn't reference 'equation', 'formula', 'Eq.'",
         test: (text) => {
-            const equations = (text.match(/\$[^$]{3,}\$|\\\[[\s\S]*?\\\]|\\begin\{(equation|align)/g) || []);
+            // Fix #1: Only count DISPLAY math ($$...$$, \[...\], \begin{equation/align})
+            // NOT inline $...$ which is just notation, not standalone equations.
+            const equations = (text.match(/\$\$[^$]+\$\$|\\\[[\s\S]*?\\\]|\\begin\{(equation|align)/g) || []);
             if (equations.length === 0) return { match: false };
             const EQ_REFS = /\b(equation|eq\.|formula|where\s+\w+\s+(is|denotes|represents|are)|substituting|from\s+\(\d+\)|defined\s+as|satisfies|bound|inequality|we\s+derive|this\s+gives|it\s+follows|we\s+get|we\s+obtain|the\s+expression|the\s+result)\b/gi;
             const eqRefs = (text.match(EQ_REFS) || []).length;
@@ -687,8 +689,12 @@ function extractSignals(content) {
     const has_figures = /figure\s+\d|fig\.\s*\d|table\s+\d/i.test(text);
 
     // 3. Statistical rigor
-    const stat_patterns = text.match(/p\s*[<>]\s*0\.\d+|95%\s*CI|confidence\s*interval|chi-square|t-test|ANOVA|Mann-Whitney|Kolmogorov|standard\s*deviation|σ\s*=|mean\s*=|median\s*=/gi) || [];
+    const stat_patterns = text.match(/p\s*[<>]\s*0\.\d+|95%\s*CI|confidence\s*interval|chi-square|t-test|ANOVA|Mann-Whitney|Kolmogorov|standard\s*deviation|σ\s*=|mean\s*=|median\s*=|std\s*=|stderr|MSE\s*[=:]\s*\d|loss\s*[=:]\s*\d|epoch\s*\d|training\s*loss|validation\s*loss/gi) || [];
     const has_statistical_tests = stat_patterns.length > 0;
+
+    // 3b. Real data detection (Fix #4) — recognizes quantitative experimental evidence
+    const real_data_markers = text.match(/execution[_ ]hash|verified.*hash|benchmark|dataset|MNIST|CIFAR|ImageNet|experiment\s*\d|table\s*\d.*\||\|\s*\d+[\.,]\d+\s*\||epoch\s+\d+.*loss\s*=\s*\d|measured|observed|recorded|empirical/gi) || [];
+    const has_real_data = real_data_markers.length >= 2;
 
     // 4. Numerical claims
     const numerical_claims = text.match(/\d+\.\d+[%x]|\d+\.\d+\s*(accuracy|precision|recall|F1|BLEU|perplexity|error rate)/gi) || [];
@@ -912,7 +918,9 @@ function extractSignals(content) {
         mentions_lean4: /\blean\s*4?\b/i.test(text),
         has_proof_hash: /proof_hash|lean_certificate|cab_certificate/i.test(text),
         has_lean_code: /```lean[\s\S]*?```/i.test(text),
-        has_verification_claim: /\b(verified|formally\s+verified|type-checked|lean\s+verified)\b/i.test(text),
+        // Fix #7: Only match claims specifically about Lean/formal verification,
+        // NOT generic "verified" which appears in many contexts (e.g. "TIER-1 VERIFIED", "tools verified")
+        has_verification_claim: /\b(formally\s+verified|lean\s*4?\s+verified|type-checked|proof\s+assistant\s+verified|machine-checked)\b/i.test(text),
     };
     lean4_signals.verification_level = lean4_signals.has_lean_code ? "code_present"
         : lean4_signals.has_proof_hash ? "hash_present"
@@ -956,6 +964,7 @@ function extractSignals(content) {
         has_tables,
         has_figures,
         has_statistical_tests,
+        has_real_data,
         stat_patterns_count: stat_patterns.length,
         numerical_claims_count: number_count,
         unique_refs,
