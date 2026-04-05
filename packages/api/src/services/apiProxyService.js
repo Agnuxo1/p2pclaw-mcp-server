@@ -210,6 +210,76 @@ const API_REGISTRY = {
             };
         },
     },
+
+    // Fix #8: arXiv search API — enables agents to find related work
+    arxiv: {
+        name: "arXiv",
+        description: "Academic preprint search (physics, CS, math, biology, etc.)",
+        rateMs: 3000,  // arXiv requests 3s between calls
+        buildUrl: (query) =>
+            `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=5&sortBy=relevance`,
+        transform: (data) => {
+            // arXiv returns Atom XML — parse it with regex (no XML parser needed)
+            const text = typeof data === "string" ? data : JSON.stringify(data);
+            const entries = [];
+            const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+            let match;
+            while ((match = entryRegex.exec(text)) !== null && entries.length < 5) {
+                const entry = match[1];
+                const title = (entry.match(/<title>([\s\S]*?)<\/title>/) || [])[1]?.replace(/\s+/g, " ").trim() || "";
+                const summary = (entry.match(/<summary>([\s\S]*?)<\/summary>/) || [])[1]?.replace(/\s+/g, " ").trim().substring(0, 300) || "";
+                const published = (entry.match(/<published>([\s\S]*?)<\/published>/) || [])[1]?.trim() || "";
+                const idUrl = (entry.match(/<id>([\s\S]*?)<\/id>/) || [])[1]?.trim() || "";
+                const arxivId = idUrl.match(/abs\/(.+)/)?.[1] || idUrl;
+                const authors = [];
+                const authorRegex = /<name>([\s\S]*?)<\/name>/g;
+                let aMatch;
+                while ((aMatch = authorRegex.exec(entry)) !== null && authors.length < 5) {
+                    authors.push(aMatch[1].trim());
+                }
+                const cats = (entry.match(/<arxiv:primary_category[^>]*term="([^"]+)"/) || [])[1] || "";
+                entries.push({
+                    arxiv_id: arxivId,
+                    title,
+                    authors,
+                    abstract: summary,
+                    published: published.substring(0, 10),
+                    category: cats,
+                    url: `https://arxiv.org/abs/${arxivId}`,
+                    doi: (entry.match(/<arxiv:doi>([\s\S]*?)<\/arxiv:doi>/) || [])[1]?.trim() || null,
+                });
+            }
+            return {
+                total: entries.length,
+                results: entries,
+            };
+        },
+    },
+
+    // Fix #8b: Semantic Scholar search — complements arXiv for published work
+    semantic_scholar: {
+        name: "Semantic Scholar",
+        description: "Academic paper search with citation counts and abstracts",
+        rateMs: 1000,
+        buildUrl: (query) =>
+            `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&limit=5&fields=title,authors,year,citationCount,abstract,externalIds`,
+        transform: (data) => {
+            const papers = data?.data || [];
+            return {
+                total: data?.total || papers.length,
+                results: papers.map(p => ({
+                    paper_id: p.paperId || null,
+                    title: p.title || null,
+                    authors: (p.authors || []).map(a => a.name).slice(0, 5),
+                    year: p.year || null,
+                    citations: p.citationCount || 0,
+                    abstract: p.abstract ? p.abstract.substring(0, 300) : null,
+                    doi: p.externalIds?.DOI || null,
+                    arxiv_id: p.externalIds?.ArXiv || null,
+                })),
+            };
+        },
+    },
 };
 
 // ── Main query function ────────────────────────────────────────────────
@@ -242,7 +312,11 @@ export async function queryAPI(apiName, query) {
             return { error: "api_error", status: resp.status, api: apiName };
         }
 
-        const raw = await resp.json();
+        // arXiv returns XML, not JSON — detect and handle accordingly
+        const contentType = resp.headers.get("content-type") || "";
+        const raw = contentType.includes("xml") || contentType.includes("atom") || apiName === "arxiv"
+            ? await resp.text()
+            : await resp.json();
         const transformed = api.transform(raw);
         const result = { api: apiName, api_name: api.name, query, ...transformed };
 
