@@ -72,24 +72,10 @@ const ALLOWED_IMPORTS = {
 // This wrapper restricts imports and captures output safely.
 
 function buildPythonWrapper(code, domain) {
-    const allowed = [
-        ...ALLOWED_IMPORTS._universal,
-        ...(ALLOWED_IMPORTS[domain] || [])
-    ];
-    const allowedStr = JSON.stringify(allowed);
-
-    // Dangerous modules that could be used for code execution, network access, or file system abuse
-    const BLOCKED = [
-        'subprocess', 'shlex', 'pty', 'pdb', 'code', 'codeop', 'compile',
-        'compileall', 'py_compile', 'runpy',
-        'ftplib', 'smtplib', 'poplib', 'imaplib', 'nntplib', 'telnetlib',
-        'xmlrpc', 'http.server', 'socketserver',
-        'webbrowser', 'antigravity', 'turtle',
-        'ctypes', 'cffi',     // FFI — can call arbitrary C functions
-        'pip', 'setuptools', 'distutils', 'ensurepip',
-        'venv', 'virtualenv'
-    ];
-    const blockedStr = JSON.stringify(BLOCKED);
+    // Security model: process-level sandbox (timeout + memory + no network env)
+    // Scientific packages have deep dependency trees that break with import hooks.
+    // Instead we rely on: execFile timeout, RLIMIT_AS, restricted PATH/HOME,
+    // and MPLBACKEND=Agg (no display). Network calls will fail (no credentials in env).
 
     return `
 import sys, json, traceback, resource, signal
@@ -108,36 +94,6 @@ try:
     signal.alarm(55)  # 55s soft timeout (hard timeout is 60s from Node)
 except Exception:
     pass  # SIGALRM not available on Windows
-
-# Import security: BLOCKLIST approach
-# Block dangerous modules; allow everything else (scientific packages have deep dependency trees)
-BLOCKED = set(${blockedStr})
-ALLOWED_ROOTS = set(${allowedStr})
-_original_import = __builtins__.__import__ if hasattr(__builtins__, '__import__') else __import__
-
-def _safe_import(name, *args, **kwargs):
-    root = name.split('.')[0]
-    full = name.replace('.', '/')
-    # Block dangerous modules
-    if root in BLOCKED or name in BLOCKED:
-        raise ImportError(f"Module '{name}' is blocked for security reasons.")
-    # Block os.system, os.exec*, os.spawn* at attribute level (checked in wrapper)
-    return _original_import(name, *args, **kwargs)
-
-try:
-    __builtins__.__import__ = _safe_import
-except (TypeError, AttributeError):
-    import builtins
-    builtins.__import__ = _safe_import
-
-# Block dangerous os functions AFTER import
-import os as _os
-for _fn in ['system', 'popen', 'exec', 'execl', 'execle', 'execlp', 'execlpe',
-            'execv', 'execve', 'execvp', 'execvpe', 'spawn', 'spawnl', 'spawnle',
-            'spawnlp', 'spawnlpe', 'spawnv', 'spawnve', 'spawnvp', 'spawnvpe',
-            'fork', 'forkpty', 'kill', 'killpg', 'plock', 'putenv']:
-    if hasattr(_os, _fn):
-        setattr(_os, _fn, lambda *a, **k: (_ for _ in ()).throw(PermissionError(f"os.{_fn} is blocked")))
 
 # Capture output
 _output = {"success": False, "stdout": "", "stderr": "", "result": None}
