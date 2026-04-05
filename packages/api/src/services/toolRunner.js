@@ -158,7 +158,11 @@ export async function runPythonTool(code, opts = {}) {
                     PATH: process.env.PATH,
                     HOME: '/tmp',
                     PYTHONPATH: '',
-                    MPLBACKEND: 'Agg'  // matplotlib without display
+                    MPLBACKEND: 'Agg',           // matplotlib without display
+                    OPENBLAS_NUM_THREADS: '1',    // prevent OpenBLAS OOM on constrained memory
+                    OMP_NUM_THREADS: '1',         // limit OpenMP threads
+                    MKL_NUM_THREADS: '1',         // limit MKL threads
+                    NUMEXPR_MAX_THREADS: '1'      // limit numexpr threads
                 }
             }, (error, stdout, stderr) => {
                 const elapsed_ms = Date.now() - start;
