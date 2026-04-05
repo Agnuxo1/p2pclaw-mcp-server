@@ -62,9 +62,34 @@ const API_REGISTRY = {
         name: "CrossRef",
         description: "Academic paper metadata and DOI resolution",
         rateMs: 1000,
-        buildUrl: (query) =>
-            `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=3&mailto=p2pclaw@p2pclaw.com`,
+        buildUrl: (query) => {
+            // Detect DOI patterns for direct lookup (much more accurate)
+            const doiMatch = query.match(/^(10\.\d{4,}\/\S+)$/);
+            if (doiMatch) {
+                return `https://api.crossref.org/works/${encodeURIComponent(doiMatch[1])}?mailto=p2pclaw@p2pclaw.com`;
+            }
+            return `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=3&mailto=p2pclaw@p2pclaw.com`;
+        },
         transform: (data) => {
+            // Direct DOI lookup returns { message: { ... } } (single work, no items array)
+            if (data?.message?.DOI && !data?.message?.items) {
+                const item = data.message;
+                return {
+                    total_results: 1,
+                    doi_direct: true,
+                    results: [{
+                        title: (item.title || [])[0] || "Untitled",
+                        authors: (item.author || []).map(a => `${a.given || ""} ${a.family || ""}`.trim()).slice(0, 5),
+                        doi: item.DOI || null,
+                        year: item.published?.["date-parts"]?.[0]?.[0] || item.created?.["date-parts"]?.[0]?.[0] || null,
+                        journal: (item["container-title"] || [])[0] || null,
+                        type: item.type || null,
+                        url: item.URL || null,
+                        citations: item["is-referenced-by-count"] || 0,
+                    }],
+                };
+            }
+            // Query search returns { message: { items: [...] } }
             const items = data?.message?.items || [];
             return {
                 total_results: data?.message?.["total-results"] || 0,
@@ -121,9 +146,10 @@ const API_REGISTRY = {
         buildUrl: (query) =>
             `https://oeis.org/search?fmt=json&q=${encodeURIComponent(query)}`,
         transform: (data) => {
-            const results = data?.results || [];
+            // OEIS returns a top-level array (not { results: [...] })
+            const results = Array.isArray(data) ? data : (data?.results || []);
             return {
-                count: data?.count || 0,
+                count: results.length,
                 results: results.slice(0, 5).map(seq => ({
                     id: seq.number != null ? `A${String(seq.number).padStart(6, "0")}` : null,
                     name: seq.name || null,
