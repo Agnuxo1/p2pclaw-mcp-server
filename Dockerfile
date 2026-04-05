@@ -20,6 +20,12 @@ RUN python3 -m pip install --no-cache-dir --break-system-packages \
     pymatgen \
     && python3 -c "import sympy; import z3; import numpy; print('Phase 2+3 tools verified')"
 
+# Phase D: PyTorch CPU-only (no CUDA — minimizes image size)
+# Uses --index-url to avoid downloading CUDA binaries (~1.5GB savings)
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+    torch --index-url https://download.pytorch.org/whl/cpu \
+    && python3 -c "import torch; print('PyTorch', torch.__version__, 'CPU verified')"
+
 # Copy everything first so postinstall scripts can find their files
 COPY . .
 
@@ -31,4 +37,4 @@ RUN npm install got@11.8.6 --no-save
 
 EXPOSE 8080
 
-CMD ["node", "--max-old-space-size=380", "--expose-gc", "packages/api/src/index.js"]
+CMD ["node", "--max-old-space-size=330", "--expose-gc", "packages/api/src/index.js"]

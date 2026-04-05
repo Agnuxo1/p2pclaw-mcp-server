@@ -14,6 +14,7 @@ import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { generateExecutionHash, storeExecutionHash } from './executionHashService.js';
 
 // ── Configuration ───────────────────────────────────────────────────────────
 
@@ -162,7 +163,8 @@ export async function runPythonTool(code, opts = {}) {
                     OPENBLAS_NUM_THREADS: '1',    // prevent OpenBLAS OOM on constrained memory
                     OMP_NUM_THREADS: '1',         // limit OpenMP threads
                     MKL_NUM_THREADS: '1',         // limit MKL threads
-                    NUMEXPR_MAX_THREADS: '1'      // limit numexpr threads
+                    NUMEXPR_MAX_THREADS: '1',     // limit numexpr threads
+                    PYTORCH_NO_CUDA_MEMORY_CACHING: '1'  // Phase D: minimize PyTorch memory
                 }
             }, (error, stdout, stderr) => {
                 const elapsed_ms = Date.now() - start;
@@ -197,6 +199,22 @@ export async function runPythonTool(code, opts = {}) {
             });
         });
 
+        // ── Phase A: Generate execution hash (SHA-256 of code + stdout + seed) ──
+        const execHash = generateExecutionHash(code, result.stdout);
+        result.execution_hash = execHash;
+
+        // Store hash with metadata (in-memory + Gun.js)
+        if (result.success) {
+            storeExecutionHash(execHash, {
+                code,
+                stdout: result.stdout,
+                tool,
+                domain,
+                success: result.success,
+                elapsed_ms: result.elapsed_ms
+            });
+        }
+
         return result;
 
     } catch (err) {
@@ -205,7 +223,8 @@ export async function runPythonTool(code, opts = {}) {
             stdout: '',
             stderr: `Tool runner error: ${err.message}`,
             elapsed_ms: Date.now() - start,
-            tool
+            tool,
+            execution_hash: null
         };
     } finally {
         // Cleanup

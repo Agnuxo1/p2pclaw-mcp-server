@@ -771,7 +771,15 @@ export async function scoreGranular(content, paperType = "research") {
     }
 
     const sectionValues = SECTIONS.map(s => averaged[s]);
-    const overall = Math.round((sectionValues.reduce((a, b) => a + b, 0) / SECTIONS.length) * 10) / 10;
+    let overall = Math.round((sectionValues.reduce((a, b) => a + b, 0) / SECTIONS.length) * 10) / 10;
+
+    // ── Phase F: Execution Proof Bonus ──
+    // Papers with verified code blocks (execution hashes) get a purely additive overall bonus.
+    // This only increases the score, never decreases. Capped at 10.
+    if (liveVerification && liveVerification.bonuses && liveVerification.bonuses.execution_proof_bonus) {
+        overall = Math.min(10, Math.round((overall + liveVerification.bonuses.execution_proof_bonus) * 10) / 10);
+        console.log(`[SCORING] Execution proof bonus applied: +${liveVerification.bonuses.execution_proof_bonus} → overall=${overall}`);
+    }
 
     // Per-judge detail breakdown (individual scores + feedback)
     const judge_details = judges.map(j => ({

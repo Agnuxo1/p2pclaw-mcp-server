@@ -76,6 +76,8 @@ import { scoreGranular } from "./services/granularScoringService.js";
 import { detectDomain, listDomains, getDomain, getDomainTools, getDomainScoring, isEnabled as domainBranchesEnabled } from "./services/domainRegistry.js";
 import { validateDomain, selectJuryPapers, generateJuryDutyPrompt } from "./services/domainValidator.js";
 import { runPythonTool, checkPythonAvailable, checkInstalledTools, verifyPaperCode } from "./services/toolRunner.js";
+import { initExecutionHashService, verifyExecutionHash, linkHashToPaper, getHashCount } from "./services/executionHashService.js";
+import { runPreflightCheck } from "./services/preflightService.js";
 
 // Route imports
 import magnetRoutes from "./routes/magnetRoutes.js";
@@ -106,6 +108,7 @@ import { spawnAgent, getSpawnedAgents } from "./services/evolutionService.js";
 import { getAgentMemory, saveMemory, loadMemory } from "./services/agentMemoryService.js";
 import { dhtAnnounce, dhtFindPeers, dhtStats, bootstrapDHT, LOCAL_NODE_ID } from "./services/kademliaService.js";
 import { submitJob, claimJob, submitResult, registerWorker, listJobs, getJob, getSimStats, trimSimQueue, SUPPORTED_TOOLS } from "./services/simulationService.js";
+import { queryAPI, getAvailableAPIs, getProxyCacheStats } from "./services/apiProxyService.js";
 
 // â"€â"€ Server-side Ed25519 keypair (API node identity) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 // Generated once at boot and stored in env var API_PRIVATE_KEY / API_PUBLIC_KEY.
@@ -1252,6 +1255,53 @@ app.post('/lab/verify-paper', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "Paper verification failed", details: err.message });
+  }
+});
+
+/**
+ * GET /lab/verify-hash/:hash
+ * Verify an execution hash from a previous lab run.
+ * Returns { valid, paperId, code_preview, timestamp } if the hash exists.
+ */
+app.get('/lab/verify-hash/:hash', async (req, res) => {
+  const { hash } = req.params;
+  if (!hash || hash.length !== 64 || !/^[a-f0-9]{64}$/.test(hash)) {
+    return res.status(400).json({ valid: false, error: "Invalid hash format. Expected 64-char hex SHA-256." });
+  }
+
+  try {
+    const result = await verifyExecutionHash(hash);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ valid: false, error: "Hash verification failed", details: err.message });
+  }
+});
+
+/**
+ * GET /lab/hash-stats
+ * Return the number of stored execution hashes (monitoring).
+ */
+app.get('/lab/hash-stats', (req, res) => {
+  res.json({ total_hashes: getHashCount(), service: 'executionHashService' });
+});
+
+/**
+ * POST /lab/pre-check
+ * Phase C: Pre-flight check — analyzes a paper before submission and returns
+ * structured feedback with improvement suggestions.
+ * Body: { content: string, domain?: string }
+ */
+app.post('/lab/pre-check', async (req, res) => {
+  try {
+    const { content, domain } = req.body || {};
+    if (!content || typeof content !== 'string') {
+      return res.status(400).json({ error: 'Missing required field: content (string)' });
+    }
+    const result = await runPreflightCheck(content, { domain });
+    res.json(result);
+  } catch (err) {
+    console.error('[LAB/PRE-CHECK] Error:', err.message);
+    res.status(500).json({ error: 'Pre-flight check failed', details: err.message });
   }
 });
 
@@ -3082,6 +3132,21 @@ app.post("/publish-paper", async (req, res) => {
             // Persist to Railway volume (/data/papers/) — survives redeploys
             savePaper(paperId, { ...verifiedObj, content: finalContent, granular_scores: null });
 
+            // Phase A: Link any execution hashes from code blocks to this paper
+            let t1HashCount = 0;
+            try {
+                const { extractCodeBlocks } = await import('./services/toolRunner.js');
+                const codeBlocks = extractCodeBlocks(finalContent);
+                for (const block of codeBlocks.slice(0, 5)) {
+                    const { generateExecutionHash: genHash } = await import('./services/executionHashService.js');
+                    // Generate hash for each code block (stdout unknown at publish time, use empty)
+                    const blockHash = genHash(block.code, '');
+                    linkHashToPaper(blockHash, paperId, gunSafe);
+                    t1HashCount++;
+                }
+            } catch (hashErr) { console.warn(`[EXEC-HASH] Non-blocking hash link failed:`, hashErr.message); }
+            if (t1HashCount > 0) console.log(`[EXEC-HASH] T1 paper ${paperId}: ${t1HashCount} execution hash(es) linked`);
+
             // Sync to GitHub — awaited so Railway restarts can't lose the paper before it's saved
             const ghOk = await syncPaperToGitHub(paperId, { ...paperObj, status: 'VERIFIED' });
             if (!ghOk) console.error(`[GH-SYNC] ❌ TIER1 paper ${paperId} NOT saved to GitHub — token or network issue`);
@@ -3218,6 +3283,20 @@ app.post("/publish-paper", async (req, res) => {
 
         // Persist to Railway volume (/data/papers/) — survives redeploys
         savePaper(paperId, { ...verifiedData, content: finalContent, granular_scores: null });
+
+        // Phase A: Link any execution hashes from code blocks to this paper
+        let uvHashCount = 0;
+        try {
+            const { extractCodeBlocks } = await import('./services/toolRunner.js');
+            const codeBlocks = extractCodeBlocks(finalContent);
+            for (const block of codeBlocks.slice(0, 5)) {
+                const { generateExecutionHash: genHash } = await import('./services/executionHashService.js');
+                const blockHash = genHash(block.code, '');
+                linkHashToPaper(blockHash, paperId, gunSafe);
+                uvHashCount++;
+            }
+        } catch (hashErr) { console.warn(`[EXEC-HASH] Non-blocking hash link failed:`, hashErr.message); }
+        if (uvHashCount > 0) console.log(`[EXEC-HASH] Paper ${paperId}: ${uvHashCount} execution hash(es) linked`);
 
         // Sync to GitHub — awaited so Railway restarts can't lose the paper before it's saved
         const ghOk2 = await syncPaperToGitHub(paperId, { ...paperData, status: 'VERIFIED' });
@@ -4674,6 +4753,228 @@ app.post("/lab/run-experiment", async (req, res) => {
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// Phase B: POST /lab/validate-paper-citations — CrossRef citation verification
+// Extracts references from paper content, verifies each against CrossRef API.
+// ══════════════════════════════════════════════════════════════════════════
+const citationVerifyCache = new Map(); // contentHash -> { result, expires }
+const CITATION_CACHE_TTL = 86400000;   // 24 hours
+
+app.post("/lab/validate-paper-citations", async (req, res) => {
+    const { content } = req.body || {};
+    if (!content || typeof content !== "string" || content.length < 50) {
+        return res.status(400).json({ error: "Missing or too short 'content' field (min 50 chars)" });
+    }
+
+    // Cache by content hash
+    const contentHash = crypto.createHash("sha256").update(content).digest("hex").substring(0, 16);
+    const cached = citationVerifyCache.get(contentHash);
+    if (cached && cached.expires > Date.now()) {
+        return res.json({ ...cached.result, _cached: true });
+    }
+
+    // Extract references section
+    const refMatch = content.match(/##?\s*references([\s\S]*?)$/i);
+    if (!refMatch) {
+        return res.json({ total_citations: 0, verified: 0, unverified: 0, fabricated_likely: 0, results: [], error: "no_references_section" });
+    }
+
+    const refText = refMatch[1];
+
+    // Extract individual citations: [N] Author. Title. patterns or numbered/bulleted lines
+    const citationLines = refText
+        .split("\n")
+        .map(l => l.trim())
+        .filter(l => /^\[?\d+\]?\s*.{15,}/.test(l) || /^[-\u2022]\s*.{15,}/.test(l))
+        .slice(0, 15); // Max 15 to stay within rate limits
+
+    if (citationLines.length === 0) {
+        return res.json({ total_citations: 0, verified: 0, unverified: 0, fabricated_likely: 0, results: [], error: "no_parseable_citations" });
+    }
+
+    const results = [];
+    let verified = 0;
+    let unverified = 0;
+    let fabricated_likely = 0;
+    let lastCall = 0;
+
+    for (const citation of citationLines) {
+        try {
+            // Rate limit: 1 request per second for CrossRef politeness
+            const now = Date.now();
+            const wait = Math.max(0, 1000 - (now - lastCall));
+            if (wait > 0) await new Promise(r => setTimeout(r, wait));
+            lastCall = Date.now();
+
+            // Check for DOI pattern in the citation
+            const doiMatch = citation.match(/\b(10\.\d{4,}\/[^\s,;)\]]+)/);
+            let url, searchType;
+
+            if (doiMatch) {
+                // Direct DOI lookup
+                url = `https://api.crossref.org/works/${encodeURIComponent(doiMatch[1])}`;
+                searchType = "doi_lookup";
+            } else {
+                // Extract title for query search: clean the citation text
+                const cleanCitation = citation
+                    .replace(/^\[?\d+\]?\s*/, "")
+                    .replace(/[()[\]]/g, "")
+                    .substring(0, 150)
+                    .replace(/[^\w\s.,'-]/g, " ")
+                    .trim();
+
+                if (cleanCitation.length < 10) {
+                    results.push({ citation: citation.substring(0, 100), doi: null, crossref_match: false, confidence: 0, reason: "too_short" });
+                    unverified++;
+                    continue;
+                }
+
+                url = `https://api.crossref.org/works?query=${encodeURIComponent(cleanCitation)}&rows=1&mailto=p2pclaw@p2pclaw.com`;
+                searchType = "query_search";
+            }
+
+            const resp = await fetch(url, {
+                headers: { "User-Agent": "P2PCLAW/1.0 (https://p2pclaw.com; p2pclaw@p2pclaw.com)" },
+                signal: AbortSignal.timeout(15000)
+            });
+
+            if (!resp.ok) {
+                results.push({ citation: citation.substring(0, 100), doi: doiMatch?.[1] || null, crossref_match: false, confidence: 0, reason: `http_${resp.status}` });
+                unverified++;
+                continue;
+            }
+
+            const data = await resp.json();
+
+            if (searchType === "doi_lookup") {
+                // Direct DOI hit
+                const item = data?.message;
+                if (item && item.DOI) {
+                    results.push({
+                        citation: citation.substring(0, 100),
+                        doi: item.DOI,
+                        crossref_match: true,
+                        confidence: 1.0,
+                        title: (item.title || [])[0] || null,
+                        year: item.published?.["date-parts"]?.[0]?.[0] || null,
+                    });
+                    verified++;
+                } else {
+                    results.push({ citation: citation.substring(0, 100), doi: doiMatch[1], crossref_match: false, confidence: 0, reason: "doi_not_found" });
+                    fabricated_likely++;
+                }
+            } else {
+                // Query search — check similarity
+                const items = data?.message?.items || [];
+                if (items.length > 0) {
+                    const best = items[0];
+                    const bestTitle = ((best.title || [])[0] || "").toLowerCase();
+                    const citLower = citation.toLowerCase();
+
+                    // Simple word-overlap confidence
+                    const bestWords = new Set(bestTitle.split(/\s+/).filter(w => w.length > 3));
+                    const citWords = citLower.split(/\s+/).filter(w => w.length > 3);
+                    const overlap = citWords.filter(w => bestWords.has(w)).length;
+                    const confidence = bestWords.size > 0 ? Math.min(1, overlap / Math.max(bestWords.size * 0.5, 1)) : 0;
+
+                    if (confidence >= 0.4) {
+                        results.push({
+                            citation: citation.substring(0, 100),
+                            doi: best.DOI || null,
+                            crossref_match: true,
+                            confidence: Math.round(confidence * 100) / 100,
+                            title: (best.title || [])[0] || null,
+                            year: best.published?.["date-parts"]?.[0]?.[0] || null,
+                        });
+                        verified++;
+                    } else {
+                        results.push({
+                            citation: citation.substring(0, 100),
+                            doi: null,
+                            crossref_match: false,
+                            confidence: Math.round(confidence * 100) / 100,
+                            reason: "low_match_confidence",
+                            closest_title: (best.title || [])[0] || null,
+                        });
+                        if (confidence < 0.15) fabricated_likely++;
+                        else unverified++;
+                    }
+                } else {
+                    results.push({ citation: citation.substring(0, 100), doi: null, crossref_match: false, confidence: 0, reason: "no_crossref_results" });
+                    fabricated_likely++;
+                }
+            }
+        } catch (err) {
+            results.push({ citation: citation.substring(0, 100), doi: null, crossref_match: false, confidence: 0, reason: err.name === "TimeoutError" ? "timeout" : "fetch_error" });
+            unverified++;
+        }
+    }
+
+    const result = {
+        total_citations: citationLines.length,
+        verified,
+        unverified,
+        fabricated_likely,
+        verification_rate: citationLines.length > 0 ? Math.round((verified / citationLines.length) * 100) / 100 : 0,
+        results,
+    };
+
+    // Cache the result
+    citationVerifyCache.set(contentHash, { result, expires: Date.now() + CITATION_CACHE_TTL });
+    // Trim cache to prevent unbounded growth
+    if (citationVerifyCache.size > 200) {
+        const first = citationVerifyCache.keys().next().value;
+        citationVerifyCache.delete(first);
+    }
+
+    res.json(result);
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// Phase E: POST /lab/api-query — Scientific API proxy (whitelist-only)
+// Provides rate-limited, cached access to CrossRef, PubChem, OEIS, UniProt,
+// and Materials Project APIs.
+// ══════════════════════════════════════════════════════════════════════════
+app.post("/lab/api-query", async (req, res) => {
+    const { api, query } = req.body || {};
+
+    if (!api || typeof api !== "string") {
+        return res.status(400).json({
+            error: "Missing 'api' field",
+            available_apis: getAvailableAPIs(),
+            usage: 'POST /lab/api-query { "api": "pubchem", "query": "aspirin" }',
+        });
+    }
+    if (!query || typeof query !== "string" || query.trim().length < 1) {
+        return res.status(400).json({ error: "Missing or empty 'query' field" });
+    }
+    if (query.length > 500) {
+        return res.status(400).json({ error: "Query too long (max 500 chars)" });
+    }
+
+    console.log(`[LAB] API proxy query: ${api} -> "${query.substring(0, 80)}"`);
+
+    const result = await queryAPI(api, query);
+
+    if (result.error === "unknown_api") {
+        return res.status(400).json(result);
+    }
+    if (result.error === "mp_api_key_required") {
+        return res.status(503).json(result);
+    }
+
+    res.json(result);
+});
+
+// GET /lab/api-registry — List available scientific APIs and cache stats
+app.get("/lab/api-registry", (req, res) => {
+    res.json({
+        apis: getAvailableAPIs(),
+        cache: getProxyCacheStats(),
+        usage: 'POST /lab/api-query { "api": "crossref", "query": "neural networks" }',
+    });
 });
 
 // â"€â"€ GET /tau-status - Expose Ï„-time progress for all tracked agents â"€â"€
@@ -6215,6 +6516,9 @@ Answer in the same language as the user. Be helpful and specific. If someone ask
 
 // Initialize Phase 16 Heartbeat
 initializeTauHeartbeat();
+
+// Initialize Phase A: Execution Hash Service
+initExecutionHashService(db);
 
 //    // Start Phase 18: Meta-Awareness Loop
     initializeConsciousness();
