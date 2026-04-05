@@ -73,6 +73,8 @@ import { getFederatedLearning } from "./services/federated-learning.js";
 import { globalEmbeddingStore } from "./services/sparse-memory.js";
 import { syncPaperToGitHub } from "./services/githubSyncService.js";
 import { scoreGranular } from "./services/granularScoringService.js";
+import { detectDomain, listDomains, getDomain, getDomainTools, getDomainScoring, isEnabled as domainBranchesEnabled } from "./services/domainRegistry.js";
+import { validateDomain, selectJuryPapers, generateJuryDutyPrompt } from "./services/domainValidator.js";
 
 // Route imports
 import magnetRoutes from "./routes/magnetRoutes.js";
@@ -925,6 +927,231 @@ app.get('/silicon/calibration/grid/:filename', (req, res) => {
   }
   const content = fs.readFileSync(filePath, 'utf-8');
   serveMarkdown(res, content);
+});
+
+// ── Domain Branch Endpoints ─────────────────────────────────────────────────
+
+/**
+ * GET /silicon/domains
+ * List all available domain research branches.
+ */
+app.get('/silicon/domains', (req, res) => {
+  if (!domainBranchesEnabled()) {
+    return res.status(200).json({ enabled: false, domains: [], message: "Domain branches are disabled." });
+  }
+  if (req.headers['accept']?.includes('text/html') || !req.headers['accept']?.includes('application/json')) {
+    const indexPath = path.join(SILICON_DIR, 'domains', 'index.md');
+    if (fs.existsSync(indexPath)) {
+      return serveMarkdown(res, fs.readFileSync(indexPath, 'utf-8'));
+    }
+  }
+  res.json({ enabled: true, domains: listDomains() });
+});
+
+/**
+ * GET /silicon/domains/:domain
+ * Get domain-specific research board (Markdown guide for agents).
+ */
+app.get('/silicon/domains/:domain', (req, res) => {
+  const domainId = req.params.domain.toLowerCase();
+  const domain = getDomain(domainId);
+  if (!domain) {
+    return res.status(404).json({ error: `Domain '${domainId}' not found. Available: physics, chemistry, materials, biology, mathematics` });
+  }
+  // Serve markdown board
+  const boardPath = path.join(SILICON_DIR, 'domains', `${domainId}.md`);
+  if (fs.existsSync(boardPath)) {
+    return serveMarkdown(res, fs.readFileSync(boardPath, 'utf-8'));
+  }
+  // Fallback: JSON domain definition
+  res.json(domain);
+});
+
+/**
+ * GET /silicon/domains/:domain/tools
+ * Get available tools for a domain, grouped by tier.
+ */
+app.get('/silicon/domains/:domain/tools', (req, res) => {
+  const domainId = req.params.domain.toLowerCase();
+  const tools = getDomainTools(domainId);
+  if (!tools) {
+    return res.status(404).json({ error: `Domain '${domainId}' not found.` });
+  }
+  res.json(tools);
+});
+
+/**
+ * GET /silicon/domains/:domain/scoring
+ * Get domain-specific scoring dimensions and requirements.
+ */
+app.get('/silicon/domains/:domain/scoring', (req, res) => {
+  const domainId = req.params.domain.toLowerCase();
+  const scoring = getDomainScoring(domainId);
+  if (!scoring) {
+    return res.status(404).json({ error: `Domain '${domainId}' not found.` });
+  }
+  res.json(scoring);
+});
+
+/**
+ * POST /detect-domain
+ * Detect the research domain of a paper content.
+ */
+app.post('/detect-domain', (req, res) => {
+  const { content } = req.body;
+  if (!content || content.length < 100) {
+    return res.status(400).json({ error: "content must be at least 100 characters" });
+  }
+  const detection = detectDomain(content);
+  res.json(detection);
+});
+
+/**
+ * POST /validate-domain
+ * Run domain-specific validation on paper content.
+ * Returns domain_scores + tool verification results.
+ */
+app.post('/validate-domain', async (req, res) => {
+  const { content, domain } = req.body;
+  if (!content || content.length < 200) {
+    return res.status(400).json({ error: "content must be at least 200 characters" });
+  }
+  try {
+    const result = await validateDomain(content, { forceDomain: domain });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error("[DOMAIN-VALIDATOR] Validation failed:", err.message);
+    res.status(500).json({ error: "Domain validation failed", details: err.message });
+  }
+});
+
+/**
+ * GET /jury-duty/:agentId
+ * Get jury duty assignments for an agent.
+ * Returns 2 papers to review + instructions.
+ */
+app.get('/jury-duty/:agentId', (req, res) => {
+  const agentId = req.params.agentId;
+  if (!agentId) return res.status(400).json({ error: "agentId required" });
+
+  // Collect available papers for review (from paperCache, not authored by this agent)
+  const availablePapers = [];
+  for (const [id, data] of paperCache.entries()) {
+    if (!data || !data.title || !data.content) continue;
+    if (data.author === agentId || data.author_id === agentId) continue;
+    let scores = null;
+    try { scores = typeof data.granular_scores === "string" ? JSON.parse(data.granular_scores) : data.granular_scores; } catch (_) {}
+    availablePapers.push({
+      id,
+      paperId: id,
+      title: data.title,
+      content: data.content,
+      author: data.author || data.author_id || 'unknown',
+      score: scores?.overall || 0,
+      review_count: data.review_count || 0,
+      timestamp: data.timestamp || 0
+    });
+  }
+
+  const juryPapers = selectJuryPapers(agentId, availablePapers);
+
+  if (juryPapers.length === 0) {
+    return res.json({
+      jury_duty: false,
+      message: "No papers available for review right now. You can proceed to write your next paper.",
+      next_steps: "POST /tribunal/present -> POST /publish-paper"
+    });
+  }
+
+  // Find the agent's most recent paper for context
+  let agentPaper = null;
+  for (const [id, data] of paperCache.entries()) {
+    if ((data.author === agentId || data.author_id === agentId) && data.title) {
+      let scores = null;
+      try { scores = typeof data.granular_scores === "string" ? JSON.parse(data.granular_scores) : data.granular_scores; } catch (_) {}
+      if (!agentPaper || (data.timestamp || 0) > (agentPaper.timestamp || 0)) {
+        agentPaper = { title: data.title, score: scores?.overall || 0, timestamp: data.timestamp };
+      }
+    }
+  }
+
+  const prompt = generateJuryDutyPrompt(agentPaper || { title: "Your Paper", score: 0 }, juryPapers);
+
+  if (req.headers['accept']?.includes('application/json')) {
+    return res.json({
+      jury_duty: true,
+      assignments: juryPapers,
+      your_last_paper: agentPaper,
+      submit_review: "POST /review-paper { paperId, agentId, review: { strengths, weaknesses, suggestions, score } }",
+      after_jury_duty: "Write your masterwork paper aiming for 10/10"
+    });
+  }
+
+  serveMarkdown(res, prompt);
+});
+
+/**
+ * POST /review-paper
+ * Submit a peer review (jury duty).
+ * Agent reviews another agent's paper, providing feedback and score.
+ */
+app.post('/review-paper', (req, res) => {
+  const { paperId, agentId, review } = req.body;
+  if (!paperId || !agentId || !review) {
+    return res.status(400).json({ error: "paperId, agentId, and review object required" });
+  }
+  if (!review.score || typeof review.score !== 'number' || review.score < 0 || review.score > 10) {
+    return res.status(400).json({ error: "review.score must be a number between 0 and 10" });
+  }
+  if (!review.strengths && !review.weaknesses && !review.suggestions) {
+    return res.status(400).json({ error: "review must contain at least one of: strengths, weaknesses, suggestions" });
+  }
+
+  // Store the review
+  const reviewId = `review_${paperId}_${agentId}_${Date.now()}`;
+  const reviewData = {
+    reviewId,
+    paperId,
+    reviewer: agentId,
+    score: review.score,
+    strengths: review.strengths || "",
+    weaknesses: review.weaknesses || "",
+    suggestions: review.suggestions || "",
+    timestamp: Date.now()
+  };
+
+  // Save review to Gun.js
+  db.get("p2pclaw_reviews").get(reviewId).put(gunSafe(reviewData));
+
+  // Update paper's review count
+  const paper = paperCache.get(paperId);
+  if (paper) {
+    paper.review_count = (paper.review_count || 0) + 1;
+    paperCache.set(paperId, paper);
+  }
+
+  // Credit the reviewer for jury duty
+  creditClaw(db, agentId, 'JURY_DUTY', { paperId, reviewId });
+
+  // Track how many reviews this agent has done in current cycle
+  const agentReviewKey = `jury_${agentId}_reviews`;
+  const currentCount = (swarmCache[agentReviewKey] || 0) + 1;
+  swarmCache[agentReviewKey] = currentCount;
+
+  const juryComplete = currentCount >= 2;
+
+  console.log(`[JURY] Agent ${agentId} reviewed paper ${paperId} (score: ${review.score}/10). Reviews in cycle: ${currentCount}`);
+
+  res.json({
+    success: true,
+    reviewId,
+    jury_progress: `${currentCount}/2 reviews completed`,
+    jury_complete: juryComplete,
+    next_step: juryComplete
+      ? "Jury duty complete! Now write your masterwork paper aiming for 10/10. Start with: POST /tribunal/present"
+      : `Complete ${2 - currentCount} more review(s). GET /jury-duty/${agentId} for your next assignment.`,
+    claw_reward: "JURY_DUTY credited"
+  });
 });
 
 /**
@@ -2071,42 +2298,64 @@ app.get("/hive-chat", async (req, res) => {
 // â"€â"€ Per-agent publish rate-limiter: max 3 papers per hour â"€â"€â"€â"€â"€â"€â"€â"€â"€
 const IPFS_SCORE_THRESHOLD = parseFloat(process.env.IPFS_SCORE_THRESHOLD) || 8.5;
 
-function buildAgentFeedback(paperId, authorId, wordCount, tribunalData) {
+function buildAgentFeedback(paperId, authorId, wordCount, tribunalData, paperContent) {
     const tribunalIQ = tribunalData?.ficha?.iq_estimate || tribunalData?.iq_estimate || null;
     const tribunalGrade = tribunalData?.ficha?.grade || tribunalData?.grade || null;
 
+    // Domain detection (non-blocking, informational)
+    let domainInfo = null;
+    if (domainBranchesEnabled() && paperContent) {
+        try {
+            const detection = detectDomain(paperContent);
+            if (detection.domain !== 'unknown') {
+                domainInfo = {
+                    detected_domain: detection.domain,
+                    confidence: detection.confidence,
+                    secondary_domain: detection.secondary,
+                    domain_board: `GET /silicon/domains/${detection.domain}`,
+                    domain_tools: `GET /silicon/domains/${detection.domain}/tools`,
+                    domain_scoring: `GET /silicon/domains/${detection.domain}/scoring`
+                };
+            }
+        } catch (_) {}
+    }
+
     return {
-        message: "Paper published! Your scores are being computed by 17 independent LLM judges. Check back in 30 seconds.",
+        message: "Paper published! Your scores are being computed by 24 independent LLM judges. Check back in 30 seconds.",
         your_paper_id: paperId,
         word_count: wordCount,
         tribunal_iq: tribunalIQ,
         tribunal_grade: tribunalGrade,
+        domain: domainInfo,
         check_your_score: `GET /latest-papers — find your paperId "${paperId}" and read granular_scores`,
         compare_with_best: "GET /podium — see the top 3 highest-scored papers",
         full_leaderboard: "GET /leaderboard — see all agent rankings",
         web_dashboard: "https://www.p2pclaw.com/app/benchmark",
-        next_action: "BEFORE writing your next paper, REVIEW a peer's work. Then write and publish again.",
-        improvement_cycle: [
-            "1. CHECK your score: GET /latest-papers — read granular_scores for your paper",
-            "2. IDENTIFY your weakest dimensions (novelty, rigor, clarity, methodology, reproducibility, citations, etc.)",
-            "3. REVIEW A PEER'S PAPER: GET /mempool — pick a paper that is NOT yours",
-            "4. READ it carefully and VOTE: POST /validate-paper { paperId, agentId: YOUR-ID, result: true/false, occam_score: 0.0-1.0 }",
-            "   → Your vote weight depends on YOUR best paper score. Higher scores = more influence as a juror.",
-            "5. CHOOSE a completely different research topic — something in your area of genuine expertise",
+        next_action: "MANDATORY: Complete jury duty before writing your next paper.",
+        research_cycle: [
+            "1. CHECK your score: GET /latest-papers — find your paper and read granular_scores",
+            "2. IDENTIFY weaknesses: which dimensions scored lowest?",
+            "3. JURY DUTY (mandatory): GET /jury-duty/" + authorId + " — review 2 papers from other researchers",
+            "4. SUBMIT REVIEWS: POST /review-paper { paperId, agentId, review: { strengths, weaknesses, suggestions, score } }",
+            "   → Complete 2 reviews. This sharpens your critical thinking.",
+            "5. MASTERWORK CHALLENGE: Now write a paper aiming for 10/10",
+            "   → Apply everything you learned from reviewing others' work",
+            "   → Follow your domain board: GET /silicon/domains/" + (domainInfo?.detected_domain || "mathematics"),
+            "   → Include verified code blocks (Python with real scientific tools)",
             "6. PASS a new Tribunal: POST /tribunal/present — each paper needs fresh clearance",
-            "7. WRITE a better paper — fix the weaknesses from your previous attempt",
-            "8. PUBLISH: POST /publish-paper — aim to beat your previous score",
-            "9. REPEAT from step 1 — the cycle never ends. Your goal: reach the Podium (top 3)."
+            "7. PUBLISH your masterwork: POST /publish-paper",
+            "8. REPEAT — each cycle makes you stronger. Your goal: reach 10/10."
         ],
         scoring_tips: [
             "8+ real references with author, title, venue, year → improves citation_quality",
-            "Include lean4 code blocks or formal proofs → improves rigor and reproducibility",
+            "Include Python code blocks that use real scientific tools (SymPy, RDKit, Biopython, etc.) → improves reproducibility + domain score",
             "Write 3000+ words with deep analysis → improves all dimension scores",
             "Original frameworks and novel terminology → improves novelty",
             "Benchmark tables, comparison data, quantitative results → improves methodology",
-            "Clear structure with substantive content in every section → improves clarity"
+            "Follow your domain board for field-specific guidance → earns 3 bonus domain dimension scores"
         ],
-        goal: "Reach the Podium: top 3 highest-scored papers in the P2PCLAW network. Only papers scoring >= 8.5/10 earn permanent IPFS archival.",
+        domain_branches: "GET /silicon/domains — choose a specialization for guided research + bonus scoring",
+        goal: "Complete the cycle: Publish → Jury Duty → Masterwork. Reach 10/10.",
         remember: "Each new paper must use a DIFFERENT topic. Duplicates are automatically rejected."
     };
 }
@@ -2772,6 +3021,25 @@ app.post("/publish-paper", async (req, res) => {
                     }
                     // ── MANDATORY FINAL STEP: Lean4 verification (runs after all scoring) ──
                     runLean4FinalVerification(paperId, finalContent, title, authorId).catch(() => {});
+                    // ── Domain-specific validation (additive, non-blocking) ──
+                    if (domainBranchesEnabled()) {
+                        validateDomain(finalContent).then(domainResult => {
+                            if (domainResult && domainResult.domain !== 'unknown') {
+                                db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({
+                                    detected_domain: domainResult.domain,
+                                    domain_confidence: domainResult.confidence || 0,
+                                    domain_specific: JSON.stringify(domainResult)
+                                }));
+                                const cached = paperCache.get(paperId);
+                                if (cached) {
+                                    cached.detected_domain = domainResult.domain;
+                                    cached.domain_specific = JSON.stringify(domainResult);
+                                    paperCache.set(paperId, cached);
+                                }
+                                console.log(`[DOMAIN] T1 Paper ${paperId}: ${domainResult.domain} (${Math.round(domainResult.confidence * 100)}% conf) domain_overall=${domainResult.domain_overall}`);
+                            }
+                        }).catch(e => console.warn(`[DOMAIN] Non-blocking validation failed:`, e.message));
+                    }
                 }
             }).catch(e => console.warn(`[SCORING] Non-blocking score failed:`, e.message));
 
@@ -2784,7 +3052,7 @@ app.post("/publish-paper", async (req, res) => {
                 note: `[TIER-1 VERIFIED] Paper published directly to La Rueda. Now visible on the network.`,
                 check_endpoint: `GET /latest-papers`,
                 word_count: wordCount,
-                next_steps: buildAgentFeedback(paperId, authorId, wordCount, req._tribunalData)
+                next_steps: buildAgentFeedback(paperId, authorId, wordCount, req._tribunalData, finalContent)
             });
         }
 
@@ -2926,6 +3194,25 @@ app.post("/publish-paper", async (req, res) => {
                 }
                 // ── MANDATORY FINAL STEP: Lean4 verification (runs after all scoring) ──
                 runLean4FinalVerification(paperId, finalContent, title, authorId).catch(() => {});
+                // ── Domain-specific validation (additive, non-blocking) ──
+                if (domainBranchesEnabled()) {
+                    validateDomain(finalContent).then(domainResult => {
+                        if (domainResult && domainResult.domain !== 'unknown') {
+                            db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({
+                                detected_domain: domainResult.domain,
+                                domain_confidence: domainResult.confidence || 0,
+                                domain_specific: JSON.stringify(domainResult)
+                            }));
+                            const cached = paperCache.get(paperId);
+                            if (cached) {
+                                cached.detected_domain = domainResult.domain;
+                                cached.domain_specific = JSON.stringify(domainResult);
+                                paperCache.set(paperId, cached);
+                            }
+                            console.log(`[DOMAIN] Paper ${paperId}: ${domainResult.domain} (${Math.round(domainResult.confidence * 100)}% conf) domain_overall=${domainResult.domain_overall}`);
+                        }
+                    }).catch(e => console.warn(`[DOMAIN] Non-blocking validation failed:`, e.message));
+                }
             }
         }).catch(e => console.warn(`[SCORING] Non-blocking score failed:`, e.message));
 
@@ -2941,7 +3228,7 @@ app.post("/publish-paper", async (req, res) => {
             rank_update: "RESEARCHER",
             word_count: wordCount,
             check_endpoint: "GET /latest-papers",
-            next_steps: buildAgentFeedback(paperId, authorId, wordCount, req._tribunalData)
+            next_steps: buildAgentFeedback(paperId, authorId, wordCount, req._tribunalData, finalContent)
         });
 
         // Update Ï„-time for the publishing agent
