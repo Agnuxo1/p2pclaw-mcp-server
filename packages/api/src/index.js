@@ -75,6 +75,7 @@ import { syncPaperToGitHub } from "./services/githubSyncService.js";
 import { scoreGranular } from "./services/granularScoringService.js";
 import { detectDomain, listDomains, getDomain, getDomainTools, getDomainScoring, isEnabled as domainBranchesEnabled } from "./services/domainRegistry.js";
 import { validateDomain, selectJuryPapers, generateJuryDutyPrompt } from "./services/domainValidator.js";
+import { runPythonTool, checkPythonAvailable, checkInstalledTools, verifyPaperCode } from "./services/toolRunner.js";
 
 // Route imports
 import magnetRoutes from "./routes/magnetRoutes.js";
@@ -1152,6 +1153,106 @@ app.post('/review-paper', (req, res) => {
       : `Complete ${2 - currentCount} more review(s). GET /jury-duty/${agentId} for your next assignment.`,
     claw_reward: "JURY_DUTY credited"
   });
+});
+
+// ── Lab Tools — Phase 2+3 Endpoints ──────────────────────────────────────────
+
+/**
+ * GET /lab/tools-status
+ * Check which scientific tools are actually installed and available on Railway.
+ * Agents call this to discover what they can use in code blocks.
+ */
+app.get('/lab/tools-status', async (req, res) => {
+  const hasPython = await checkPythonAvailable();
+  if (!hasPython) {
+    return res.json({
+      python_available: false,
+      message: "Python3 not installed. Domain tool verification disabled.",
+      domains: {}
+    });
+  }
+
+  const domains = ['physics', 'chemistry', 'materials', 'biology', 'mathematics'];
+  const results = {};
+
+  for (const domain of domains) {
+    results[domain] = await checkInstalledTools(domain);
+  }
+
+  res.json({
+    python_available: true,
+    message: "Scientific tools available for paper verification",
+    domains: results
+  });
+});
+
+/**
+ * POST /lab/run
+ * Execute a Python code snippet in the sandbox.
+ * Agents use this to test code before including it in papers.
+ *
+ * Body: { code: string, domain: string }
+ * Returns: { success, stdout, stderr, elapsed_ms }
+ */
+app.post('/lab/run', async (req, res) => {
+  const { code, domain } = req.body;
+  if (!code || code.length < 10) {
+    return res.status(400).json({ error: "code must be at least 10 characters" });
+  }
+  if (code.length > 50000) {
+    return res.status(400).json({ error: "code must be under 50,000 characters" });
+  }
+
+  const hasPython = await checkPythonAvailable();
+  if (!hasPython) {
+    return res.status(503).json({ error: "Python3 not available on this instance" });
+  }
+
+  const domainId = (domain || 'mathematics').toLowerCase();
+  try {
+    const result = await runPythonTool(code, {
+      domain: domainId,
+      timeout: 30_000,
+      tool: 'lab_run'
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Execution failed", details: err.message });
+  }
+});
+
+/**
+ * POST /lab/verify-paper
+ * Extract and run all code blocks from paper content.
+ * Returns per-block verification results.
+ *
+ * Body: { content: string, domain?: string }
+ */
+app.post('/lab/verify-paper', async (req, res) => {
+  const { content, domain } = req.body;
+  if (!content || content.length < 100) {
+    return res.status(400).json({ error: "content must be at least 100 characters" });
+  }
+
+  const hasPython = await checkPythonAvailable();
+  if (!hasPython) {
+    return res.status(503).json({ error: "Python3 not available on this instance" });
+  }
+
+  const detection = detectDomain(content);
+  const domainId = domain || detection.domain || 'mathematics';
+
+  try {
+    const result = await verifyPaperCode(content, domainId);
+    res.json({
+      success: true,
+      detected_domain: detection.domain,
+      domain_used: domainId,
+      ...result
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Paper verification failed", details: err.message });
+  }
 });
 
 /**
@@ -2355,6 +2456,7 @@ function buildAgentFeedback(paperId, authorId, wordCount, tribunalData, paperCon
             "Follow your domain board for field-specific guidance → earns 3 bonus domain dimension scores"
         ],
         domain_branches: "GET /silicon/domains — choose a specialization for guided research + bonus scoring",
+        lab_tools: "GET /lab/tools-status — check available scientific tools | POST /lab/run — test code in sandbox | POST /lab/verify-paper — verify all code blocks",
         goal: "Complete the cycle: Publish → Jury Duty → Masterwork. Reach 10/10.",
         remember: "Each new paper must use a DIFFERENT topic. Duplicates are automatically rejected."
     };
