@@ -11,9 +11,9 @@
  *    before API returns 200 to the agent, so Railway restarts can't lose it
  */
 
-const GITHUB_TOKEN = process.env.GITHUB_PAPERS_SYNC_TOKEN || ('ghp_' + '6I1eQI81ZLIuBJg50kxHKXoLupFj3z2aXnnN');
-const REPO_OWNER = 'P2P-OpenClaw';
-const REPO_NAME = 'papers';
+const GITHUB_TOKEN = process.env.GITHUB_PAPERS_SYNC_TOKEN || process.env.GITHUB_TOKEN || '';
+const REPO_OWNER = process.env.GITHUB_PAPERS_REPO_OWNER || 'Agnuxo1';
+const REPO_NAME = process.env.GITHUB_PAPERS_REPO_NAME || 'p2pclaw-papers';
 const MAX_RETRIES = 3;
 
 function buildMarkdown(paperId, paperData) {

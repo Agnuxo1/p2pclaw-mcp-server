@@ -3248,6 +3248,10 @@ app.post("/publish-paper", async (req, res) => {
             // In-memory index so /mempool and auto-validator don't need map().once()
             swarmCache.mempoolPapers.push({ paperId, title, author: author || "API-User", author_id: authorId, tier: 'ALPHA', network_validations: 2, validations_by: 'tier1-auto,tier1-auto', avg_occam_score: 0.95, timestamp: now, status: 'VERIFIED', ipfs_cid: t1_cid || null });
 
+            // CRITICAL: Add to paperCache IMMEDIATELY so /latest-papers and /papers/:id
+            // can find this paper right away — not after async scoring (30-60s later).
+            paperCache.set(paperId, { ...verifiedObj, content: finalContent, word_count: finalContent ? finalContent.trim().split(/\s+/).length : 0, granular_scores: null });
+
             // Persist to Railway volume (/data/papers/) — survives redeploys
             savePaper(paperId, { ...verifiedObj, content: finalContent, granular_scores: null });
 
@@ -3408,6 +3412,10 @@ app.post("/publish-paper", async (req, res) => {
         db.get("p2pclaw_mempool_v4").get(paperId).put(gunSafe({ ...paperData, status: 'PROMOTED', promoted_at: now }));
         swarmCache.paperStats.verified++;
         swarmCache.paperStats.mempool++;
+
+        // CRITICAL: Add to paperCache IMMEDIATELY so /latest-papers and /papers/:id
+        // can find this paper right away — not after async scoring (30-60s later).
+        paperCache.set(paperId, { ...verifiedData, content: finalContent, word_count: finalContent ? finalContent.trim().split(/\s+/).length : 0, granular_scores: null });
 
         // Persist to Railway volume (/data/papers/) — survives redeploys
         savePaper(paperId, { ...verifiedData, content: finalContent, granular_scores: null });
@@ -5962,27 +5970,37 @@ app.get("/latest-chat", async (req, res) => {
 app.get("/papers/:id", async (req, res) => {
     const { id } = req.params;
 
-    // Layer 1: Gun.js papers
+    // Layer 1 (instant): In-memory paperCache — populated at publish time + boot restore
+    const cached = paperCache.get(id);
+    if (cached && cached.title) return res.json({ id, ...cached, _source: "memory" });
+
+    // Layer 2 (fast): Gun.js papers (may have data not yet in cache)
     const paper = await new Promise(resolve => {
         db.get("p2pclaw_papers_v4").get(id).once(data => resolve(data || null));
+        setTimeout(() => resolve(null), 3000); // Gun.js timeout
     });
-    if (paper && paper.title) return res.json({ id, ...paper });
+    if (paper && paper.title) {
+        // Backfill paperCache for future requests
+        paperCache.set(id, { ...paper, word_count: paper.content ? paper.content.trim().split(/\s+/).length : 0 });
+        return res.json({ id, ...paper, _source: "gunjs" });
+    }
 
-    // Layer 2: Gun.js mempool
+    // Layer 3: Gun.js mempool
     const mp = await new Promise(resolve => {
         db.get("p2pclaw_mempool_v4").get(id).once(data => resolve(data || null));
+        setTimeout(() => resolve(null), 2000);
     });
-    if (mp && mp.title) return res.json({ id, ...mp, status: mp.status || "MEMPOOL" });
+    if (mp && mp.title) return res.json({ id, ...mp, status: mp.status || "MEMPOOL", _source: "mempool" });
 
-    // Layer 3: In-memory paperCache (survives redeploys via Railway volume + GitHub restore)
-    const cached = paperCache.get(id);
-    if (cached && cached.title) return res.json({ id, ...cached, _source: "paperCache" });
-
-    // Layer 4: Cloudflare KV (durable storage)
+    // Layer 4 (durable): Cloudflare R2 storage
     try {
         const kvPaper = await kvGetPaper(id);
-        if (kvPaper && kvPaper.title) return res.json({ id, ...kvPaper, _source: "cloudflare_kv" });
-    } catch (_) { /* KV might be unavailable */ }
+        if (kvPaper && kvPaper.title) {
+            // Backfill paperCache so subsequent requests are instant
+            paperCache.set(id, { ...kvPaper, word_count: kvPaper.content ? kvPaper.content.trim().split(/\s+/).length : 0 });
+            return res.json({ id, ...kvPaper, _source: "cloudflare_r2" });
+        }
+    } catch (_) { /* R2/KV might be unavailable */ }
 
     return res.status(404).json({ error: "Paper not found" });
 });
@@ -6206,15 +6224,17 @@ if (process.env.NODE_ENV !== 'test') {
     // Uses git/trees API (single request, full list) so we can sort by date-prefix
     // and pick the 100 most recent REAL papers (skip QUALITY_GATE_* files).
     setTimeout(async () => {
-        const GH_TOKEN  = process.env.GITHUB_PAPERS_SYNC_TOKEN || ('ghp_' + '6I1eQI81ZLIuBJg50kxHKXoLupFj3z2aXnnN');
+        const GH_TOKEN  = process.env.GITHUB_PAPERS_SYNC_TOKEN || process.env.GITHUB_TOKEN || '';
         const TIER_MAP_BOOT = { TIER1_VERIFIED: 'ALPHA', TIER2_VERIFIED: 'BETA', TIER3_VERIFIED: 'GAMMA', final: 'ALPHA', draft: 'UNVERIFIED' };
         const VALID_TIERS_BOOT = new Set(['ALPHA', 'BETA', 'GAMMA', 'DELTA', 'UNVERIFIED']);
         // Files to skip — internal diagnostics, not research papers
         const SKIP_PREFIXES = ['QUALITY_GATE', 'quality_gate', 'DIAGNOSTIC', 'TEST_', 'BOOTSTRAP'];
         try {
-            console.log('[BOOT-RESTORE] Fetching paper tree from GitHub P2P-OpenClaw/papers ...');
+            const GH_PAPERS_OWNER = process.env.GITHUB_PAPERS_REPO_OWNER || 'Agnuxo1';
+            const GH_PAPERS_REPO = process.env.GITHUB_PAPERS_REPO_NAME || 'p2pclaw-papers';
+            console.log(`[BOOT-RESTORE] Fetching paper tree from GitHub ${GH_PAPERS_OWNER}/${GH_PAPERS_REPO} ...`);
             const treeRes = await fetch(
-                'https://api.github.com/repos/P2P-OpenClaw/papers/git/trees/main?recursive=1',
+                `https://api.github.com/repos/${GH_PAPERS_OWNER}/${GH_PAPERS_REPO}/git/trees/main?recursive=1`,
                 { headers: { Authorization: `token ${GH_TOKEN}`, 'User-Agent': 'P2PCLAW-API/1.0' }, signal: AbortSignal.timeout(20000) }
             );
             if (!treeRes.ok) { console.warn(`[BOOT-RESTORE] GitHub tree failed: ${treeRes.status}`); return; }
