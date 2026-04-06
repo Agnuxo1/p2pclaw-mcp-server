@@ -14,15 +14,19 @@
  *   7.  OpenRouter   — qwen3-coder:free (3 keys, free)
  *   8.  Groq         — llama-3.3-70b-versatile (9 keys)
  *   9.  NVIDIA       — meta/llama-3.3-70b-instruct (3 keys, free)
- *  10.  Inception    — mercury-2 (9 keys, free, diffusion-based)
- *  11.  Xiaomi MiMo  — mimo-v2-flash (5 keys, free)
- *  12.  Xiaomi MiMo  — mimo-v2-pro (5 keys, free, reasoning)
- *  13.  Cohere       — command-a-reasoning (9 keys, reasoning model)
+ *  10.  Inception    — mercury-2 (10 keys, free, diffusion-based)
+ *  11.  Xiaomi MiMo  — mimo-v2-flash (6 keys, free)
+ *  12.  Xiaomi MiMo  — mimo-v2-pro (6 keys, free, reasoning)
+ *  13.  Cohere       — command-a-reasoning (10 keys, reasoning model)
  *  14-22. Cloudflare — 9 accounts x unique models (GLM4, Gemma4, Nemotron, Kimi, GPT-OSS, Qwen3, Llama4Scout, MistralSmall31, DeepSeekR1)
- *  23.  Cloudflare   — account 10 (GLM-4.7-flash, additional account)
- *  24.  Deterministic heuristic fallback (never blocks)
+ *  23.  Cloudflare   — account 10 (GLM-4.7-flash)
+ *  24.  Cloudflare   — account 11 (Gemma-4-26b, additional account)
+ *  25.  NVIDIA       — deepseek-ai/deepseek-v3.2 (reasoning, thinking model)
+ *  26.  NVIDIA       — stepfun-ai/step-3.5-flash (Chinese model, reasoning)
+ *  27.  NVIDIA       — z-ai/glm4.7 (Chinese model, thinking)
+ *  28.  Deterministic heuristic fallback (never blocks)
  *
- * TOTAL: 23 independent LLM judges + 1 heuristic = 24 scoring perspectives
+ * TOTAL: 27 independent LLM judges + 1 heuristic = 28 scoring perspectives
  * ALL available judges score independently. Final score = average across all judges.
  * Each model evaluates each section independently for maximum consensus diversity.
  */
@@ -328,6 +332,58 @@ const PROVIDERS = [
         stripThinkTags: true,
         maxTokens: 2048,
         responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    // --- Cloudflare Workers AI: Account 11 (agnuxo300@zohomail.eu, Gemma-4-26b) ---
+    {
+        id: "cloudflare-gemma4-11",
+        name: "Cloudflare-Gemma4-Acct11",
+        url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID_11 || "85fbdab1851209cbd99773a758831fc0"}/ai/run/@cf/google/gemma-4-26b-a4b-it`,
+        model: "@cf/google/gemma-4-26b-a4b-it",
+        keys: loadKeys("CF_AI_TOKEN_11"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    // --- NVIDIA: DeepSeek-V3.2 (reasoning model with thinking) ---
+    {
+        id: "nvidia-deepseek-v3",
+        name: "NVIDIA-DeepSeekV3.2",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "deepseek-ai/deepseek-v3.2",
+        keys: loadKeys("NVAPI_KEY", 10).concat(loadKeys("NVIDIA_API_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    // --- NVIDIA: StepFun Step-3.5-Flash (Chinese reasoning model) ---
+    {
+        id: "nvidia-stepfun",
+        name: "NVIDIA-StepFun3.5",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "stepfun-ai/step-3.5-flash",
+        keys: loadKeys("NVAPI_KEY", 10).concat(loadKeys("NVIDIA_API_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    // --- NVIDIA: GLM-4.7 (Z.ai Chinese model with thinking) ---
+    {
+        id: "nvidia-glm47",
+        name: "NVIDIA-GLM4.7",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "z-ai/glm4.7",
+        keys: loadKeys("NVAPI_KEY", 10).concat(loadKeys("NVIDIA_API_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
         timeout: 60000,
     },
 ];
