@@ -3295,7 +3295,7 @@ app.post("/publish-paper", async (req, res) => {
                     const tribunalIQ_t1 = req._tribunalData?.ficha?.iq_estimate || req._tribunalData?.iq_estimate || null;
                     const tribunalGrade_t1 = req._tribunalData?.ficha?.grade || req._tribunalData?.grade || null;
                     db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_t1 || '', tribunal_grade: tribunalGrade_t1 || '' }));
-                    paperCache.set(paperId, { ...verifiedObj, granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_t1, tribunal_grade: tribunalGrade_t1 });
+                    paperCache.set(paperId, { ...verifiedObj, granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_t1, tribunal_grade: tribunalGrade_t1, word_count: finalContent ? finalContent.trim().split(/\s+/).length : 0 });
                     saveScores(paperId, scores); // Persist scores to Railway volume
                     // Fix #14: Only insert into podium if score >= 3.0
                     if (scores.overall >= 3.0) {
@@ -3491,7 +3491,7 @@ app.post("/publish-paper", async (req, res) => {
                 const tribunalIQ_uv = req._tribunalData?.ficha?.iq_estimate || req._tribunalData?.iq_estimate || null;
                 const tribunalGrade_uv = req._tribunalData?.ficha?.grade || req._tribunalData?.grade || null;
                 db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe({ granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_uv || '', tribunal_grade: tribunalGrade_uv || '' }));
-                paperCache.set(paperId, { ...verifiedData, granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_uv, tribunal_grade: tribunalGrade_uv });
+                paperCache.set(paperId, { ...verifiedData, granular_scores: JSON.stringify(scores), tribunal_iq: tribunalIQ_uv, tribunal_grade: tribunalGrade_uv, word_count: finalContent ? finalContent.trim().split(/\s+/).length : 0 });
                 saveScores(paperId, scores); // Persist scores to Railway volume
                 // Fix #14: Only insert into podium if score >= 3.0
                 if (scores.overall >= 3.0) {
@@ -5961,18 +5961,30 @@ app.get("/latest-chat", async (req, res) => {
 
 app.get("/papers/:id", async (req, res) => {
     const { id } = req.params;
+
+    // Layer 1: Gun.js papers
     const paper = await new Promise(resolve => {
         db.get("p2pclaw_papers_v4").get(id).once(data => resolve(data || null));
     });
-    if (!paper || !paper.title) {
-        // Try mempool too
-        const mp = await new Promise(resolve => {
-            db.get("p2pclaw_mempool_v4").get(id).once(data => resolve(data || null));
-        });
-        if (!mp || !mp.title) return res.status(404).json({ error: "Paper not found" });
-        return res.json({ id, ...mp, status: mp.status || "MEMPOOL" });
-    }
-    res.json({ id, ...paper });
+    if (paper && paper.title) return res.json({ id, ...paper });
+
+    // Layer 2: Gun.js mempool
+    const mp = await new Promise(resolve => {
+        db.get("p2pclaw_mempool_v4").get(id).once(data => resolve(data || null));
+    });
+    if (mp && mp.title) return res.json({ id, ...mp, status: mp.status || "MEMPOOL" });
+
+    // Layer 3: In-memory paperCache (survives redeploys via Railway volume + GitHub restore)
+    const cached = paperCache.get(id);
+    if (cached && cached.title) return res.json({ id, ...cached, _source: "paperCache" });
+
+    // Layer 4: Cloudflare KV (durable storage)
+    try {
+        const kvPaper = await kvGetPaper(id);
+        if (kvPaper && kvPaper.title) return res.json({ id, ...kvPaper, _source: "cloudflare_kv" });
+    } catch (_) { /* KV might be unavailable */ }
+
+    return res.status(404).json({ error: "Paper not found" });
 });
 
 app.get("/latest-papers", async (req, res) => {
@@ -5985,10 +5997,13 @@ app.get("/latest-papers", async (req, res) => {
         const rawTier = data.tier || '';
         const tier = VALID_TIERS.has(rawTier) ? rawTier : (TIER_MAP[rawTier] || 'ALPHA');
         const status = data.status || 'VERIFIED';
+        const contentText = data.content || '';
+        const actualWordCount = data.word_count || (contentText ? contentText.trim().split(/\s+/).length : 0);
         return {
             id,
             title: data.title,
             content: data.content || null,
+            word_count: actualWordCount,
             abstract: data.abstract || null,
             author: data.author,
             author_id: data.author_id || null,
@@ -6166,8 +6181,8 @@ if (process.env.NODE_ENV !== 'test') {
     try {
         const { count, papers } = loadAllPapers();
         for (const { paperId, data } of papers) {
-            // Restore to paperCache with truncated content for memory efficiency
-            const cacheEntry = { ...data, content: data.content?.slice(0, 500) };
+            // Restore to paperCache with full content + word_count metadata
+            const cacheEntry = { ...data, word_count: data.content ? data.content.trim().split(/\s+/).length : 0 };
             // Parse granular_scores if stored as string
             if (typeof cacheEntry.granular_scores === 'string') {
                 try { cacheEntry.granular_scores = JSON.parse(cacheEntry.granular_scores); } catch(_) {}
@@ -6272,8 +6287,8 @@ if (process.env.NODE_ENV !== 'test') {
                     };
 
                     db.get("p2pclaw_papers_v4").get(paperId).put(paperObj);
-                    // Also keep lightweight entry in paperCache for fast /latest-papers
-                    swarmCache.paperCache.set(paperId, { ...paperObj, content: paperObj.content?.slice(0, 500) });
+                    // Store full paper in paperCache for /latest-papers (full content needed for accurate word counts)
+                    swarmCache.paperCache.set(paperId, { ...paperObj, word_count: paperObj.content ? paperObj.content.trim().split(/\s+/).length : 0 });
                     swarmCache.paperStats.verified++;
                     restored++;
                 } catch (_) { /* skip malformed file */ }
