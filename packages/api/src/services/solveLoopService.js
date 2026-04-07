@@ -15,7 +15,7 @@ import {
 } from "./problemBoard.js";
 import {
     callExpertAgent, selectBestAgent, selectAlternateAgent,
-    selectThinkTankAgents,
+    selectThinkTankAgents, rankAgentsForProblem,
 } from "./expertAgentService.js";
 import { db } from "../config/gun.js";
 import { gunSafe } from "../utils/gunUtils.js";
@@ -95,6 +95,7 @@ function persistSession(session) {
                 })),
                 synthesis: (session.thinkTankResult.synthesis || "").slice(0, 5000),
             } : null),
+            masterwork_paper: (session.masterwork_paper || "").slice(0, 20000),
             logs_json: JSON.stringify((session.logs || []).slice(-100)),
             startedAt: session.startedAt,
             completedAt: session.completedAt || Date.now(),
@@ -115,6 +116,44 @@ async function fetchInternal(path, opts = {}) {
         throw new Error(`Internal ${path} → ${res.status}: ${body.slice(0, 200)}`);
     }
     return res.json();
+}
+
+// ── Rate-Limit Fallback Helper ─────────────────────────────────────────────
+
+/**
+ * Call an LLM agent with automatic fallback on rate-limit (429) errors.
+ * Tries each agent from rankAgentsForProblem() in order.
+ *
+ * @param {string[]} problemDomains - domains_needed from the problem
+ * @param {Array} messages - chat messages array
+ * @param {object} [options] - options forwarded to callExpertAgent
+ * @returns {{ text: string, provider: string, model: string, agentUsed: string }}
+ */
+async function callWithFallback(problemDomains, messages, options = {}) {
+    const ranked = rankAgentsForProblem(problemDomains);
+    let lastError = null;
+
+    for (const { agent } of ranked) {
+        try {
+            const result = await callExpertAgent(agent.id, messages, options);
+            return { ...result, agentUsed: agent.name };
+        } catch (err) {
+            const msg = (err.message || "").toLowerCase();
+            const isRateLimit = msg.includes("429") || msg.includes("rate_limit") || msg.includes("too_many_requests");
+
+            if (isRateLimit) {
+                console.warn(`[OPS][FALLBACK] Agent ${agent.name} rate-limited, trying next agent...`);
+                lastError = err;
+                continue;
+            }
+
+            // Non-rate-limit error — throw immediately
+            throw err;
+        }
+    }
+
+    // All agents exhausted
+    throw lastError || new Error("All agents rate-limited");
 }
 
 // ── Phase Implementations ───────────────────────────────────────────────────
@@ -155,9 +194,9 @@ async function phasePlan(session, problem, agent) {
         },
     ];
 
-    const result = await callExpertAgent(agent.id, messages, { temperature: 0.5 });
+    const result = await callWithFallback(problem.domains_needed, messages, { temperature: 0.5 });
     session.plan = result.text;
-    log(session, "PLAN", `Plan created (${result.text.length} chars) by ${result.provider}`);
+    log(session, "PLAN", `Plan created (${result.text.length} chars) by ${result.provider}${result.agentUsed !== agent.name ? ` (fallback from ${agent.name} to ${result.agentUsed})` : ""}`);
     return result.text;
 }
 
@@ -235,12 +274,12 @@ async function phaseResearch(session, problem, agent, plan) {
                 ].join("\n");
                 solvedRef = `\n\n# Reference — Solved FrontierMath Problem (study for transferable techniques):\n${refText}\n`;
             }
-            const analysis = await callExpertAgent(agent.id, [
+            const analysis = await callWithFallback(problem.domains_needed, [
                 { role: "system", content: "You are a mathematical research expert. Analyze these related papers and identify the most relevant results for our problem." },
                 { role: "user", content: `# Problem: ${problem.title}\n\n# Related Papers Found:\n${researchSummary}\n\n# Our Plan:\n${(plan || "").slice(0, 2000)}${solvedRef}\n\nIdentify the 3 most relevant papers and how they could help. Be specific about which theorems, lemmas, or techniques to use.` },
             ], { temperature: 0.3 });
             session.researchAnalysis = analysis.text;
-            log(session, "RESEARCH", `Research analysis complete (${analysis.text.length} chars)`);
+            log(session, "RESEARCH", `Research analysis complete (${analysis.text.length} chars) by ${analysis.agentUsed}`);
         } catch (err) {
             log(session, "RESEARCH", `Research analysis error: ${err.message}`);
         }
@@ -278,7 +317,7 @@ async function phaseExperiment(session, problem, agent, plan, research) {
               `Return ONLY the JavaScript code, no markdown fences.`;
 
         try {
-            const codeResult = await callExpertAgent(agent.id, [
+            const codeResult = await callWithFallback(problem.domains_needed, [
                 { role: "system", content: "You are an expert computational mathematician. Write clean, efficient JavaScript code for mathematical exploration. Return ONLY code, no explanations." },
                 { role: "user", content: codePrompt },
             ], { temperature: 0.3, maxTokens: 2048 });
@@ -338,7 +377,7 @@ async function phaseVerify(session, problem, agent, experiments) {
         .join("\n\n");
 
     try {
-        const assessment = await callExpertAgent(agent.id, [
+        const assessment = await callWithFallback(problem.domains_needed, [
             {
                 role: "system",
                 content:
@@ -508,6 +547,134 @@ async function phaseThinkTank(session, problem) {
     return proposals.map(p => p.proposal).join("\n\n---\n\n");
 }
 
+// ── Masterwork Paper Generator ──────────────────────────────────────────────
+
+/**
+ * On the final attempt (attempt 5), compile ALL evidence from every session
+ * into a rigorous, publication-quality research paper — even if no complete
+ * solution was found.  Partial results and negative results are valuable.
+ *
+ * @param {object} session - current solve session
+ * @param {object} problem - problem definition from PROBLEM_CATALOG
+ */
+async function generateMasterworkPaper(session, problem) {
+    log(session, "MASTERWORK", "Generating masterwork research paper from all accumulated evidence...");
+
+    // ── Compile evidence from current session ───────────────────────────────
+    const planText = (session.plan || "").slice(0, 4000);
+    const researchText = (session.researchAnalysis || "").slice(0, 3000);
+
+    const experimentSummary = (session.experiments || [])
+        .map((e, i) =>
+            `### Experiment ${i + 1} [${e.success ? "SUCCESS" : "FAILED"}]\n` +
+            `\`\`\`javascript\n${(e.code || "").slice(0, 1500)}\n\`\`\`\n` +
+            `**Output:** ${(e.stdout || e.stderr || "no output").slice(0, 800)}`
+        )
+        .join("\n\n");
+
+    const verificationText = session.verificationResult?.raw || "No verification performed.";
+    const hiveText = session.hiveConsultation?.suggestion || "No hive consultation.";
+
+    const thinkTankText = session.thinkTankResult
+        ? (session.thinkTankResult.proposals || [])
+            .map(p => `**${p.agent}:** ${(p.proposal || "").slice(0, 800)}`)
+            .join("\n\n") +
+          "\n\n**Synthesis:** " + (session.thinkTankResult.synthesis || "").slice(0, 2000)
+        : "No think-tank session.";
+
+    // ── Compile evidence from ALL previous sessions for this problem ────────
+    const state = getState(problem.id);
+    const prevSessionsSummary = (state.sessions || [])
+        .filter(s => s.id !== session.id)
+        .slice(-4)  // up to 4 previous sessions
+        .map((s, i) =>
+            `#### Previous Attempt ${i + 1} (${s.assignedAgentName || s.assignedAgent || "unknown agent"})\n` +
+            `- Status: ${s.status}\n` +
+            `- Plan excerpt: ${(s.plan || "").slice(0, 500)}\n` +
+            `- Experiments: ${(s.experiments || []).length} iterations, ` +
+            `successes: ${(s.experiments || []).filter(e => e.success).length}\n` +
+            `- Verification: ${s.verificationResult?.parsed?.progress || "unknown"} ` +
+            `(confidence: ${s.verificationResult?.parsed?.confidence || 0}/100)\n` +
+            `- Key findings: ${(s.verificationResult?.parsed?.reasoning || "").slice(0, 300)}`
+        )
+        .join("\n\n");
+
+    // ── Build the masterwork prompt ─────────────────────────────────────────
+    const messages = [
+        {
+            role: "system",
+            content:
+                "You are a world-class mathematical researcher writing a publication-quality paper " +
+                "for submission to a mathematics journal. You write with rigor, precision, and scholarly depth. " +
+                "You MUST follow strict scientific method. Partial results and negative results are valuable " +
+                "contributions to the mathematical community — document them thoroughly.",
+        },
+        {
+            role: "user",
+            content:
+                `# Write a Masterwork Research Paper\n\n` +
+                `## Open Problem\n` +
+                `**Title:** ${problem.title}\n` +
+                `**Category:** ${problem.category}\n` +
+                `**Type:** ${problem.type}\n` +
+                `**Difficulty:** ${problem.difficulty}\n` +
+                `**Description:** ${problem.description}\n` +
+                `**Source:** ${problem.source} — ${problem.external_url}\n\n` +
+
+                `## Evidence from ${session.attempt} Attempts\n\n` +
+
+                `### Current Session Plan\n${planText}\n\n` +
+                `### Literature Review & Research Analysis\n${researchText}\n\n` +
+                `### Computational Experiments\n${experimentSummary || "No experiments."}\n\n` +
+                `### Verification Assessment\n${verificationText}\n\n` +
+                `### Hive Expert Consultation\n${hiveText}\n\n` +
+                `### Think-Tank Deliberation\n${thinkTankText}\n\n` +
+
+                (prevSessionsSummary
+                    ? `### Previous Attempts\n${prevSessionsSummary}\n\n`
+                    : "") +
+
+                `## Paper Requirements\n\n` +
+                `Write a COMPLETE research paper with ALL of these sections:\n\n` +
+                `1. **Abstract** — 150-250 words summarizing the investigation and findings\n` +
+                `2. **Introduction** — Problem statement, motivation, significance, and paper outline\n` +
+                `3. **Methodology** — Detailed description of every approach attempted (computational, analytical, combinatorial). Include pseudocode or real code.\n` +
+                `4. **Results** — All computational evidence, experimental outputs, data tables, patterns found. Include code blocks with actual outputs. Present negative results honestly.\n` +
+                `5. **Discussion** — Analysis of why approaches succeeded or failed, implications of partial results, connections to known results in the field, open questions raised\n` +
+                `6. **Conclusion** — Summary of contributions, clear statement of what remains open, concrete suggestions for future work\n` +
+                `7. **References** — At least 8 properly formatted references to real papers, textbooks, or known results in the field\n\n` +
+
+                `## Quality Standards\n` +
+                `- The paper MUST be at least 2000 words\n` +
+                `- Include mathematical notation where appropriate (LaTeX-style: $notation$)\n` +
+                `- Include at least 2 code blocks with computational evidence\n` +
+                `- Every claim must be supported by evidence or clearly marked as conjecture\n` +
+                `- Document ALL approaches tried, including failed ones — this is a research log\n` +
+                `- Cite references as [1], [2], etc. with full citations in the References section\n` +
+                `- Write as if submitting to a mathematics journal — rigorous, thorough, precise\n\n` +
+
+                `Write the full paper now. Do NOT use markdown fences around the paper — write it directly as markdown.`,
+        },
+    ];
+
+    try {
+        const result = await callWithFallback(problem.domains_needed, messages, {
+            temperature: 0.4,
+            maxTokens: 4096,
+        });
+
+        session.masterwork_paper = result.text;
+        log(session, "MASTERWORK",
+            `Masterwork paper generated: ${result.text.length} chars, ~${Math.round(result.text.split(/\s+/).length)} words by ${result.agentUsed}`);
+
+        return result.text;
+    } catch (err) {
+        log(session, "MASTERWORK", `Masterwork paper generation failed: ${err.message}`);
+        session.masterwork_paper = null;
+        return null;
+    }
+}
+
 // ── Main Solve Loop ─────────────────────────────────────────────────────────
 
 async function solveProblem(problem, state) {
@@ -526,6 +693,7 @@ async function solveProblem(problem, state) {
         verificationResult: null,
         hiveConsultation: null,
         thinkTankResult: null,
+        masterwork_paper: null,
         logs: [],
         startedAt: Date.now(),
         completedAt: null,
@@ -598,6 +766,13 @@ async function solveProblem(problem, state) {
                     return session;
                 }
             }
+        }
+
+        // PHASE 7: Masterwork Paper (final attempt only)
+        // Note: state.attempts was already incremented at the top of solveProblem
+        if (state.attempts >= MAX_ATTEMPTS && !isAborted()) {
+            await sleep(INTER_LLM_DELAY_MS);
+            await generateMasterworkPaper(session, problem);
         }
 
         // Mark as failed for this attempt
