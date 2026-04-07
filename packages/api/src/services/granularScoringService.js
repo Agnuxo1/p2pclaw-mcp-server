@@ -21,12 +21,14 @@
  *  14-22. Cloudflare — 9 accounts x unique models (GLM4, Gemma4, Nemotron, Kimi, GPT-OSS, Qwen3, Llama4Scout, MistralSmall31, DeepSeekR1)
  *  23.  Cloudflare   — account 10 (GLM-4.7-flash)
  *  24.  Cloudflare   — account 11 (Gemma-4-26b, additional account)
- *  25.  NVIDIA       — deepseek-ai/deepseek-v3.2 (reasoning, thinking model)
- *  26.  NVIDIA       — stepfun-ai/step-3.5-flash (Chinese model, reasoning)
- *  27.  NVIDIA       — z-ai/glm4.7 (Chinese model, thinking)
- *  28.  Deterministic heuristic fallback (never blocks)
+ *  25.  Cloudflare   — account 12 (Mistral Small 3.1 24B, additional account)
+ *  26.  OpenRouter   — qwen/qwen3.6-plus:free (large reasoning model)
+ *  27.  NVIDIA       — deepseek-ai/deepseek-v3.2 (reasoning, thinking model)
+ *  28.  NVIDIA       — stepfun-ai/step-3.5-flash (Chinese model, reasoning)
+ *  29.  NVIDIA       — z-ai/glm4.7 (Chinese model, thinking)
+ *  30.  Deterministic heuristic fallback (never blocks)
  *
- * TOTAL: 27 independent LLM judges + 1 heuristic = 28 scoring perspectives
+ * TOTAL: 29 independent LLM judges + 1 heuristic = 30 scoring perspectives
  * ALL available judges score independently. Final score = average across all judges.
  * Each model evaluates each section independently for maximum consensus diversity.
  */
@@ -345,6 +347,32 @@ const PROVIDERS = [
         authPrefix: "Bearer ",
         maxTokens: 1024,
         responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    // --- Cloudflare account 12: Mistral Small 3.1 24B ---
+    {
+        id: "cloudflare-mistral31-12",
+        name: "Cloudflare-MistralSmall31-Acct12",
+        url: `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID_12 || "ccd856bec1f7fb8e9745f21e9bd742f4"}/ai/run/@cf/mistralai/mistral-small-3.1-24b-instruct`,
+        model: "@cf/mistralai/mistral-small-3.1-24b-instruct",
+        keys: loadKeys("CF_AI_TOKEN_12"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    // --- OpenRouter: Qwen 3.6 Plus (free, large reasoning model) ---
+    {
+        id: "openrouter-qwen36plus",
+        name: "OpenRouter-Qwen3.6Plus",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "qwen/qwen3.6-plus:free",
+        keys: loadKeys("OPENROUTER_API_KEY", 15),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
         timeout: 60000,
     },
     // --- NVIDIA: DeepSeek-V3.2 (reasoning model with thinking) ---
@@ -838,8 +866,10 @@ export async function scoreGranular(content, paperType = "research") {
         console.warn(`[SCORING] Live verification error (non-fatal): ${liveErr.message}`, liveErr.stack?.split('\n').slice(0, 3).join(' | '));
     }
 
-    const sectionValues = SECTIONS.map(s => averaged[s]);
-    let overall = Math.round((sectionValues.reduce((a, b) => a + b, 0) / SECTIONS.length) * 10) / 10;
+    // Fix: overall = average of ALL 10 dimensions (7 sections + novelty + reproducibility + citation_quality)
+    // Previously only averaged the 7 sections, causing mismatch with displayed scores.
+    const allDimensionValues = allFields.map(f => averaged[f]);
+    let overall = Math.round((allDimensionValues.reduce((a, b) => a + b, 0) / allFields.length) * 10) / 10;
 
     // ── Phase F: Execution Proof Bonus ──
     // Papers with verified code blocks (execution hashes) get a purely additive overall bonus.
