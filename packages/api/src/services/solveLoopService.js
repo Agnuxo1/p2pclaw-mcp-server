@@ -215,9 +215,13 @@ async function phaseResearch(session, problem, agent, plan) {
 
     if (researchSummary) {
         try {
+            // Include reference to solved problems if available (transferable techniques)
+            const solvedRef = problem.solved_reference
+                ? `\n\n# Reference — Solved Related Problem:\n${problem.solved_reference}\nStudy the methodology used to solve that related problem. Identify transferable techniques.\n`
+                : "";
             const analysis = await callExpertAgent(agent.id, [
                 { role: "system", content: "You are a mathematical research expert. Analyze these related papers and identify the most relevant results for our problem." },
-                { role: "user", content: `# Problem: ${problem.title}\n\n# Related Papers Found:\n${researchSummary}\n\n# Our Plan:\n${(plan || "").slice(0, 2000)}\n\nIdentify the 3 most relevant papers and how they could help. Be specific about which theorems, lemmas, or techniques to use.` },
+                { role: "user", content: `# Problem: ${problem.title}\n\n# Related Papers Found:\n${researchSummary}\n\n# Our Plan:\n${(plan || "").slice(0, 2000)}${solvedRef}\n\nIdentify the 3 most relevant papers and how they could help. Be specific about which theorems, lemmas, or techniques to use.` },
             ], { temperature: 0.3 });
             session.researchAnalysis = analysis.text;
             log(session, "RESEARCH", `Research analysis complete (${analysis.text.length} chars)`);
@@ -626,6 +630,12 @@ export async function startSolveLoop(targetProblemId = null) {
 
         for (const problem of problems) {
             if (isAborted()) break;
+
+            // Skip problems marked as "do not attack"
+            if (problem.attack_note) {
+                console.log(`[OPS] Skipping ${problem.id} (${problem.attack_note})`);
+                continue;
+            }
 
             const state = getState(problem.id);
             if (state.status === "solved" || state.status === "skipped") {
