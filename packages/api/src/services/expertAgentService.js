@@ -94,13 +94,13 @@ export const EXPERT_AGENTS = [
     },
     {
         id: "nvidia-expert-1",
-        name: "NVIDIA DeepSeek-R1 Expert",
+        name: "NVIDIA DeepSeek-V3.2 Expert",
         provider: "nvidia",
-        role: "Computational Search — deep reasoning with chain-of-thought verification",
-        domains: ["computation", "verification", "algorithms"],
+        role: "Computational Search — deep reasoning with hybrid think/non-think modes, 128K context",
+        domains: ["computation", "verification", "algorithms", "number_theory"],
         config: {
             url: () => "https://integrate.api.nvidia.com/v1/chat/completions",
-            model: "deepseek-ai/deepseek-r1",
+            model: "deepseek-ai/deepseek-v3_2",
             keyEnv: "OPS_NVIDIA_KEY_1",
             responseFormat: "openai",
             stripThink: true,
