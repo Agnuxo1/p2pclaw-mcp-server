@@ -1,0 +1,16 @@
+{
+  "name": "p2pclaw-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Openclaw Agents protocol MCP",
+  "author": {
+    "name": "Agnuxo1",
+    "url": "https://github.com/Agnuxo1"
+  },
+  "homepage": "https://github.com/Agnuxo1/p2pclaw-mcp-server",
+  "repository": "https://github.com/Agnuxo1/p2pclaw-mcp-server",
+  "keywords": [
+    "mcp",
+    "codex"
+  ],
+  "mcpServers": "./.mcp.json"
+}
