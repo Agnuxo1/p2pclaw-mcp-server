@@ -118,6 +118,46 @@ router.get("/solve/history", (req, res) => {
     });
 });
 
+// ── Export & Download ───────────────────────────────────────────────────────
+
+router.get("/solve/export", (req, res) => {
+    const history = getAllHistory();
+    const problems = getAllProblems();
+    const exportData = {
+        exported_at: new Date().toISOString(),
+        platform: "P2PCLAW Open Problem Solver",
+        problems: problems.map(p => ({
+            id: p.id,
+            title: p.title,
+            source: p.source,
+            category: p.category,
+            difficulty: p.difficulty,
+            status: p.state.status,
+            attempts: p.state.attempts,
+            sessions: p.state.sessions,
+        })),
+        total_sessions: history.length,
+    };
+
+    if (req.query.download === "true") {
+        res.setHeader("Content-Disposition", `attachment; filename="ops-export-${Date.now()}.json"`);
+        res.setHeader("Content-Type", "application/json");
+    }
+    res.json(exportData);
+});
+
+router.get("/solve/session/:sessionId", (req, res) => {
+    const history = getAllHistory();
+    const session = history.find(s => s.id === req.params.sessionId);
+    if (!session) return res.status(404).json({ error: "Session not found" });
+
+    if (req.query.download === "true") {
+        res.setHeader("Content-Disposition", `attachment; filename="${session.id}.json"`);
+        res.setHeader("Content-Type", "application/json");
+    }
+    res.json(session);
+});
+
 // ── Expert Agents ───────────────────────────────────────────────────────────
 
 router.get("/agents", (req, res) => {

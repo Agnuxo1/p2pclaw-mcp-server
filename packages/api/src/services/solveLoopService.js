@@ -16,6 +16,8 @@ import {
     callExpertAgent, selectBestAgent, selectAlternateAgent,
     selectThinkTankAgents,
 } from "./expertAgentService.js";
+import { db } from "../config/gun.js";
+import { gunSafe } from "../utils/gunUtils.js";
 
 // ── Module State ────────────────────────────────────────────────────────────
 
@@ -61,6 +63,47 @@ function broadcastSSE(data) {
 
 function isAborted() {
     return !activeSolveLoop || !activeSolveLoop.running;
+}
+
+/**
+ * Persist a completed session to Gun.js for durability across restarts.
+ * Stored under: p2pclaw_ops_sessions_v1 → sessionId → {...}
+ */
+function persistSession(session) {
+    try {
+        const record = gunSafe({
+            id: session.id,
+            problemId: session.problemId,
+            assignedAgent: session.assignedAgentName || session.assignedAgent,
+            status: session.status,
+            attempt: session.attempt,
+            plan: (session.plan || "").slice(0, 10000),
+            researchAnalysis: (session.researchAnalysis || "").slice(0, 10000),
+            experiments_json: JSON.stringify((session.experiments || []).map(e => ({
+                iteration: e.iteration, success: e.success,
+                stdout: (e.stdout || "").slice(0, 2000),
+                stderr: (e.stderr || "").slice(0, 500),
+                execution_hash: e.execution_hash,
+                code: (e.code || "").slice(0, 3000),
+            }))),
+            verification_json: JSON.stringify(session.verificationResult || null),
+            hive_json: JSON.stringify(session.hiveConsultation || null),
+            thinktank_json: JSON.stringify(session.thinkTankResult ? {
+                proposals: (session.thinkTankResult.proposals || []).map(p => ({
+                    agent: p.agent, proposal: (p.proposal || "").slice(0, 3000),
+                })),
+                synthesis: (session.thinkTankResult.synthesis || "").slice(0, 5000),
+            } : null),
+            logs_json: JSON.stringify((session.logs || []).slice(-100)),
+            startedAt: session.startedAt,
+            completedAt: session.completedAt || Date.now(),
+            error: session.error || "",
+        });
+        db.get("p2pclaw_ops_sessions_v1").get(session.id).put(record);
+        console.log(`[OPS] Session ${session.id} persisted to Gun.js`);
+    } catch (err) {
+        console.warn(`[OPS] Failed to persist session: ${err.message}`);
+    }
 }
 
 async function fetchInternal(path, opts = {}) {
@@ -549,6 +592,8 @@ async function solveProblem(problem, state) {
         log(session, "ERROR", `Unhandled error: ${err.message}`);
     }
 
+    // Persist every completed/failed/error session to Gun.js
+    persistSession(session);
     return session;
 }
 
