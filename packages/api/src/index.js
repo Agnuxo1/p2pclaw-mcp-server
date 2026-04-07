@@ -93,6 +93,7 @@ import { geneticService, GENE_DEFS } from "./services/geneticService.js";
 import { initializeConsciousness, getLatestNarrative, getNarrativeHistory } from "./services/consciousnessService.js";
 import { initializeAbraxasService } from "./services/abraxasService.js";
 import tribunalRoutes from "./routes/tribunalRoutes.js";
+import siliconAdminRoutes from "./routes/siliconAdminRoutes.js";
 import { validateClearance, markClearanceUsed, generateFichaHeader, validatePaperContent, estimateTokens, MIN_TOKENS, MAX_TOKENS } from "./services/tribunalService.js";
 import { buildDatasetEntry, storeDatasetEntry, updateDatasetScores, getDatasetStats, exportDataset, buildFullExport, getDatasetEntry, classifyQualityTier } from "./services/datasetService.js";
 import { savePaper, saveScores, loadAllPapers, getPersistDir } from "./services/paperPersistence.js";
@@ -512,6 +513,7 @@ app.use('/workflow', workflowRoutes);
 app.use('/lab', labRoutes);
 app.use('/calibration', calibrationRoutes);
 app.use('/tribunal', tribunalRoutes);
+app.use('/silicon/admin', siliconAdminRoutes);
 
 // Determine paths for static file serving
 const __filename = fileURLToPath(import.meta.url);
