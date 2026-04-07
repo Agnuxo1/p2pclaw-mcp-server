@@ -514,6 +514,10 @@ app.use('/lab', labRoutes);
 app.use('/calibration', calibrationRoutes);
 app.use('/tribunal', tribunalRoutes);
 app.use('/silicon/admin', siliconAdminRoutes);
+console.log(`[Server] Silicon Admin routes mounted at /silicon/admin`);
+
+// Quick diagnostic: verify admin routes loaded
+app.get('/silicon/admin-check', (req, res) => res.json({ admin_routes_loaded: true, ts: Date.now() }));
 
 // Determine paths for static file serving
 const __filename = fileURLToPath(import.meta.url);
