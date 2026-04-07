@@ -1,11 +1,48 @@
 /**
  * P2PCLAW Open Problem Solver — Problem Board
  * =============================================
- * Static catalog of open mathematical problems from Erdős Problems and FrontierMath.
+ * Static catalog of open mathematical problems from FrontierMath (Epoch AI).
  * Runtime state tracks solve progress per problem.
  *
- * Source: papers/P2PCLAW_Math_Solver_Plan.html
+ * Source: https://epoch.ai/frontiermath/open-problems (verified 2026-04-07)
  */
+
+// ── Solved Problem Reference (for expert learning) ────────────────────────
+// The Ramsey Hypergraph problem was the FIRST open math problem solved by AI.
+// This documentation is injected into expert research phases as transferable knowledge.
+
+export const SOLVED_REFERENCE_RAMSEY_HYPERGRAPH = {
+    problem: "A Ramsey-style Problem on Hypergraphs",
+    url: "https://epoch.ai/frontiermath/open-problems/ramsey-hypergraphs",
+    github: "https://github.com/math-inc/FrontierMathOpen-Hypergraphs",
+    solved_by: "GPT-5.4 Pro (guided by Kevin Barreto & Liam Price)",
+    verified_by: "Will Brian (problem contributor, UNC Charlotte)",
+    date: "2026-03-26",
+    result: "H(n) >= (26/25) * k_n for n >= 15",
+    technique_summary:
+        "RECURSIVE SUBSTITUTION CONSTRUCTION — The key insight was eliminating an inefficiency " +
+        "in existing lower-bound constructions. The solution mirrors the intricacy of the upper-bound " +
+        "construction, producing matching bounds. Technique: substitution hypergraphs replace vertices " +
+        "with frames (support patterns) while preserving partition properties, allowing building larger " +
+        "hypergraphs from smaller ones with controlled partition growth.",
+    key_techniques: [
+        "Recursive substitution: build large structures from smaller verified components",
+        "Frame/support pattern abstraction: replace vertices while preserving key properties",
+        "Matching upper and lower bounds: aim for tight characterization, not just one direction",
+        "Systematic inefficiency elimination: analyze existing constructions for waste",
+        "Computational verification: use code to check small cases before generalizing",
+    ],
+    verification_detail:
+        "Formalized in Lean 4 (~6300 lines). Construction achieves H(20)>=65. " +
+        "Also solved by: Opus 4.6 (1/4 attempts), Gemini 3.1 Pro (2/4), GPT-5.4 xhigh (2/4). " +
+        "Failed by: GPT-5.2, Opus 4.5, Kimi K2.5.",
+    lesson_for_experts:
+        "The successful approach was NOT brute force. It identified a structural inefficiency in the " +
+        "existing human proof and proposed a refined recursive construction. When attacking open problems: " +
+        "(1) Study existing best constructions deeply, (2) Look for specific inefficiencies to eliminate, " +
+        "(3) Try to match known upper bounds from below, (4) Verify computationally for small n first, " +
+        "(5) Generalize from verified small cases to a uniform bound.",
+};
 
 // ── Problem Catalog ─────────────────────────────────────────────────────────
 
@@ -32,10 +69,9 @@ export const PROBLEM_CATALOG = [
             "book graph Ramsey extremal",
         ],
         external_url: "https://epoch.ai/frontiermath/open-problems",
-        // NOTE: "Ramsey Hypergraph" problem was SOLVED by GPT-5.4 Pro (March 26, 2026).
-        // Use solved problem documentation as reference material for experts.
-        solved_reference: "GPT-5.4 Pro solved the Ramsey Hypergraph problem on 2026-03-26. " +
-            "Experts should study that solution methodology for transferable techniques.",
+        // The Ramsey Hypergraph problem (different from this one) was SOLVED by GPT-5.4 Pro.
+        // This is the most directly related solved problem — same Ramsey theory domain.
+        solved_reference: SOLVED_REFERENCE_RAMSEY_HYPERGRAPH,
     },
     // ── Priority 2 — Concrete construction, tractable ──────────────────────────
     {

@@ -11,6 +11,7 @@
 import crypto from "crypto";
 import {
     PROBLEM_CATALOG, getProblem, getState, updateState, addSession,
+    SOLVED_REFERENCE_RAMSEY_HYPERGRAPH,
 } from "./problemBoard.js";
 import {
     callExpertAgent, selectBestAgent, selectAlternateAgent,
@@ -138,6 +139,12 @@ async function phasePlan(session, problem, agent) {
                 `**Category:** ${problem.category}\n**Type:** ${problem.type}\n**Difficulty:** ${problem.difficulty}\n\n` +
                 `**Description:** ${problem.description}\n\n` +
                 `**Source:** ${problem.source} — ${problem.external_url}\n\n` +
+                `# Reference — How GPT-5.4 Pro Solved a Similar FrontierMath Problem\n\n` +
+                `The Ramsey Hypergraph problem was the first open math problem solved by AI (2026-03-26).\n` +
+                `**Key technique:** ${SOLVED_REFERENCE_RAMSEY_HYPERGRAPH.technique_summary}\n` +
+                `**Lessons learned:**\n${SOLVED_REFERENCE_RAMSEY_HYPERGRAPH.key_techniques.map(t => `- ${t}`).join("\n")}\n` +
+                `**Critical insight:** ${SOLVED_REFERENCE_RAMSEY_HYPERGRAPH.lesson_for_experts}\n\n` +
+                `Apply these transferable strategies to THIS problem where relevant.\n\n` +
                 `# Task\n\nCreate a structured solution plan with:\n` +
                 `1. **Key mathematical concepts** needed (theorems, lemmas, tools)\n` +
                 `2. **Promising approaches** (at least 3 different attack vectors)\n` +
@@ -216,9 +223,18 @@ async function phaseResearch(session, problem, agent, plan) {
     if (researchSummary) {
         try {
             // Include reference to solved problems if available (transferable techniques)
-            const solvedRef = problem.solved_reference
-                ? `\n\n# Reference — Solved Related Problem:\n${problem.solved_reference}\nStudy the methodology used to solve that related problem. Identify transferable techniques.\n`
-                : "";
+            let solvedRef = "";
+            const ref = problem.solved_reference || SOLVED_REFERENCE_RAMSEY_HYPERGRAPH;
+            if (ref) {
+                const refText = typeof ref === "string" ? ref : [
+                    `**${ref.problem}** — Solved by ${ref.solved_by} (${ref.date})`,
+                    `Result: ${ref.result}`,
+                    `Technique: ${ref.technique_summary}`,
+                    `Key lessons:\n${(ref.key_techniques || []).map(t => `  - ${t}`).join("\n")}`,
+                    ref.lesson_for_experts,
+                ].join("\n");
+                solvedRef = `\n\n# Reference — Solved FrontierMath Problem (study for transferable techniques):\n${refText}\n`;
+            }
             const analysis = await callExpertAgent(agent.id, [
                 { role: "system", content: "You are a mathematical research expert. Analyze these related papers and identify the most relevant results for our problem." },
                 { role: "user", content: `# Problem: ${problem.title}\n\n# Related Papers Found:\n${researchSummary}\n\n# Our Plan:\n${(plan || "").slice(0, 2000)}${solvedRef}\n\nIdentify the 3 most relevant papers and how they could help. Be specific about which theorems, lemmas, or techniques to use.` },
