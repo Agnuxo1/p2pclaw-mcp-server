@@ -10,6 +10,7 @@
 // ── Problem Catalog ─────────────────────────────────────────────────────────
 
 export const PROBLEM_CATALOG = [
+    // ── Priority 1 — ATTACK FIRST ─────────────────────────────────────────────
     {
         id: "fm-ramsey-book",
         source: "FrontierMath",
@@ -31,44 +32,75 @@ export const PROBLEM_CATALOG = [
             "book graph Ramsey extremal",
         ],
         external_url: "https://epoch.ai/frontiermath/open-problems",
+        // NOTE: "Ramsey Hypergraph" problem was SOLVED by GPT-5.4 Pro (March 26, 2026).
+        // Use solved problem documentation as reference material for experts.
+        solved_reference: "GPT-5.4 Pro solved the Ramsey Hypergraph problem on 2026-03-26. " +
+            "Experts should study that solution methodology for transferable techniques.",
     },
+    // ── Priority 2 — Concrete construction, tractable ──────────────────────────
     {
-        id: "fm-diophantine-small",
+        id: "fm-hadamard-668",
         source: "FrontierMath",
-        category: "Number Theory",
+        category: "Combinatorics / Linear Algebra",
         difficulty: "solid_result",
-        title: "Small Diophantine Equations — Infinitely Many Solutions",
+        title: "Hadamard Matrices of Order 668",
         description:
-            "Prove that certain 'small' Diophantine equations have infinitely many solutions. " +
-            "Added February 24, 2026. Algorithm must work for a challenge set of integers. " +
-            "Contributor undisclosed.",
-        type: "proof",
+            "Construct a Hadamard matrix of order 668, the smallest multiple of 4 for which " +
+            "no Hadamard matrix is known. A concrete construction problem — output is the matrix itself. " +
+            "Verifiable programmatically (check H·Hᵀ = 668·I). Classic open problem in combinatorial design theory.",
+        type: "construction",
         verifiable_programmatically: true,
-        recommended: false,
+        recommended: true,
         priority: 2,
-        domains_needed: ["number_theory", "algebra", "computation"],
+        domains_needed: ["combinatorics", "linear_algebra", "algorithms", "computation"],
         arxiv_search_terms: [
-            "small Diophantine equations infinite solutions",
-            "Diophantine equation algorithmic solvability",
-            "parametric families Diophantine",
+            "Hadamard matrix construction order 668",
+            "Hadamard conjecture smallest unknown order",
+            "combinatorial design Hadamard",
         ],
         external_url: "https://epoch.ai/frontiermath/open-problems",
     },
+    // ── Priority 3 — Partially solved (6/9 remaining) ─────────────────────────
+    {
+        id: "fm-diophantine-finiteness",
+        source: "FrontierMath",
+        category: "Number Theory",
+        difficulty: "solid_result",
+        title: "Finiteness Problem for Diophantine Equations",
+        description:
+            "Determine finiteness or infiniteness of solutions for a set of Diophantine equations. " +
+            "Originally 9 equations; 3 have been solved, 6 remain open. " +
+            "Added February 24, 2026. Partially solved — each remaining equation is an independent challenge. " +
+            "Verifiable programmatically.",
+        type: "proof",
+        verifiable_programmatically: true,
+        recommended: false,
+        priority: 3,
+        domains_needed: ["number_theory", "algebra", "computation"],
+        arxiv_search_terms: [
+            "Diophantine equations finiteness decidability",
+            "Hilbert tenth problem bounded degree",
+            "Diophantine equation algorithmic solvability",
+        ],
+        external_url: "https://epoch.ai/frontiermath/open-problems",
+    },
+    // ── Priority 4 — Hard construction, Number Theory ──────────────────────────
     {
         id: "fm-galois-m23",
         source: "FrontierMath",
-        category: "Number Theory / Algebra",
+        category: "Number Theory",
         difficulty: "major_advance",
         title: "Inverse Galois Problem for M₂₃",
         description:
-            "Find a degree-23 polynomial in Z[x] whose splitting field over Q has Galois group M₂₃. " +
-            "Last sporadic simple group for which no construction is known. " +
+            "Find a degree-23 polynomial in Z[x] whose splitting field over Q has Galois group " +
+            "isomorphic to the Mathieu group M₂₃. Last sporadic simple group for which no explicit " +
+            "polynomial realization over Q is known. " +
             "Contributor: Daniel Litt (Toronto). Human time-to-solve estimated: 1–10 years.",
         type: "construction",
         verifiable_programmatically: true,
         recommended: false,
-        priority: 3,
-        domains_needed: ["algebra", "number_theory", "group_theory"],
+        priority: 4,
+        domains_needed: ["number_theory", "algebra", "group_theory"],
         arxiv_search_terms: [
             "inverse Galois problem Mathieu group M23",
             "sporadic simple group polynomial realization",
@@ -76,27 +108,102 @@ export const PROBLEM_CATALOG = [
         ],
         external_url: "https://epoch.ai/frontiermath/open-problems",
     },
+    // ── Priority 5 — Advanced, additive combinatorics ──────────────────────────
     {
-        id: "erdos-additive-combinatorics",
-        source: "Erdos",
-        category: "Combinatorics / Additive Number Theory",
-        difficulty: "varies",
-        title: "Erdős Open Problems — Additive Combinatorics",
+        id: "fm-arithmetic-kakeya",
+        source: "FrontierMath",
+        category: "Combinatorics / Analysis",
+        difficulty: "major_advance",
+        title: "Arithmetic Kakeya Conjecture",
         description:
-            "Open problems from erdosproblems.com in combinatorics and additive number theory. " +
-            "~20 resolved with AI involvement since Nov 2025. Community-driven, no verifier fee. " +
-            "Maintained by Thomas Bloom (Bristol). Terence Tao is informal arbiter.",
+            "Prove or disprove the Arithmetic Kakeya Conjecture: a set containing arithmetic progressions " +
+            "of every length must have Minkowski dimension 1. Connects additive combinatorics, harmonic " +
+            "analysis, and geometric measure theory. Deep problem with connections to the classical " +
+            "Kakeya conjecture in Euclidean geometry.",
         type: "proof",
         verifiable_programmatically: false,
-        recommended: true,
-        priority: 1,
-        domains_needed: ["combinatorics", "number_theory", "analysis"],
+        recommended: false,
+        priority: 5,
+        domains_needed: ["combinatorics", "analysis", "number_theory"],
         arxiv_search_terms: [
-            "Erdos conjecture combinatorics AI",
-            "additive number theory open problem",
-            "Erdos problem resolved 2025 2026",
+            "arithmetic Kakeya conjecture",
+            "Kakeya set arithmetic progressions dimension",
+            "additive combinatorics Kakeya Minkowski",
         ],
-        external_url: "https://www.erdosproblems.com",
+        external_url: "https://epoch.ai/frontiermath/open-problems",
+    },
+    // ── Priority 6 — Algebraic Geometry, KLT del Pezzo ─────────────────────────
+    {
+        id: "fm-klt-delpazzo-singularities",
+        source: "FrontierMath",
+        category: "Algebraic Geometry",
+        difficulty: "major_advance",
+        title: "Surface with High Number of Singularities (KLT del Pezzo)",
+        description:
+            "Construct a KLT del Pezzo surface with the maximum possible number of singularities, " +
+            "or determine the sharp upper bound. Relates to the Minimal Model Program (MMP) and " +
+            "classification of algebraic surfaces. Requires deep knowledge of singularity theory " +
+            "and birational geometry.",
+        type: "construction",
+        verifiable_programmatically: false,
+        recommended: false,
+        priority: 6,
+        domains_needed: ["algebraic_geometry", "algebra", "computation"],
+        arxiv_search_terms: [
+            "KLT del Pezzo surface singularities bound",
+            "log terminal singularities surface maximum",
+            "minimal model program del Pezzo surfaces",
+        ],
+        external_url: "https://epoch.ai/frontiermath/open-problems",
+    },
+    // ── Priority 7 — Very hard combinatorial design ────────────────────────────
+    {
+        id: "fm-large-steiner",
+        source: "FrontierMath",
+        category: "Combinatorics / Design Theory",
+        difficulty: "major_advance",
+        title: "Large Steiner Systems",
+        description:
+            "Construct Steiner systems S(t, k, n) for large parameters where existence is open. " +
+            "Steiner triple systems are well-understood, but for t ≥ 4 very few constructions exist. " +
+            "Peter Keevash proved existence asymptotically (2014), but explicit constructions for " +
+            "specific parameters remain open. Extremely hard combinatorial design problem.",
+        type: "construction",
+        verifiable_programmatically: true,
+        recommended: false,
+        priority: 7,
+        domains_needed: ["combinatorics", "algorithms", "computation"],
+        arxiv_search_terms: [
+            "Steiner system large parameters construction",
+            "Steiner quadruple system explicit",
+            "combinatorial design existence construction Keevash",
+        ],
+        external_url: "https://epoch.ai/frontiermath/open-problems",
+    },
+    // ── Priority 8 — DO NOT ATTACK NOW (too hard for current AI) ───────────────
+    {
+        id: "fm-unknotting-number",
+        source: "FrontierMath",
+        category: "Topology / Knot Theory",
+        difficulty: "beyond_current_ai",
+        title: "Unknotting Number = 1 Recognition",
+        description:
+            "Given a knot diagram, determine algorithmically whether the unknotting number is 1. " +
+            "No known polynomial-time algorithm. Relates to 3-manifold topology and Heegaard Floer " +
+            "homology. Estimated human time-to-solve: decades. DO NOT ATTACK — included for " +
+            "completeness and future reference only.",
+        type: "algorithm",
+        verifiable_programmatically: true,
+        recommended: false,
+        priority: 8,
+        domains_needed: ["topology", "algebra", "algorithms"],
+        arxiv_search_terms: [
+            "unknotting number recognition algorithm",
+            "unknotting number one decidable",
+            "knot invariant unknotting Heegaard Floer",
+        ],
+        external_url: "https://epoch.ai/frontiermath/open-problems",
+        attack_note: "DO NOT ATTACK NOW — beyond current AI capabilities. Reserved for future.",
     },
 ];
 
