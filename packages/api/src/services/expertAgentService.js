@@ -385,7 +385,8 @@ export async function callExpertAgent(agentId, messages, opts = {}) {
 
     if (agent.config.responseFormat === "cloudflare") {
         const inner = data.result || data;
-        text = inner.choices?.[0]?.message?.content || inner.response || "";
+        const msg = inner.choices?.[0]?.message;
+        text = msg?.content || msg?.reasoning_content || msg?.reasoning || inner.response || "";
     } else if (agent.config.responseFormat === "cohere") {
         const blocks = data.message?.content || [];
         if (Array.isArray(blocks)) {
@@ -396,7 +397,8 @@ export async function callExpertAgent(agentId, messages, opts = {}) {
         }
     } else {
         // OpenAI-compatible (cerebras, groq, openrouter, nvidia, xiaomi, sarvam)
-        text = data.choices?.[0]?.message?.content || "";
+        const msg = data.choices?.[0]?.message;
+        text = msg?.content || msg?.reasoning_content || msg?.reasoning || "";
     }
 
     // Strip <think>...</think> tags if needed
