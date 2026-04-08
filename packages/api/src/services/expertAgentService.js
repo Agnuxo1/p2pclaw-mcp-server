@@ -1,7 +1,7 @@
 /**
  * P2PCLAW Open Problem Solver — Expert Agent Service
  * ====================================================
- * 9 expert agents backed by dedicated API keys (OPS_ prefix).
+ * 17 expert agents backed by dedicated API keys (OPS_ prefix).
  * Each agent is assigned a mathematical domain and an LLM provider.
  * The dispatch function handles all provider-specific response formats.
  */
@@ -154,6 +154,142 @@ export const EXPERT_AGENTS = [
             stripThink: true,
             timeout: 60000,
             maxTokens: 2048,
+        },
+    },
+    // ── NEW NVIDIA Experts (3 accounts, 6 models) ─────────────────────────────
+    {
+        id: "nvidia-step-expert",
+        name: "StepFun Step-3.5 Flash Expert",
+        provider: "nvidia",
+        role: "Fast Reasoning — rapid chain-of-thought with strong mathematical intuition",
+        domains: ["algebra", "number_theory", "reasoning", "combinatorics"],
+        config: {
+            url: () => "https://integrate.api.nvidia.com/v1/chat/completions",
+            model: "stepfun-ai/step-3.5-flash",
+            keyEnv: "OPS_NVIDIA_KEY_3",
+            responseFormat: "openai",
+            stripThink: true,
+            timeout: 120000,
+            maxTokens: 8192,
+        },
+    },
+    {
+        id: "nvidia-glm-expert",
+        name: "Z.ai GLM-4.7 Expert",
+        provider: "nvidia",
+        role: "Deep Thinking — extended reasoning with enable_thinking mode, strong at formal proofs",
+        domains: ["proof_writing", "analysis", "algebra", "number_theory"],
+        config: {
+            url: () => "https://integrate.api.nvidia.com/v1/chat/completions",
+            model: "z-ai/glm4.7",
+            keyEnv: "OPS_NVIDIA_KEY_4",
+            responseFormat: "openai",
+            stripThink: true,
+            timeout: 180000,
+            maxTokens: 8192,
+        },
+    },
+    {
+        id: "nvidia-devstral-expert",
+        name: "Mistral Devstral-2 123B Expert",
+        provider: "nvidia",
+        role: "Code & Algorithms — 123B parameter code model, strong at algorithmic construction",
+        domains: ["algorithms", "computation", "graph_theory", "verification"],
+        config: {
+            url: () => "https://integrate.api.nvidia.com/v1/chat/completions",
+            model: "mistralai/devstral-2-123b-instruct-2512",
+            keyEnv: "OPS_NVIDIA_KEY_5",
+            responseFormat: "openai",
+            stripThink: false,
+            timeout: 120000,
+            maxTokens: 8192,
+        },
+    },
+    {
+        id: "nvidia-kimi-expert",
+        name: "Kimi K2-Thinking Expert",
+        provider: "nvidia",
+        role: "Extended Reasoning — Moonshot thinking model, excels at multi-step proofs",
+        domains: ["combinatorics", "number_theory", "proof_writing", "reasoning"],
+        config: {
+            url: () => "https://integrate.api.nvidia.com/v1/chat/completions",
+            model: "moonshotai/kimi-k2-thinking",
+            keyEnv: "OPS_NVIDIA_KEY_3",
+            responseFormat: "openai",
+            stripThink: true,
+            timeout: 180000,
+            maxTokens: 8192,
+        },
+    },
+    {
+        id: "nvidia-seed-expert",
+        name: "ByteDance Seed-OSS 36B Expert",
+        provider: "nvidia",
+        role: "Verification Specialist — thinking-budget model, methodical cross-checking",
+        domains: ["verification", "computation", "algorithms"],
+        config: {
+            url: () => "https://integrate.api.nvidia.com/v1/chat/completions",
+            model: "bytedance/seed-oss-36b-instruct",
+            keyEnv: "OPS_NVIDIA_KEY_4",
+            responseFormat: "openai",
+            stripThink: true,
+            timeout: 120000,
+            maxTokens: 4096,
+        },
+    },
+    {
+        id: "nvidia-mistral-expert",
+        name: "Mistral Large 675B Expert",
+        provider: "nvidia",
+        role: "Large-Scale Reasoning — 675B frontier model, broad mathematical knowledge",
+        domains: ["analysis", "synthesis", "algebra", "number_theory", "group_theory"],
+        config: {
+            url: () => "https://integrate.api.nvidia.com/v1/chat/completions",
+            model: "mistralai/mistral-large-3-675b-instruct-2512",
+            keyEnv: "OPS_NVIDIA_KEY_5",
+            responseFormat: "openai",
+            stripThink: false,
+            timeout: 180000,
+            maxTokens: 4096,
+        },
+    },
+    // ── NEW Cloudflare Experts (cuenta 12) ─────────────────────────────────────
+    {
+        id: "cf-gemma-expert",
+        name: "Google Gemma-4 26B Expert",
+        provider: "cloudflare",
+        role: "Fast Computation — Google Gemma 26B, efficient at pattern recognition and quick verification",
+        domains: ["computation", "algorithms", "verification", "graph_theory"],
+        config: {
+            url: () => {
+                const acct = process.env.OPS_CF_ACCOUNT_12 || "6e9d120f89e9944ac65eae8b50a5eefa";
+                return `https://api.cloudflare.com/client/v4/accounts/${acct}/ai/run/@cf/google/gemma-4-26b-a4b-it`;
+            },
+            model: "@cf/google/gemma-4-26b-a4b-it",
+            keyEnv: "OPS_CF_TOKEN_12",
+            responseFormat: "cloudflare",
+            stripThink: false,
+            timeout: 90000,
+            maxTokens: 4096,
+        },
+    },
+    {
+        id: "cf-glm-expert",
+        name: "GLM-4.7 Flash Expert",
+        provider: "cloudflare",
+        role: "Fast Reasoning — Z.ai GLM flash model on Cloudflare edge, low latency thinking",
+        domains: ["combinatorics", "graph_theory", "reasoning", "number_theory"],
+        config: {
+            url: () => {
+                const acct = process.env.OPS_CF_ACCOUNT_12 || "6e9d120f89e9944ac65eae8b50a5eefa";
+                return `https://api.cloudflare.com/client/v4/accounts/${acct}/ai/run/@cf/zai-org/glm-4.7-flash`;
+            },
+            model: "@cf/zai-org/glm-4.7-flash",
+            keyEnv: "OPS_CF_TOKEN_12",
+            responseFormat: "cloudflare",
+            stripThink: true,
+            timeout: 90000,
+            maxTokens: 4096,
         },
     },
 ];
