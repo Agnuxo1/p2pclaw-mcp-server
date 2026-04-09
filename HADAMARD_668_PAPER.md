@@ -208,11 +208,137 @@ Research conducted under the OPS (Open Problem Solver) framework of the P2PCLAW 
 
 ---
 
-*Status: IN PROGRESS — 14 agents (A–N) running on non-palindromic formulation, best E = 1,728 (5.3× better than palindromic plateau)*
+## 10 · Phase 4 · Turyn breakthrough (2026-04-09)
 
-*Major result*: The palindromic Williamson reduction plateaus at E ≈ 9000
-for q=167. Dropping the palindrome constraint (circulants still commute)
-reduces the floor by 5.3×. The remaining barrier at E=1728 is a
-partial-Parseval manifold obstruction: Σ_k (Σ v_k)² = 620 ≠ 668 in the
-current champion. Sum-penalty and sum-fixed SA agents are navigating
-toward the correct manifold. Next milestone: break E < 1000.
+### 10.1 · Turyn T-sequence formulation
+
+Turyn sequences are four ±1/0 sequences T_1, T_2, T_3, T_4 of length n
+with |T_1[i]|+|T_2[i]|+|T_3[i]|+|T_4[i]| = 1 ∀i, such that
+Σ_k NAF_{T_k}(d) = 0 ∀ d ≥ 1. From T-sequences, Williamson A,B,C,D are:
+
+```
+A = T_1 + T_2 + T_3 + T_4
+B = T_1 + T_2 − T_3 − T_4
+C = T_1 − T_2 + T_3 − T_4
+D = T_1 − T_2 − T_3 + T_4
+```
+
+Parameterization: types[i] ∈ {0,1,2,3} selects which T_k is nonzero,
+signs[i] ∈ {±1} selects its sign. Patterns:
+
+```
+type 0: pat = (+1, +1, +1, +1)     (T_1=T_2=T_3=T_4 = sign)
+type 1: pat = (+1, +1, −1, −1)
+type 2: pat = (+1, −1, +1, −1)
+type 3: pat = (+1, −1, −1, +1)
+```
+
+Column-sum (Parseval) constraint: col_sums[k] = Σ_i signs[i]·pat[type[i]][k],
+and E=0 requires Σ_k col_sums[k]² = 4n = 668.
+
+### 10.2 · Fast O(n) Turyn delta
+
+For a single sign-flip or type-change move, the NAF delta of a single
+T_k vector costs O(n), and col_sums updates are O(1). Total dE per move
+is O(n). Achieves ~40K moves/sec in pure Python with numpy.
+
+### 10.3 · Progress in Phase 4
+
+```
+Start random:             E = 288,064
+Turyn fast SA:            E = 262   (strict local min, off-manifold)
+Penalty SA (lambda*ss):   ~30 Sigma s^2=668 manifold checkpoints
+Manifold SA 2-swap+3-cyc: E = 288
+Manifold PT (M=12, ZZZ2): E = 274
+Manifold PT (M=6,  OOOO): E = 260   (CURRENT BEST)
+```
+
+1108x reduction from random. Best champion E=260 has col_sums =
+(-7, 3, -23, -9) in the |col_sums| class (3,7,9,23), reached by
+parallel tempering with M=6 replicas on a geometric T ladder
+T in [1.5, 80] using a 60/40 mix of 2-swap and 3-cycle moves.
+
+### 10.4 · Multi-class manifold exploration
+
+8 of 10 valid |col_sums| classes covered with manifold champions:
+
+| |col_sums| class | Best E | Gap from global |
+|---|---|---|
+| (3, 7, 9, 23)  | 260  | -- |
+| (3, 3, 5, 25)  | 296  | +36 |
+| (5, 9, 11, 21) | 316  | +56 |
+| (7, 13, 15, 15)| 330  | +70 |
+| (3, 7, 13, 21) | 340  | +80 |
+| (1, 9, 15, 19) | 1364 | +1104 |
+| (3, 3, 11, 23) | 1694 | +1434 |
+| (3, 9, 17, 17) | 2188 | +1928 |
+| (1, 1, 15, 21) | pending targeted SA | -- |
+| (3, 3, 17, 19) | pending targeted SA | -- |
+
+Manifold-preserving moves (2-swap, 3-cycle, ..., W-cycle) preserve
+col_sums EXACTLY as a vector — not just |col_sums|. This means each
+basin with fixed col_sums vector is a disconnected manifold component.
+The targeted penalty SA with E_aug = E_naf + λ·||cs − target||² is used
+to explore specific sign patterns.
+
+### 10.5 · Local-minimum analysis at E=274 / E=260
+
+Exhaustive 2-swap scan at E=274 (ZZZ2 champion, col_sums=(-7,3,-23,-9)):
+  - 13,861 total moves, 0 improving, 0 zero-dE, min_positive dE = 10
+
+3-cycle random sample (100K) at E=274:
+  - 0 improving, ~1500 zero-dE (1.5% plateau), min_positive dE = 10
+
+4-cycle / 5-cycle / 8-cycle: all positive-only at E=274 level.
+
+E=274 was broken by OOOO (Parallel Tempering, M=6 replicas, T ladder
+[1.5, 3.3, 7.4, 16.3, 36.1, 80]) after ~17 minutes wall-clock and
+5.1M total moves. The breakthrough happened in the coldest replica
+after receiving a state from the T=3.3 replica via an accepted swap.
+The new basin at E=260 occupies the same col_sums vector
+(-7, 3, -23, -9) but a genuinely different ~-distant (signs,types)
+configuration.
+
+### 10.6 · Block-permute manifold moves
+
+To increase manifold connectivity beyond fixed-shape k-cycles, we
+introduced a block-permute move:
+
+  - Sample W positions uniformly (W in [4, 10])
+  - Apply a random permutation of their (type, sign) pairs
+  - Compose dNAF as W single-position delta updates
+
+For each position, removing its contribution and reinserting it at
+another position preserves col_sums EXACTLY (contributions are just
+moved to different indices). This generalises 2-swap (W=2) and
+3-cycle (W=3) to ANY permutation of W positions, dramatically
+expanding the set of reachable neighbours.
+
+A large block-permute W=15..24 is also used as the restart kick
+after stale iterations, replacing the old random sign flips that
+would leave the manifold.
+
+### 10.7 · Running agent topology (Phase 4)
+
+At the E=260 breakthrough, 40+ Python processes were running in
+parallel across multiple algorithm classes:
+
+  - Manifold SA (k-cycle): seeds 80001..80099 covering all classes
+  - Manifold PT (M in {6, 8, 10, 12}): seeds 87001..96099
+  - Block-permute manifold: seeds 96001..96099
+  - Targeted penalty SA: seeds 90001..90099 per missing |cs| class
+  - OMG1..OMG7: seeded FROM the E=260 OOOO champion with various
+    T0 and W ranges to polish the new basin
+
+---
+
+*Status: IN PROGRESS — 40+ agents running on Turyn formulation, best E = 260 on manifold, 8 distinct col_sums classes populated, Phase 4 ongoing.*
+
+*Major results*:
+- Phase 1 (palindromic Williamson): E >= 9000 plateau
+- Phase 2 (non-palindromic Williamson): E = 1728
+- Phase 3 (sum-fixed + penalty): E = 262 off-manifold
+- **Phase 4 (Turyn manifold PT)**: E = 260 on-manifold, 1108x reduction
+
+Next milestone: break E < 200 on manifold via block-permute, multi-
+basin PT mixing, or cross-class mixing via targeted penalty SAs.
