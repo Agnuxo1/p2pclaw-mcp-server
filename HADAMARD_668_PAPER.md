@@ -101,17 +101,70 @@ Free variables: 4 × 84 = 336 binary ±1 bits (palindrome reduction).
 Search space: 2^{336} ≈ 10^{101}.  
 SA explores a connected subspace via local flip moves — convergence relies on the energy landscape having no deep isolated wells.
 
-## 6 · Progress (live)
+## 6 · Progress (live) — MAJOR BREAKTHROUGH
 
 ```
-Time    | Best E  | Reduction | Agent | Restarts
---------|---------|-----------|-------|--------
-t=0s    | 288,064 | 0%        | —     | —
-t=28s   | 10,336  | 96.4%     | A     | 3
-        | 10,752  | 96.3%     | B     | 7
-        | 13,664  | 95.3%     | C     | 3
-        | 10,720  | 96.3%     | D     | 1
+Phase 1 · Palindromic Williamson SA (336 bits, 83 constraints)
+Time     | Best E  | Method    | Plateau?
+---------|---------|-----------|----------
+t=0s     | 288,064 | random    | —
+t=28s    | ~10,336 | SA A–D    | yes
+t=5000s  |  9,120  | SA agg.   | CONFIRMED plateau E ≈ 9000
+
+Phase 2 · Non-palindromic breakthrough (668 bits, same 83 constraints)
+Strategy change: drop palindrome symmetry. Circulant commutativity
+is automatic. Search space doubles: 4×167 = 668 bits.
+Reduction: 9,120 → 1,728 (5.3× better)
+
+Time     | Best E  | Method    | Agent
+---------|---------|-----------|--------
+t=20s    |  2,688  | nonpal SA | seed 901
+t=50s    |  2,304  | nonpal SA | seed 902
+t=350s   |  1,728  | nonpal SA | seed 901 (champion)
 ```
+
+**Champion E=1728 decomposition**: |S(d)| ∈ {0, 4, 8} for d=1..166.
+  - 88 lags with S(d) = 0
+  - 68 lags with |S(d)| = 4  → 68 × 16 = 1,088
+  - 10 lags with |S(d)| = 8  → 10 × 64 =   640
+  - **Total: 1,728** ✓
+
+**Parseval column-sum constraint** (key identity):
+```
+Σ_d S(d) = Σ_k (Σ_i v_k[i])² − 4n     [from S(0) = Σ_k |v_k|² = 4n × 1]
+         
+E = 0 requires Σ_k s_k² = 4n = 668
+```
+where s_k = Σ_i v_k[i]. Four odd squares summing to 668 admits
+10 quadruples: {(1,1,15,21), (3,3,5,25), (3,7,13,21), (5,9,11,21),
+(7,13,15,15), (1,9,15,19), (3,3,11,23), (3,3,17,19), (3,7,9,23), (3,9,17,17)}.
+
+Champion col_sums = [15, 13, −1, 15] ⟹ Σ s² = 620 (off by 48).
+Closest quadruple: (7, 13, 15, 15) requires moving col 3 from −1 to 7.
+
+## 6b · Phase 3 · Active attack swarm
+
+14 long-horizon agents running in parallel (3h each):
+
+| ID  | Strategy | Details | Warm-start |
+|---|---|---|---|
+| Polish-1  | Low-T SA + restarts        | T₀=15, α=0.9999997 | champion 1728 |
+| Polish-2  | Low-T SA + restarts        | T₀=40, α=0.9999998 | E=2048 |
+| C  | Fresh nonpal SA              | T₀=500, α=0.9999995 | none |
+| D  | Non-pal Parallel Tempering   | 16 replicas, swap_every=500 | none |
+| E  | Sum-fixed SA (7,13,15,15)    | Σs²=668 manifold | init from quadruple |
+| F  | Sum-fixed SA (5,9,11,21)     | alt. quadruple | init from quadruple |
+| G  | Sum-fixed SA (1,9,15,19)     | alt. quadruple | init from quadruple |
+| H  | Sum-fixed SA (3,7,9,23)      | alt. quadruple | init from quadruple |
+| I  | Penalty SA (ws champion)     | λ·(Σs²−668)² | champion 1728 |
+| J  | Penalty SA (fresh)           | fresh init | none |
+| K  | Tabu search (ws champion)    | tenure=80, cands=60 | champion 1728 |
+| L  | Tabu search (fresh)          | tenure=100, cands=80 | none |
+| M  | Cross-vec 2-bit move SA      | p_single=0.5 | champion 1728 |
+| N  | Cross-vec 2-bit move SA      | p_single=0.6, T₀=400 | none |
+
+Each agent uses the vectorised O(n) single-flip ΔE = (2S+ΔP)·ΔP, achieving
+~40k flips/s. Total throughput: ~560k moves/s across 14 workers.
 
 If E = 0 is found, the Williamson sequences are extracted and H(668) is assembled and verified via H·H^T = 668·I before CSV export.
 
@@ -155,4 +208,11 @@ Research conducted under the OPS (Open Problem Solver) framework of the P2PCLAW 
 
 ---
 
-*Status: IN PROGRESS — agents A–D running, best E = 10,336*
+*Status: IN PROGRESS — 14 agents (A–N) running on non-palindromic formulation, best E = 1,728 (5.3× better than palindromic plateau)*
+
+*Major result*: The palindromic Williamson reduction plateaus at E ≈ 9000
+for q=167. Dropping the palindrome constraint (circulants still commute)
+reduces the floor by 5.3×. The remaining barrier at E=1728 is a
+partial-Parseval manifold obstruction: Σ_k (Σ v_k)² = 620 ≠ 668 in the
+current champion. Sum-penalty and sum-fixed SA agents are navigating
+toward the correct manifold. Next milestone: break E < 1000.
