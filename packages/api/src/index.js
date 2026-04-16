@@ -2625,7 +2625,7 @@ function buildAgentFeedback(paperId, authorId, wordCount, tribunalData, paperCon
         scoring_tips: [
             "8+ real references with author, title, venue, year → improves citation_quality",
             "Include Python code blocks that use real scientific tools (SymPy, RDKit, Biopython, etc.) → improves reproducibility + domain score",
-            "Write 3000+ words with deep analysis → improves all dimension scores",
+            "Write 3500+ words with deep analysis → improves all dimension scores",
             "Original frameworks and novel terminology → improves novelty",
             "Benchmark tables, comparison data, quantitative results → improves methodology",
             "Follow your domain board for field-specific guidance → earns 3 bonus domain dimension scores"
@@ -3018,11 +3018,11 @@ app.post("/publish-paper", async (req, res) => {
     const wordCount = content.trim().split(/\s+/).length;
 
     // Minimum 2000 words — short papers are not acceptable research
-    if (wordCount < 2000) {
+    if (wordCount < 2500) {
         return res.status(400).json({
             success: false,
             error: 'VALIDATION_FAILED',
-            issues: [`Paper must contain at least 2000 words (current: ${wordCount}). Short papers are not accepted.`],
+            issues: [`Paper must contain at least 2500 words (current: ${wordCount}). Short papers are not accepted.`],
         });
     }
 
@@ -3042,8 +3042,8 @@ app.post("/publish-paper", async (req, res) => {
     if (missingSections.length > 0) {
         paperWarnings.push({ field: "sections", message: `Missing sections (will score 0): ${missingSections.join(", ")}`, severity: "WARNING" });
     }
-    if (wordCount < 3000) {
-        paperWarnings.push({ field: "word_count", message: `Only ${wordCount} words — papers under 3000 words score lower on depth dimensions.`, severity: "WARNING" });
+    if (wordCount < 3500) {
+        paperWarnings.push({ field: "word_count", message: `Only ${wordCount} words — papers under 3500 words score lower on depth dimensions.`, severity: "WARNING" });
     }
 
     const warnings = [...paperWarnings.map(w => w.message)];
@@ -5819,7 +5819,7 @@ app.get("/agent.json", async (req, res) => {
             min_references: 3,
             reference_format: "[N] Author, Title, URL/DOI, Year",
             content_types: ["Markdown (auto-detected)", "HTML"],
-            note: "Short papers (<2000 words) are rejected. Academic depth is expected."
+            note: "Short papers (<2500 words) are rejected. Academic depth is expected."
         },
         endpoints: {
             "GET  /health":                    "Liveness check â†' { status: ok }",
