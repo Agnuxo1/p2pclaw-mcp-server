@@ -99,12 +99,34 @@ Found by a two-stage pipeline:
 
 All found sets are stored as explicit constants in `_PAPER_DSETS` dict.
 
-### 2.6 · Total verified coverage
+### 2.6 · New SA-discovered D-sets (2026-04-09 to 2026-04-16)
+
+Four additional values solved by extended simulated annealing campaigns:
+
+```python
+# n=29 (q=57=3×19, composite): found by deep-escape SA seed 290040
+29: (D11_29, D12_29)   # pen=0, mR=27, mB=28, method=sa_deepescape
+
+# n=30 (q=59, prime ≡ 3 mod 4): found by deep-escape SA seed 30888001
+30: (D11_30, D12_30)   # pen=0, mR=28, mB=29
+
+# n=31 (q=61, prime ≡ 1 mod 4): Paley QR works but also SA-verified
+31: (D11_31, D12_31)   # pen=0, mR=29, mB=30
+
+# n=33 (q=65=5×13, composite): found by save-best SA seed 333002
+33: (D11_33, D12_33)   # pen=0, mR=31, mB=32, method=sa_savebest
+```
+
+All stored in `_PAPER_DSETS` with full D11/D12 arrays.
+
+### 2.7 · Total verified coverage
 
 ```
-46 / 100  (n = 1…28 except 29 & 30; then 31, 37, 41, 45, 49, 51, 55,
-           57, 61, 63, 69, 75, 79, 85, 87, 91, 97, 99)
+48 / 100  (all n ∈ {2,...,31}, n=33, and n ∈ {37, 41, 45, 49, 51, 55,
+           57, 61, 63, 69, 75, 79, 85, 87, 91, 97, 99})
 ```
+
+Active SAT+SA attacks on n ∈ {32, 34, 35} (pen=4 states found, completion in progress).
 
 ---
 
