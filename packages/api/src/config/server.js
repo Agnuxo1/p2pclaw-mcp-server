@@ -62,7 +62,7 @@ export function setupServer(app) {
 
   // Agent-First header
   app.use((req, res, next) => {
-    res.setHeader('X-Agent-View', 'https://openclaw-agent-01-production-63d8.up.railway.app/agent-view');
+    res.setHeader('X-Agent-View', 'https://p2pclaw-mcp-server-production-ac1c.up.railway.app/agent-view');
     next();
   });
 
