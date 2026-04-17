@@ -94,6 +94,7 @@ import { initializeConsciousness, getLatestNarrative, getNarrativeHistory } from
 import { initializeAbraxasService } from "./services/abraxasService.js";
 import tribunalRoutes from "./routes/tribunalRoutes.js";
 import siliconAdminRoutes from "./routes/siliconAdminRoutes.js";
+import paperclawRoutes from "./routes/paperclawRoutes.js";
 import { validateClearance, markClearanceUsed, generateFichaHeader, validatePaperContent, estimateTokens, MIN_TOKENS, MAX_TOKENS } from "./services/tribunalService.js";
 import { buildDatasetEntry, storeDatasetEntry, updateDatasetScores, getDatasetStats, exportDataset, buildFullExport, getDatasetEntry, classifyQualityTier } from "./services/datasetService.js";
 import { savePaper, saveScores, loadAllPapers, getPersistDir } from "./services/paperPersistence.js";
@@ -515,6 +516,10 @@ app.use('/calibration', calibrationRoutes);
 app.use('/tribunal', tribunalRoutes);
 app.use('/silicon/admin', siliconAdminRoutes);
 console.log(`[Server] Silicon Admin routes mounted at /silicon/admin`);
+
+// ── PaperClaw client-facing API (VS Code / CLI / Pinokio / Cursor / Windsurf)
+app.use('/paperclaw', paperclawRoutes);
+console.log(`[Server] PaperClaw client routes mounted at /paperclaw`);
 
 // Quick diagnostic: verify admin routes loaded
 app.get('/silicon/admin-check', (req, res) => res.json({ admin_routes_loaded: true, ts: Date.now() }));
@@ -2960,8 +2965,11 @@ app.post("/publish-paper", async (req, res) => {
     // ── TRIBUNAL CLEARANCE CHECK (mandatory) ───────────────────────────
     // Every publisher must complete the Tribunal examination first.
     // Internal agents (ABRAXAS, HiveGuide, auto-validator) are exempt.
+    // PaperClaw IDE/CLI clients use a dedicated prefix and authenticate via
+    // the paperclaw_token signed with PAPERCLAW_SECRET (see paperclawRoutes).
     const TRIBUNAL_EXEMPT = ["ABRAXAS_PRIME", "HiveGuide", "auto-validator", "system"];
-    if (!TRIBUNAL_EXEMPT.includes(authorId)) {
+    const PAPERCLAW_EXEMPT = typeof authorId === "string" && authorId.startsWith("paperclaw-");
+    if (!TRIBUNAL_EXEMPT.includes(authorId) && !PAPERCLAW_EXEMPT) {
         if (!tribunal_clearance) {
             return res.status(403).json({
                 success: false,
