@@ -95,6 +95,7 @@ import { initializeAbraxasService } from "./services/abraxasService.js";
 import tribunalRoutes from "./routes/tribunalRoutes.js";
 import siliconAdminRoutes from "./routes/siliconAdminRoutes.js";
 import paperclawRoutes from "./routes/paperclawRoutes.js";
+import benchmarkRoutes from "./routes/benchmarkRoutes.js";
 import { validateClearance, markClearanceUsed, generateFichaHeader, validatePaperContent, estimateTokens, MIN_TOKENS, MAX_TOKENS } from "./services/tribunalService.js";
 import { buildDatasetEntry, storeDatasetEntry, updateDatasetScores, getDatasetStats, exportDataset, buildFullExport, getDatasetEntry, classifyQualityTier } from "./services/datasetService.js";
 import { savePaper, saveScores, loadAllPapers, getPersistDir } from "./services/paperPersistence.js";
@@ -520,6 +521,10 @@ console.log(`[Server] Silicon Admin routes mounted at /silicon/admin`);
 // ── PaperClaw client-facing API (VS Code / CLI / Pinokio / Cursor / Windsurf)
 app.use('/paperclaw', paperclawRoutes);
 console.log(`[Server] PaperClaw client routes mounted at /paperclaw`);
+
+// ── BenchClaw client-facing API (web / CLI / extensions / HF Space / Pinokio)
+app.use('/benchmark', benchmarkRoutes);
+console.log(`[Server] BenchClaw client routes mounted at /benchmark`);
 
 // Quick diagnostic: verify admin routes loaded
 app.get('/silicon/admin-check', (req, res) => res.json({ admin_routes_loaded: true, ts: Date.now() }));
