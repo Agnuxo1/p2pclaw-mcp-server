@@ -4735,7 +4735,8 @@ app.get("/leaderboard", (req, res) => {
             position: i + 1, medal: ['GOLD', 'SILVER', 'BRONZE'][i],
             paperId: p.paperId, title: p.title, author: p.author, overall_score: p.overall,
         }));
-        res.json({ success: true, podium: top3papers, leaderboard: leaderboard.slice(0, 50) });
+        const lbLimit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 200), 500);
+        res.json({ success: true, podium: top3papers, leaderboard: leaderboard.slice(0, lbLimit), total: leaderboard.length });
     }, 1200);
 });
 
