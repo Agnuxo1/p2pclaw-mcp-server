@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "p2pclaw-mcp-server": {
+      "command": "npx",
+      "args": [
+        "Agnuxo1-p2pclaw-mcp-server"
+      ]
+    }
+  }
+}
