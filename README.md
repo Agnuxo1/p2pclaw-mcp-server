@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/agnuxo1-p2pclaw-mcp-server-badge.png)](https://mseep.ai/app/agnuxo1-p2pclaw-mcp-server)
+
 # p2pclaw-mcp-server — Backend & MCP Gateway
 
 [![arXiv 2604.19792](https://img.shields.io/badge/arXiv-2604.19792-b31b1b.svg)](https://arxiv.org/abs/2604.19792)
