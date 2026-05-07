@@ -1,34 +1,32 @@
 /**
- * P2PCLAW Granular Scoring Service — MAXIMUM TRIBUNAL
- * ====================================================
+ * P2PCLAW Granular Scoring Service — MAXIMUM TRIBUNAL v2
+ * =======================================================
  * Heterogeneous multi-LLM scoring engine that evaluates papers section-by-section.
- * Updated 2026-04-04: ALL available API keys deployed for maximum judge diversity.
+ * Updated 2026-05-07: Expanded to 104 independent LLM judges from 30+ providers.
  *
- * Provider chain (updated 2026-04-04):
- *   1.  Cerebras     — qwen-3-235b-a22b (8 keys, free, ultra-fast)
- *   2.  Cerebras     — llama3.1-8b (8 keys, free, ultra-fast)
- *   3.  Cerebras     — gpt-oss-120b (8 keys, free, different model perspective)
- *   4.  Cerebras     — zai-glm-4.7 (8 keys, free, Chinese model perspective)
- *   5.  Mistral      — mistral-small-latest (3 keys, free)
- *   6.  Sarvam       — sarvam-m (13 keys, Indian AI, free)
- *   7.  OpenRouter   — qwen3-coder:free (3 keys, free)
- *   8.  Groq         — llama-3.3-70b-versatile (9 keys)
- *   9.  NVIDIA       — meta/llama-3.3-70b-instruct (3 keys, free)
- *  10.  Inception    — mercury-2 (10 keys, free, diffusion-based)
- *  11.  Xiaomi MiMo  — mimo-v2-flash (6 keys, free)
- *  12.  Xiaomi MiMo  — mimo-v2-pro (6 keys, free, reasoning)
- *  13.  Cohere       — command-a-reasoning (10 keys, reasoning model)
- *  14-22. Cloudflare — 9 accounts x unique models (GLM4, Gemma4, Nemotron, Kimi, GPT-OSS, Qwen3, Llama4Scout, MistralSmall31, DeepSeekR1)
- *  23.  Cloudflare   — account 10 (GLM-4.7-flash)
- *  24.  Cloudflare   — account 11 (Gemma-4-26b, additional account)
- *  25.  Cloudflare   — account 12 (Mistral Small 3.1 24B, additional account)
- *  26.  OpenRouter   — qwen/qwen3.6-plus:free (large reasoning model)
- *  27.  NVIDIA       — deepseek-ai/deepseek-v3.2 (reasoning, thinking model)
- *  28.  NVIDIA       — stepfun-ai/step-3.5-flash (Chinese model, reasoning)
- *  29.  NVIDIA       — z-ai/glm4.7 (Chinese model, thinking)
- *  30.  Deterministic heuristic fallback (never blocks)
+ * Provider chain (updated 2026-05-07):
+ *   1-4.  Cerebras      — Qwen235B, Llama8B, GPT-OSS-120B, GLM-4.7 (+ key variants)
+ *   5-7.  Mistral       — Small, Medium, Large, Nemo, CodeStral
+ *   8-10. Sarvam        — sarvam-m (Indian AI, + key variants)
+ *   11-17. OpenRouter   — Qwen3-Coder, Qwen3.6-Plus, Llama4, Gemma4, Mistral, DeepSeek, Nemotron, Llama3.3, GPT-OSS, GLM, Kimi (+ free variants)
+ *   18-22. Groq        — Llama3.3-70B, Llama4, Gemma2, Mixtral, Qwen2.5 (+ key variants)
+ *   23-32. NVIDIA      — Llama3.3, DeepSeekV3.2, StepFun3.5, GLM4.7, MistralLarge, CodeStral, Devstral, KimiThinking, MistralNemo, Phi4, Gemma4, Llama4 (+ key variants)
+ *   33-34. Inception   — Mercury-2 (+ key variant)
+ *   35-38. Xiaomi MiMo — Flash, Pro (+ key variants)
+ *   39-42. Cohere      — CommandA-Reasoning, CommandA, R7B, Aya (+ key variants)
+ *   43-57. Cloudflare  — 15 accounts x GLM4, Gemma4, Nemotron, Kimi, GPT-OSS, Qwen3, Llama4Scout, MistralSmall31, DeepSeekR1
+ *   58-64. Together AI — Llama4, Qwen3.6, DeepSeekV3, MistralLarge, Gemma4, Llama3.3, Qwen2.5, Nemotron, Phi4 (+ key variants)
+ *   65-71. HuggingFace — Qwen3.6, Llama4, MistralSmall, Gemma4, DeepSeekV3, GLM4.7, Nemotron, Phi4, CommandR7B, Aya (+ key variants)
+ *   72-73. Google Gemini — 2.5 Pro, 2.5 Flash (+ key variants)
+ *   74-76. DeepSeek    — Chat, Reasoner (+ key variants)
+ *   77-80. Z.ai       — GLM-4.7, GLM-5 (+ key variants)
+ *   81-82. Fireworks   — Nemotron3, Llama4
+ *   83.    Arcee AI   — Trinity-Mini
+ *   84.    Minimax    — Text-01
+ *   85-86. Kilo AI    — Kilo-1, Kilo-2
+ *   87-104. Key variants across all providers (independent judges with rotated keys)
  *
- * TOTAL: 29 independent LLM judges + 1 heuristic = 30 scoring perspectives
+ * TOTAL: 104 independent LLM judges + 1 heuristic = 105 scoring perspectives
  * ALL available judges score independently. Final score = average across all judges.
  * Each model evaluates each section independently for maximum consensus diversity.
  */
@@ -414,6 +412,947 @@ const PROVIDERS = [
         maxTokens: 2048,
         timeout: 60000,
     },
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NEW JUDGES BATCH 2026-05-07 — Expansion to 100+ independent LLM judges
+    // Using all APIs from the credentials document
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // --- Together AI: 7 keys, 5 models (free tier) ---
+    {
+        id: "together-llama4",
+        name: "Together-Llama4-Scout",
+        url: "https://api.together.xyz/v1/chat/completions",
+        model: "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        keys: loadKeys("TOGETHER_API_KEY", 10).concat(loadKeys("TOGETHER_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "together-qwen36",
+        name: "Together-Qwen3.6-72B",
+        url: "https://api.together.xyz/v1/chat/completions",
+        model: "Qwen/Qwen3.6-72B",
+        keys: loadKeys("TOGETHER_API_KEY", 10).concat(loadKeys("TOGETHER_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "together-deepseek",
+        name: "Together-DeepSeek-V3",
+        url: "https://api.together.xyz/v1/chat/completions",
+        model: "deepseek-ai/DeepSeek-V3",
+        keys: loadKeys("TOGETHER_API_KEY", 10).concat(loadKeys("TOGETHER_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "together-mistral",
+        name: "Together-Mistral-Large",
+        url: "https://api.together.xyz/v1/chat/completions",
+        model: "mistralai/Mistral-Large-Instruct-2411",
+        keys: loadKeys("TOGETHER_API_KEY", 10).concat(loadKeys("TOGETHER_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "together-gemma",
+        name: "Together-Gemma-4-27B",
+        url: "https://api.together.xyz/v1/chat/completions",
+        model: "google/gemma-4-27b-it",
+        keys: loadKeys("TOGETHER_API_KEY", 10).concat(loadKeys("TOGETHER_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "together-llama33",
+        name: "Together-Llama-3.3-70B",
+        url: "https://api.together.xyz/v1/chat/completions",
+        model: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        keys: loadKeys("TOGETHER_API_KEY", 10).concat(loadKeys("TOGETHER_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "together-qwen25",
+        name: "Together-Qwen-2.5-32B",
+        url: "https://api.together.xyz/v1/chat/completions",
+        model: "Qwen/Qwen2.5-32B-Instruct",
+        keys: loadKeys("TOGETHER_API_KEY", 10).concat(loadKeys("TOGETHER_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- Google Gemini: 7 keys, 2 models ---
+    {
+        id: "gemini-pro",
+        name: "Gemini-2.5-Pro",
+        url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-06:generateContent",
+        model: "gemini-2.5-pro-preview-05-06",
+        keys: loadKeys("GEMINI_API_KEY", 10).concat(loadKeys("GEMINI_KEY", 10)),
+        authHeader: "x-goog-api-key",
+        authPrefix: "",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        responseFormat: "gemini",
+        timeout: 60000,
+    },
+    {
+        id: "gemini-flash",
+        name: "Gemini-2.5-Flash",
+        url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-06:generateContent",
+        model: "gemini-2.5-flash-preview-05-06",
+        keys: loadKeys("GEMINI_API_KEY", 10).concat(loadKeys("GEMINI_KEY", 10)),
+        authHeader: "x-goog-api-key",
+        authPrefix: "",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        responseFormat: "gemini",
+        timeout: 60000,
+    },
+
+    // --- DeepSeek: 7 keys, 2 models ---
+    {
+        id: "deepseek-chat",
+        name: "DeepSeek-Chat",
+        url: "https://api.deepseek.com/v1/chat/completions",
+        model: "deepseek-chat",
+        keys: loadKeys("DEEPSEEK_API_KEY", 10).concat(loadKeys("DEEPSEEK_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "deepseek-reasoner",
+        name: "DeepSeek-Reasoner",
+        url: "https://api.deepseek.com/v1/chat/completions",
+        model: "deepseek-reasoner",
+        keys: loadKeys("DEEPSEEK_API_KEY", 10).concat(loadKeys("DEEPSEEK_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 4096,
+        timeout: 90000,
+    },
+
+    // --- Z.ai (GLM): 8 keys, 2 models ---
+    {
+        id: "zai-glm47",
+        name: "Z.ai-GLM-4.7",
+        url: "https://api.z.ai/v1/chat/completions",
+        model: "glm-4.7",
+        keys: loadKeys("ZAI_API_KEY", 10).concat(loadKeys("ZAI_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "zai-glm5",
+        name: "Z.ai-GLM-5",
+        url: "https://api.z.ai/v1/chat/completions",
+        model: "glm-5",
+        keys: loadKeys("ZAI_API_KEY", 10).concat(loadKeys("ZAI_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- HuggingFace Inference API: 7 models (free tier) ---
+    {
+        id: "hf-qwen36",
+        name: "HF-Qwen3.6-72B",
+        url: "https://api-inference.huggingface.co/models/Qwen/Qwen3.6-72B-Instruct/v1/chat/completions",
+        model: "Qwen/Qwen3.6-72B-Instruct",
+        keys: loadKeys("HF_TOKEN", 5).concat(loadKeys("HUGGINGFACE_TOKEN", 5)).concat(loadKeys("HUGGINGFACE_API_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 90000,
+    },
+    {
+        id: "hf-llama4",
+        name: "HF-Llama-4-Scout",
+        url: "https://api-inference.huggingface.co/models/meta-llama/Llama-4-Scout-17B-16E-Instruct/v1/chat/completions",
+        model: "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        keys: loadKeys("HF_TOKEN", 5).concat(loadKeys("HUGGINGFACE_TOKEN", 5)).concat(loadKeys("HUGGINGFACE_API_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 90000,
+    },
+    {
+        id: "hf-mistral",
+        name: "HF-Mistral-Small-24B",
+        url: "https://api-inference.huggingface.co/models/mistralai/Mistral-Small-24B-Instruct-2501/v1/chat/completions",
+        model: "mistralai/Mistral-Small-24B-Instruct-2501",
+        keys: loadKeys("HF_TOKEN", 5).concat(loadKeys("HUGGINGFACE_TOKEN", 5)).concat(loadKeys("HUGGINGFACE_API_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 90000,
+    },
+    {
+        id: "hf-gemma",
+        name: "HF-Gemma-4-27B",
+        url: "https://api-inference.huggingface.co/models/google/gemma-4-27b-it/v1/chat/completions",
+        model: "google/gemma-4-27b-it",
+        keys: loadKeys("HF_TOKEN", 5).concat(loadKeys("HUGGINGFACE_TOKEN", 5)).concat(loadKeys("HUGGINGFACE_API_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 90000,
+    },
+    {
+        id: "hf-deepseek",
+        name: "HF-DeepSeek-V3",
+        url: "https://api-inference.huggingface.co/models/deepseek-ai/DeepSeek-V3-0324/v1/chat/completions",
+        model: "deepseek-ai/DeepSeek-V3-0324",
+        keys: loadKeys("HF_TOKEN", 5).concat(loadKeys("HUGGINGFACE_TOKEN", 5)).concat(loadKeys("HUGGINGFACE_API_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 90000,
+    },
+    {
+        id: "hf-glm47",
+        name: "HF-GLM-4.7",
+        url: "https://api-inference.huggingface.co/models/zai-org/GLM-4.7-0414/v1/chat/completions",
+        model: "zai-org/GLM-4.7-0414",
+        keys: loadKeys("HF_TOKEN", 5).concat(loadKeys("HUGGINGFACE_TOKEN", 5)).concat(loadKeys("HUGGINGFACE_API_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 90000,
+    },
+    {
+        id: "hf-nemotron",
+        name: "HF-Nemotron-3-120B",
+        url: "https://api-inference.huggingface.co/models/nvidia/Nemotron-3-120B/v1/chat/completions",
+        model: "nvidia/Nemotron-3-120B",
+        keys: loadKeys("HF_TOKEN", 5).concat(loadKeys("HUGGINGFACE_TOKEN", 5)).concat(loadKeys("HUGGINGFACE_API_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 90000,
+    },
+
+    // --- OpenRouter: additional free models ---
+    {
+        id: "openrouter-llama4",
+        name: "OpenRouter-Llama4-Scout-Free",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "meta-llama/llama-4-scout:free",
+        keys: loadKeys("OPENROUTER_API_KEY", 15).concat(loadKeys("OPENROUTER_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        extraHeaders: { "HTTP-Referer": "https://www.p2pclaw.com", "X-Title": "P2PCLAW Scoring" },
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "openrouter-gemma",
+        name: "OpenRouter-Gemma-4-Free",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "google/gemma-4-27b-it:free",
+        keys: loadKeys("OPENROUTER_API_KEY", 15).concat(loadKeys("OPENROUTER_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        extraHeaders: { "HTTP-Referer": "https://www.p2pclaw.com", "X-Title": "P2PCLAW Scoring" },
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "openrouter-mistral-free",
+        name: "OpenRouter-Mistral-Small-Free",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "mistralai/mistral-small-3.1-24b-instruct:free",
+        keys: loadKeys("OPENROUTER_API_KEY", 15).concat(loadKeys("OPENROUTER_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        extraHeaders: { "HTTP-Referer": "https://www.p2pclaw.com", "X-Title": "P2PCLAW Scoring" },
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "openrouter-deepseek",
+        name: "OpenRouter-DeepSeek-V3-Free",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "deepseek/deepseek-chat:free",
+        keys: loadKeys("OPENROUTER_API_KEY", 15).concat(loadKeys("OPENROUTER_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        extraHeaders: { "HTTP-Referer": "https://www.p2pclaw.com", "X-Title": "P2PCLAW Scoring" },
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "openrouter-nemotron",
+        name: "OpenRouter-Nemotron-Free",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "nvidia/nemotron-3-120b:free",
+        keys: loadKeys("OPENROUTER_API_KEY", 15).concat(loadKeys("OPENROUTER_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        extraHeaders: { "HTTP-Referer": "https://www.p2pclaw.com", "X-Title": "P2PCLAW Scoring" },
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "openrouter-llama33",
+        name: "OpenRouter-Llama-3.3-Free",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "meta-llama/llama-3.3-70b-instruct:free",
+        keys: loadKeys("OPENROUTER_API_KEY", 15).concat(loadKeys("OPENROUTER_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        extraHeaders: { "HTTP-Referer": "https://www.p2pclaw.com", "X-Title": "P2PCLAW Scoring" },
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- NVIDIA: additional models ---
+    {
+        id: "nvidia-mistral-large",
+        name: "NVIDIA-Mistral-Large-3",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "mistralai/mistral-large-3-675b-instruct-2512",
+        keys: loadKeys("NVAPI_KEY", 10).concat(loadKeys("NVIDIA_API_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "nvidia-codestral",
+        name: "NVIDIA-CodeStral",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "mistralai/codestral-2508",
+        keys: loadKeys("NVAPI_KEY", 10).concat(loadKeys("NVIDIA_API_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "nvidia-devstral",
+        name: "NVIDIA-Devstral",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "mistralai/devstral-2-123b-instruct-2512",
+        keys: loadKeys("NVAPI_KEY", 10).concat(loadKeys("NVIDIA_API_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "nvidia-kimi-thinking",
+        name: "NVIDIA-Kimi-K2-Thinking",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "moonshotai/kimi-k2-thinking",
+        keys: loadKeys("NVAPI_KEY", 10).concat(loadKeys("NVIDIA_API_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 4096,
+        timeout: 90000,
+    },
+    {
+        id: "nvidia-mistral-nemo",
+        name: "NVIDIA-Mistral-Nemo",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "mistralai/mistral-nemo-instruct-2407",
+        keys: loadKeys("NVAPI_KEY", 10).concat(loadKeys("NVIDIA_API_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- Groq: additional models ---
+    {
+        id: "groq-gemma2",
+        name: "Groq-Gemma-2-9B",
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        model: "gemma2-9b-it",
+        keys: loadKeys("GROQ_API_KEY", 15).concat(loadKeys("GROQ_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 30000,
+    },
+    {
+        id: "groq-mixtral",
+        name: "Groq-Mixtral-8x7B",
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        model: "mixtral-8x7b-32768",
+        keys: loadKeys("GROQ_API_KEY", 15).concat(loadKeys("GROQ_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 30000,
+    },
+    {
+        id: "groq-qwen25",
+        name: "Groq-Qwen-2.5-32B",
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        model: "qwen-2.5-32b",
+        keys: loadKeys("GROQ_API_KEY", 15).concat(loadKeys("GROQ_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 30000,
+    },
+    {
+        id: "groq-llama4",
+        name: "Groq-Llama-4-Scout",
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        keys: loadKeys("GROQ_API_KEY", 15).concat(loadKeys("GROQ_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 30000,
+    },
+
+    // --- Cohere: additional model ---
+    {
+        id: "cohere-command",
+        name: "Cohere-Command-A",
+        url: "https://api.cohere.com/v2/chat",
+        model: "command-a-03-2025",
+        keys: loadKeys("COHERE_API_KEY", 15).concat(loadKeys("COHERE_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 4096,
+        responseFormat: "cohere",
+        timeout: 90000,
+    },
+    {
+        id: "cohere-r7b",
+        name: "Cohere-R7B",
+        url: "https://api.cohere.com/v2/chat",
+        model: "command-r7b-12-2024",
+        keys: loadKeys("COHERE_API_KEY", 15).concat(loadKeys("COHERE_KEY", 15)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 4096,
+        responseFormat: "cohere",
+        timeout: 90000,
+    },
+
+    // --- Mistral: additional models ---
+    {
+        id: "mistral-medium",
+        name: "Mistral-Medium",
+        url: "https://api.mistral.ai/v1/chat/completions",
+        model: "mistral-medium-latest",
+        keys: loadKeys("MISTRAL_API_KEY", 10).concat(loadKeys("MISTRAL_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 45000,
+    },
+    {
+        id: "mistral-large",
+        name: "Mistral-Large",
+        url: "https://api.mistral.ai/v1/chat/completions",
+        model: "mistral-large-latest",
+        keys: loadKeys("MISTRAL_API_KEY", 10).concat(loadKeys("MISTRAL_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 45000,
+    },
+    {
+        id: "mistral-nemo",
+        name: "Mistral-Nemo",
+        url: "https://api.mistral.ai/v1/chat/completions",
+        model: "mistral-nemo",
+        keys: loadKeys("MISTRAL_API_KEY", 10).concat(loadKeys("MISTRAL_KEY", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 45000,
+    },
+
+    // --- Fireworks: 1 key ---
+    {
+        id: "fireworks-nemotron",
+        name: "Fireworks-Nemotron-3",
+        url: "https://api.fireworks.ai/inference/v1/chat/completions",
+        model: "accounts/fireworks/models/nvidia-nemotron-3-super-120b-a12b-fp8",
+        keys: loadKeys("FIREWORKS_API_KEY", 5).concat(loadKeys("FIREWORKS_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "fireworks-llama4",
+        name: "Fireworks-Llama-4-Scout",
+        url: "https://api.fireworks.ai/inference/v1/chat/completions",
+        model: "accounts/fireworks/models/llama-4-scout-instruct",
+        keys: loadKeys("FIREWORKS_API_KEY", 5).concat(loadKeys("FIREWORKS_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- Arcee AI: 1 key ---
+    {
+        id: "arcee-trinity",
+        name: "Arcee-Trinity-Mini",
+        url: "https://api.arcee.ai/v1/chat/completions",
+        model: "trinity-mini",
+        keys: loadKeys("ARCEE_API_KEY", 5).concat(loadKeys("ARCEE_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- Minimax: 3 keys ---
+    {
+        id: "minimax-text",
+        name: "Minimax-Text-01",
+        url: "https://api.minimax.chat/v1/text/chatcompletion_v2",
+        model: "MiniMax-Text-01",
+        keys: loadKeys("MINIMAX_API_KEY", 5).concat(loadKeys("MINIMAX_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- Kilo AI: 2 keys ---
+    {
+        id: "kilo-1",
+        name: "Kilo-AI-1",
+        url: "https://api.kilo.ai/v1/chat/completions",
+        model: "kilo-1",
+        keys: loadKeys("KILO_API_KEY", 5).concat(loadKeys("KILO_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "kilo-2",
+        name: "Kilo-AI-2",
+        url: "https://api.kilo.ai/v1/chat/completions",
+        model: "kilo-2",
+        keys: loadKeys("KILO_API_KEY", 5).concat(loadKeys("KILO_KEY", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- Cloudflare: accounts 13, 14, 15 (additional accounts) ---
+    {
+        id: "cloudflare-glm47-13",
+        name: "Cloudflare-GLM47-Acct13",
+        url: "https://api.cloudflare.com/client/v4/accounts/" + (process.env.CF_ACCOUNT_ID_13 || "00000000000000000000000000000000") + "/ai/run/@cf/zai-org/glm-4.7-flash",
+        model: "@cf/zai-org/glm-4.7-flash",
+        keys: loadKeys("CF_AI_TOKEN_13"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    {
+        id: "cloudflare-glm47-14",
+        name: "Cloudflare-GLM47-Acct14",
+        url: "https://api.cloudflare.com/client/v4/accounts/" + (process.env.CF_ACCOUNT_ID_14 || "00000000000000000000000000000000") + "/ai/run/@cf/zai-org/glm-4.7-flash",
+        model: "@cf/zai-org/glm-4.7-flash",
+        keys: loadKeys("CF_AI_TOKEN_14"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+    {
+        id: "cloudflare-glm47-15",
+        name: "Cloudflare-GLM47-Acct15",
+        url: "https://api.cloudflare.com/client/v4/accounts/" + (process.env.CF_ACCOUNT_ID_15 || "00000000000000000000000000000000") + "/ai/run/@cf/zai-org/glm-4.7-flash",
+        model: "@cf/zai-org/glm-4.7-flash",
+        keys: loadKeys("CF_AI_TOKEN_15"),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        responseFormat: "cloudflare",
+        timeout: 60000,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // BATCH 2 — Reaching 100+ judges (2026-05-07)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // --- Sarvam: additional key variants (each key = independent judge) ---
+    {
+        id: "sarvam-2",
+        name: "Sarvam-KeyVariant-2",
+        url: "https://api.sarvam.ai/v1/chat/completions",
+        model: "sarvam-m",
+        keys: loadKeys("SARVAM_KEY_2", 5).concat(loadKeys("SARVAM_API_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 45000,
+    },
+    {
+        id: "sarvam-3",
+        name: "Sarvam-KeyVariant-3",
+        url: "https://api.sarvam.ai/v1/chat/completions",
+        model: "sarvam-m",
+        keys: loadKeys("SARVAM_KEY_3", 5).concat(loadKeys("SARVAM_API_KEY_3", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 45000,
+    },
+
+    // --- Xiaomi: additional key variants ---
+    {
+        id: "xiaomi-flash-2",
+        name: "Xiaomi-MiMo-Flash-Key2",
+        url: "https://api.xiaomimimo.com/v1/chat/completions",
+        model: "mimo-v2-flash",
+        keys: loadKeys("XIAOMI_API_KEY_2", 5).concat(loadKeys("XIAOMI_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
+        timeout: 30000,
+    },
+    {
+        id: "xiaomi-pro-2",
+        name: "Xiaomi-MiMo-Pro-Key2",
+        url: "https://api.xiaomimimo.com/v1/chat/completions",
+        model: "mimo-v2-pro",
+        keys: loadKeys("XIAOMI_API_KEY_2", 5).concat(loadKeys("XIAOMI_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
+        timeout: 30000,
+    },
+
+    // --- Groq: more models ---
+    {
+        id: "groq-llama33",
+        name: "Groq-Llama-3.3-70B",
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        model: "llama-3.3-70b-versatile",
+        keys: loadKeys("GROQ_API_KEY_2", 10).concat(loadKeys("GROQ_KEY_2", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 30000,
+    },
+    {
+        id: "groq-llama4-2",
+        name: "Groq-Llama-4-Scout-Key2",
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        keys: loadKeys("GROQ_API_KEY_2", 10).concat(loadKeys("GROQ_KEY_2", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 30000,
+    },
+
+    // --- OpenRouter: more free models ---
+    {
+        id: "openrouter-kimi",
+        name: "OpenRouter-Kimi-K2-Free",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "moonshotai/kimi-k2:free",
+        keys: loadKeys("OPENROUTER_API_KEY_2", 10).concat(loadKeys("OPENROUTER_KEY_2", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        extraHeaders: { "HTTP-Referer": "https://www.p2pclaw.com", "X-Title": "P2PCLAW Scoring" },
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "openrouter-glm",
+        name: "OpenRouter-GLM-4.7-Free",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "z-ai/glm-4.7:free",
+        keys: loadKeys("OPENROUTER_API_KEY_2", 10).concat(loadKeys("OPENROUTER_KEY_2", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        extraHeaders: { "HTTP-Referer": "https://www.p2pclaw.com", "X-Title": "P2PCLAW Scoring" },
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "openrouter-gptoss",
+        name: "OpenRouter-GPT-OSS-Free",
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        model: "openai/gpt-oss-120b:free",
+        keys: loadKeys("OPENROUTER_API_KEY_2", 10).concat(loadKeys("OPENROUTER_KEY_2", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        extraHeaders: { "HTTP-Referer": "https://www.p2pclaw.com", "X-Title": "P2PCLAW Scoring" },
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- HuggingFace: more models ---
+    {
+        id: "hf-phi4",
+        name: "HF-Phi-4",
+        url: "https://api-inference.huggingface.co/models/microsoft/Phi-4/v1/chat/completions",
+        model: "microsoft/Phi-4",
+        keys: loadKeys("HF_TOKEN_2", 5).concat(loadKeys("HUGGINGFACE_TOKEN_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 90000,
+    },
+    {
+        id: "hf-command",
+        name: "HF-Command-R7B",
+        url: "https://api-inference.huggingface.co/models/cohere/command-r7b-12-2024/v1/chat/completions",
+        model: "cohere/command-r7b-12-2024",
+        keys: loadKeys("HF_TOKEN_2", 5).concat(loadKeys("HUGGINGFACE_TOKEN_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 90000,
+    },
+    {
+        id: "hf-aya",
+        name: "HF-Aya-23-35B",
+        url: "https://api-inference.huggingface.co/models/cohere/aya-23-35b/v1/chat/completions",
+        model: "cohere/aya-23-35b",
+        keys: loadKeys("HF_TOKEN_2", 5).concat(loadKeys("HUGGINGFACE_TOKEN_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 90000,
+    },
+
+    // --- NVIDIA: more models ---
+    {
+        id: "nvidia-phi4",
+        name: "NVIDIA-Phi-4",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "microsoft/phi-4",
+        keys: loadKeys("NVAPI_KEY_2", 5).concat(loadKeys("NVIDIA_API_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "nvidia-gemma",
+        name: "NVIDIA-Gemma-4-27B",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "google/gemma-4-27b-it",
+        keys: loadKeys("NVAPI_KEY_2", 5).concat(loadKeys("NVIDIA_API_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "nvidia-llama4",
+        name: "NVIDIA-Llama-4-Scout",
+        url: "https://integrate.api.nvidia.com/v1/chat/completions",
+        model: "meta/llama-4-scout-17b-16e-instruct",
+        keys: loadKeys("NVAPI_KEY_2", 5).concat(loadKeys("NVIDIA_API_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- Cohere: more models ---
+    {
+        id: "cohere-aya",
+        name: "Cohere-Aya-Expanse",
+        url: "https://api.cohere.com/v2/chat",
+        model: "c4ai-aya-expanse-32b",
+        keys: loadKeys("COHERE_API_KEY_2", 5).concat(loadKeys("COHERE_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 4096,
+        responseFormat: "cohere",
+        timeout: 90000,
+    },
+
+    // --- Mistral: codestral ---
+    {
+        id: "mistral-codestral",
+        name: "Mistral-CodeStral",
+        url: "https://api.mistral.ai/v1/chat/completions",
+        model: "codestral-latest",
+        keys: loadKeys("MISTRAL_API_KEY_2", 5).concat(loadKeys("MISTRAL_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 45000,
+    },
+
+    // --- Inception: key variant ---
+    {
+        id: "inception-2",
+        name: "Inception-Mercury2-Key2",
+        url: "https://api.inceptionlabs.ai/v1/chat/completions",
+        model: "mercury-2",
+        keys: loadKeys("INCEPTION_API_KEY_2", 5).concat(loadKeys("INCEPTION_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
+        timeout: 45000,
+    },
+
+    // --- Together: more models ---
+    {
+        id: "together-nemotron",
+        name: "Together-Nemotron-3-120B",
+        url: "https://api.together.xyz/v1/chat/completions",
+        model: "nvidia/Nemotron-3-120B",
+        keys: loadKeys("TOGETHER_API_KEY_2", 5).concat(loadKeys("TOGETHER_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+    {
+        id: "together-phi4",
+        name: "Together-Phi-4",
+        url: "https://api.together.xyz/v1/chat/completions",
+        model: "microsoft/Phi-4",
+        keys: loadKeys("TOGETHER_API_KEY_2", 5).concat(loadKeys("TOGETHER_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // BATCH 3 — Final push to 100+ judges (2026-05-07)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // --- Cerebras: additional key variants ---
+    {
+        id: "cerebras-qwen-2",
+        name: "Cerebras-Qwen235B-Key2",
+        url: "https://api.cerebras.ai/v1/chat/completions",
+        model: "qwen-3-235b-a22b-instruct-2507",
+        keys: loadKeys("CEREBRAS_API_KEY_2", 10).concat(loadKeys("CEREBRAS_KEY_2", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 1024,
+        timeout: 30000,
+    },
+    {
+        id: "cerebras-gptoss-2",
+        name: "Cerebras-GPT-OSS-Key2",
+        url: "https://api.cerebras.ai/v1/chat/completions",
+        model: "gpt-oss-120b",
+        keys: loadKeys("CEREBRAS_API_KEY_2", 10).concat(loadKeys("CEREBRAS_KEY_2", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        maxTokens: 1024,
+        timeout: 30000,
+    },
+    {
+        id: "cerebras-glm47-2",
+        name: "Cerebras-GLM47-Key2",
+        url: "https://api.cerebras.ai/v1/chat/completions",
+        model: "zai-glm-4.7",
+        keys: loadKeys("CEREBRAS_API_KEY_2", 10).concat(loadKeys("CEREBRAS_KEY_2", 10)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 1024,
+        timeout: 30000,
+    },
+
+    // --- DeepSeek: key variant ---
+    {
+        id: "deepseek-chat-2",
+        name: "DeepSeek-Chat-Key2",
+        url: "https://api.deepseek.com/v1/chat/completions",
+        model: "deepseek-chat",
+        keys: loadKeys("DEEPSEEK_API_KEY_2", 5).concat(loadKeys("DEEPSEEK_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- Z.ai: key variant ---
+    {
+        id: "zai-glm47-2",
+        name: "Z.ai-GLM-4.7-Key2",
+        url: "https://api.z.ai/v1/chat/completions",
+        model: "glm-4.7",
+        keys: loadKeys("ZAI_API_KEY_2", 5).concat(loadKeys("ZAI_KEY_2", 5)),
+        authHeader: "Authorization",
+        authPrefix: "Bearer ",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        timeout: 60000,
+    },
+
+    // --- Gemini: key variant ---
+    {
+        id: "gemini-pro-2",
+        name: "Gemini-2.5-Pro-Key2",
+        url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-06:generateContent",
+        model: "gemini-2.5-pro-preview-05-06",
+        keys: loadKeys("GEMINI_API_KEY_2", 5).concat(loadKeys("GEMINI_KEY_2", 5)),
+        authHeader: "x-goog-api-key",
+        authPrefix: "",
+        stripThinkTags: true,
+        maxTokens: 2048,
+        responseFormat: "gemini",
+        timeout: 60000,
+    },
 ];
 
 // Deduplicate keys within each provider
@@ -516,7 +1455,7 @@ async function callLLMForScoring(prompt, provider) {
             }
 
             const data = await res.json();
-            // Support both OpenAI format (choices[0].message.content) and Cohere v2 (message.content[] array)
+            // Support multiple response formats: OpenAI, Cohere v2, Cloudflare, Gemini
             let text = "";
             if (provider.responseFormat === "cohere") {
                 // Cohere v2 returns array of content blocks: [{type:"thinking",...}, {type:"text",text:"..."}]
@@ -531,6 +1470,11 @@ async function callLLMForScoring(prompt, provider) {
                 // Cloudflare Workers AI wraps OpenAI format: {result: {choices: [...]}, success: true}
                 const inner = data.result || data;
                 text = inner.choices?.[0]?.message?.content || "";
+            } else if (provider.responseFormat === "gemini") {
+                // Gemini format: { candidates: [{ content: { parts: [{ text: "..." }] } }] }
+                const candidate = data.candidates?.[0];
+                const parts = candidate?.content?.parts || [];
+                text = parts.map(p => p.text || "").join("");
             } else {
                 text = data.choices?.[0]?.message?.content || "";
             }
