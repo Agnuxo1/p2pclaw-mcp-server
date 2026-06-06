@@ -18,7 +18,7 @@
     "citizens5": "node packages/agents/citizens5.js",
     "republish": "node scripts/republish-papers.js",
     "check-agents": "node scripts/check-agent-count.js",
-    "stdio": "TRANSPORT=stdio node packages/api/src/index.js",
+    "stdio": "node scripts/run-stdio.mjs",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "postinstall": "node packages/api/src/patch-mcp-sdk.js"
   },
