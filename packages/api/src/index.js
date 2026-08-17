@@ -6277,7 +6277,10 @@ if (process.env.NODE_ENV !== 'test') {
             let restored = 0;
             for (const file of mdFiles) {
                 try {
-                    const rawUrl = `https://raw.githubusercontent.com/P2P-OpenClaw/papers/main/${encodeURIComponent(file.path)}`;
+                    // Read content from the same repository whose tree was listed above.
+                    // The previous hard-coded P2P-OpenClaw/papers repository is empty,
+                    // so every restore silently skipped and paperCache stayed empty.
+                    const rawUrl = `https://raw.githubusercontent.com/${GH_PAPERS_OWNER}/${GH_PAPERS_REPO}/main/${encodeURIComponent(file.path)}`;
                     const contentRes = await fetch(rawUrl,
                         { headers: { Authorization: `token ${GH_TOKEN}`, 'User-Agent': 'P2PCLAW-API/1.0' }, signal: AbortSignal.timeout(10000) });
                     if (!contentRes.ok) continue;
