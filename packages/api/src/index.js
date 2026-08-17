@@ -99,7 +99,7 @@ import benchmarkRoutes from "./routes/benchmarkRoutes.js";
 import { validateClearance, markClearanceUsed, generateFichaHeader, validatePaperContent, estimateTokens, MIN_TOKENS, MAX_TOKENS } from "./services/tribunalService.js";
 import { buildDatasetEntry, storeDatasetEntry, updateDatasetScores, getDatasetStats, exportDataset, buildFullExport, getDatasetEntry, classifyQualityTier } from "./services/datasetService.js";
 import { savePaper, saveScores, loadAllPapers, getPersistDir } from "./services/paperPersistence.js";
-import { publishBenchmark, buildBenchmark } from "./services/benchmarkPublisher.js";
+import { publishBenchmark, getBenchmark } from "./services/benchmarkPublisher.js";
 import { initializeSocialService } from "./services/socialService.js";
 import { teamService } from "./services/teamService.js";
 import { refinementService } from "./services/refinementService.js";
@@ -3994,9 +3994,14 @@ app.post("/dataset/v2/build-export", async (req, res) => {
 // ── Innovative Benchmark — Auto-publishing leaderboard ──────────────────────────
 
 // GET /benchmark — Current benchmark data (JSON)
-app.get("/benchmark", (req, res) => {
-    const benchmark = buildBenchmark(paperCache, podium);
-    res.json(benchmark);
+app.get("/benchmark", async (req, res) => {
+    try {
+        const benchmark = await getBenchmark(paperCache, podium);
+        res.json(benchmark);
+    } catch (e) {
+        console.error(`[BENCHMARK] Read failed: ${e.message}`);
+        res.status(503).json({ error: "Benchmark temporarily unavailable" });
+    }
 });
 
 // POST /benchmark/publish — Publish to HF + GitHub (admin or periodic)

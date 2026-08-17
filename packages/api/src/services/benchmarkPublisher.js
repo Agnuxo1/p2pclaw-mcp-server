@@ -18,11 +18,67 @@
  *   - Same evaluation for humans and AI (no separate tracks)
  */
 
+import { readFile } from "node:fs/promises";
+
 const HF_TOKEN = () => process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN || "";
 const HF_API = "https://huggingface.co/api";
+const PUBLISHED_BENCHMARK_URL = "https://huggingface.co/datasets/Agnuxo/P2PCLAW-Innovative-Benchmark/resolve/main/benchmark.json";
+const PUBLISHED_BENCHMARK_TTL_MS = 5 * 60 * 1000;
 const GITHUB_TOKEN = () => process.env.GITHUB_TOKEN || "";
 const GITHUB_REPO = "Agnuxo1/p2pclaw-mcp-server";
 const BENCHMARK_VERSION = "1.0";
+
+let publishedBenchmarkCache = null;
+let publishedBenchmarkFetchedAt = 0;
+
+function isValidBenchmark(value) {
+    return value && value.summary && Array.isArray(value.agent_leaderboard)
+        && Number(value.summary.scored_papers) > 0;
+}
+
+async function loadBundledBenchmark() {
+    try {
+        const raw = await readFile(new URL("../../../../benchmark.json", import.meta.url), "utf8");
+        const benchmark = JSON.parse(raw);
+        return isValidBenchmark(benchmark) ? benchmark : null;
+    } catch (e) {
+        console.warn(`[BENCHMARK] Bundled snapshot unavailable: ${e.message}`);
+        return null;
+    }
+}
+
+/**
+ * Load the durable published benchmark. Hugging Face is the canonical snapshot;
+ * the repository copy keeps the API useful during a network outage.
+ */
+export async function loadPublishedBenchmark() {
+    const now = Date.now();
+    if (publishedBenchmarkCache && now - publishedBenchmarkFetchedAt < PUBLISHED_BENCHMARK_TTL_MS) {
+        return publishedBenchmarkCache;
+    }
+
+    try {
+        const res = await fetch(PUBLISHED_BENCHMARK_URL, {
+            headers: { "User-Agent": "P2PCLAW-API/1.0" },
+            signal: AbortSignal.timeout(10000),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const benchmark = await res.json();
+        if (!isValidBenchmark(benchmark)) throw new Error("invalid benchmark payload");
+        publishedBenchmarkCache = benchmark;
+        publishedBenchmarkFetchedAt = now;
+        return benchmark;
+    } catch (e) {
+        console.warn(`[BENCHMARK] Published snapshot fetch failed: ${e.message}`);
+        if (publishedBenchmarkCache) return publishedBenchmarkCache;
+        const bundled = await loadBundledBenchmark();
+        if (bundled) {
+            publishedBenchmarkCache = bundled;
+            publishedBenchmarkFetchedAt = now;
+        }
+        return bundled;
+    }
+}
 
 // ── HuggingFace API helpers ──────────────────────────────────────────────
 
@@ -295,6 +351,114 @@ export function buildBenchmark(paperCache, podium) {
             huggingface_space: "https://huggingface.co/spaces/Agnuxo/P2PCLAW-Benchmark",
             contact: "lareliquia.angulo@gmail.com",
         },
+    };
+}
+
+function paperTimestampMs(data) {
+    const raw = data?.timestamp || data?.created_at || data?.published_at || 0;
+    if (typeof raw === "number") return raw;
+    const parsed = Date.parse(raw);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function mergeAgent(base, delta) {
+    if (!base) return delta;
+    const basePapers = Number(base.papers) || 0;
+    const deltaPapers = Number(delta.papers) || 0;
+    const papers = basePapers + deltaPapers;
+    const bestFromDelta = (Number(delta.best_score) || 0) > (Number(base.best_score) || 0);
+    const dimensions = { ...(base.dimension_averages || {}) };
+    for (const [name, value] of Object.entries(delta.dimension_averages || {})) {
+        const oldValue = Number(dimensions[name]) || 0;
+        dimensions[name] = papers > 0
+            ? Math.round(((oldValue * basePapers + Number(value) * deltaPapers) / papers) * 100) / 100
+            : Number(value);
+    }
+    return {
+        ...base,
+        papers,
+        verified: (Number(base.verified) || 0) + (Number(delta.verified) || 0),
+        lean4_verified: (Number(base.lean4_verified) || 0) + (Number(delta.lean4_verified) || 0),
+        best_score: bestFromDelta ? delta.best_score : base.best_score,
+        best_paper: bestFromDelta ? delta.best_paper : base.best_paper,
+        avg_score: papers > 0
+            ? Math.round((((Number(base.avg_score) || 0) * basePapers + (Number(delta.avg_score) || 0) * deltaPapers) / papers) * 100) / 100
+            : 0,
+        dimension_averages: dimensions,
+    };
+}
+
+/**
+ * Return the durable published history plus any newly scored papers that arrived
+ * after that snapshot. This prevents an ephemeral server restart from turning a
+ * mature benchmark into an empty leaderboard, while keeping new results live.
+ */
+export async function getBenchmark(paperCache, podium) {
+    const published = await loadPublishedBenchmark();
+    if (!published) return buildBenchmark(paperCache, podium);
+
+    const snapshotTime = Date.parse(published.updated_at || "") || 0;
+    const deltaCache = new Map();
+    for (const [id, data] of paperCache.entries()) {
+        let scores = data?.granular_scores;
+        try { if (typeof scores === "string") scores = JSON.parse(scores); } catch { scores = null; }
+        if (scores?.overall > 0 && paperTimestampMs(data) > snapshotTime) deltaCache.set(id, data);
+    }
+
+    if (deltaCache.size === 0) {
+        return {
+            ...published,
+            links: { ...(published.links || {}), api: "https://www.p2pclaw.com/api" },
+        };
+    }
+
+    const delta = buildBenchmark(deltaCache, []);
+    const agents = new Map((published.agent_leaderboard || []).map(a => [a.agent_id || a.name, a]));
+    let newAgentCount = 0;
+    for (const agent of delta.agent_leaderboard || []) {
+        const key = agent.agent_id || agent.name;
+        if (!agents.has(key)) newAgentCount++;
+        agents.set(key, mergeAgent(agents.get(key), agent));
+    }
+    const agentLeaderboard = [...agents.values()]
+        .sort((a, b) => (Number(b.best_score) || 0) - (Number(a.best_score) || 0) || (Number(b.papers) || 0) - (Number(a.papers) || 0))
+        .slice(0, 50);
+
+    const paperMap = new Map((published.top_papers || []).map(p => [p.id, p]));
+    for (const paper of delta.top_papers || []) paperMap.set(paper.id, paper);
+    const topPapers = [...paperMap.values()]
+        .sort((a, b) => (Number(b.overall) || 0) - (Number(a.overall) || 0))
+        .slice(0, 20);
+    const podiumData = topPapers.slice(0, 3).map((p, i) => ({
+        position: i + 1,
+        medal: ["GOLD", "SILVER", "BRONZE"][i],
+        paperId: p.id,
+        title: p.title,
+        author: p.author,
+        author_id: p.author_id,
+        overall: p.overall,
+    }));
+
+    const oldScored = Number(published.summary.scored_papers) || 0;
+    const newScored = Number(delta.summary.scored_papers) || 0;
+    const scored = oldScored + newScored;
+    return {
+        ...published,
+        updated_at: new Date(Math.max(Date.now(), snapshotTime)).toISOString(),
+        summary: {
+            ...published.summary,
+            total_agents: Math.max(Number(published.summary.total_agents) || 0, agentLeaderboard.length) + newAgentCount,
+            total_papers: (Number(published.summary.total_papers) || 0) + deltaCache.size,
+            scored_papers: scored,
+            avg_score: scored > 0
+                ? Math.round((((Number(published.summary.avg_score) || 0) * oldScored + (Number(delta.summary.avg_score) || 0) * newScored) / scored) * 100) / 100
+                : 0,
+            lean4_papers: (Number(published.summary.lean4_papers) || 0) + (Number(delta.summary.lean4_papers) || 0),
+        },
+        podium: podiumData,
+        agent_leaderboard: agentLeaderboard,
+        top_papers: topPapers,
+        links: { ...(published.links || {}), api: "https://www.p2pclaw.com/api" },
     };
 }
 
@@ -622,7 +786,7 @@ ${agentRows || "| - | - | - | - | - | - | - |"}
  * @returns {object} Results per platform
  */
 export async function publishBenchmark(paperCache, podium) {
-    const benchmark = buildBenchmark(paperCache, podium);
+    const benchmark = await getBenchmark(paperCache, podium);
     const results = { hf_dataset: false, hf_space: false, github: false };
 
     // 1. HuggingFace Dataset — auto-update README + benchmark.json
