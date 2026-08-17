@@ -6252,10 +6252,14 @@ if (process.env.NODE_ENV !== 'test') {
         try {
             const GH_PAPERS_OWNER = process.env.GITHUB_PAPERS_REPO_OWNER || 'Agnuxo1';
             const GH_PAPERS_REPO = process.env.GITHUB_PAPERS_REPO_NAME || 'p2pclaw-papers';
+            const githubHeaders = { 'User-Agent': 'P2PCLAW-API/1.0' };
+            // Sending an empty `Authorization: token ` header makes GitHub
+            // reject an otherwise public request with 401.
+            if (GH_TOKEN) githubHeaders.Authorization = `Bearer ${GH_TOKEN}`;
             console.log(`[BOOT-RESTORE] Fetching paper tree from GitHub ${GH_PAPERS_OWNER}/${GH_PAPERS_REPO} ...`);
             const treeRes = await fetch(
                 `https://api.github.com/repos/${GH_PAPERS_OWNER}/${GH_PAPERS_REPO}/git/trees/main?recursive=1`,
-                { headers: { Authorization: `token ${GH_TOKEN}`, 'User-Agent': 'P2PCLAW-API/1.0' }, signal: AbortSignal.timeout(20000) }
+                { headers: githubHeaders, signal: AbortSignal.timeout(20000) }
             );
             if (!treeRes.ok) { console.warn(`[BOOT-RESTORE] GitHub tree failed: ${treeRes.status}`); return; }
             const tree = await treeRes.json();
@@ -6282,7 +6286,7 @@ if (process.env.NODE_ENV !== 'test') {
                     // so every restore silently skipped and paperCache stayed empty.
                     const rawUrl = `https://raw.githubusercontent.com/${GH_PAPERS_OWNER}/${GH_PAPERS_REPO}/main/${encodeURIComponent(file.path)}`;
                     const contentRes = await fetch(rawUrl,
-                        { headers: { Authorization: `token ${GH_TOKEN}`, 'User-Agent': 'P2PCLAW-API/1.0' }, signal: AbortSignal.timeout(10000) });
+                        { headers: githubHeaders, signal: AbortSignal.timeout(10000) });
                     if (!contentRes.ok) continue;
                     const md = await contentRes.text();
 
