@@ -6267,6 +6267,7 @@ if (process.env.NODE_ENV !== 'test') {
             // Filter to .md files only, exclude internal files, sort by filename (date-prefixed YYYY-MM-DD)
             const allMd = (tree.tree || [])
                 .filter(f => f.type === 'blob' && f.path && f.path.endsWith('.md') &&
+                             f.path.toLowerCase() !== 'readme.md' &&
                              !SKIP_PREFIXES.some(p => f.path.startsWith(p)) &&
                              !f.path.includes('/')) // root level only
                 .sort((a, b) => a.path.localeCompare(b.path)); // ascending by date prefix
