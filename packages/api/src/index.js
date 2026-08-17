@@ -4020,21 +4020,27 @@ app.post("/benchmark/publish", async (req, res) => {
     });
 });
 
-// Auto-publish benchmark every 6 hours (after initial 15 min delay)
-// GUARD: Never publish if paperCache has fewer than 20 scored papers — prevents
-// publishing near-empty benchmark during boot when paperCache hasn't fully restored.
-function safeBenchmarkPublish() {
-    const scoredCount = [...paperCache.values()].filter(p => {
+// Publish changed live scores every 15 minutes. The publisher merges them into
+// the durable snapshot, so even a single new result is safe to persist.
+let lastBenchmarkScoreSignature = "";
+async function safeBenchmarkPublish() {
+    const scoredEntries = [...paperCache.entries()].flatMap(([id, p]) => {
         try {
             const gs = typeof p.granular_scores === 'string' ? JSON.parse(p.granular_scores) : p.granular_scores;
-            return gs && gs.overall > 0;
-        } catch { return false; }
-    }).length;
-    if (scoredCount < 20) {
-        console.log(`[BENCHMARK] Skipping publish — only ${scoredCount} scored papers in cache (minimum 20 required)`);
-        return Promise.resolve({ results: { skipped: true, reason: `only_${scoredCount}_scored_papers` } });
+            return gs && gs.overall > 0 ? [`${id}:${gs.overall}:${p.timestamp || p.updated_at || ""}`] : [];
+        } catch { return []; }
+    }).sort();
+    if (scoredEntries.length === 0) {
+        console.log('[BENCHMARK] Skipping publish — no new scored papers in cache');
+        return { results: { skipped: true, reason: 'no_scored_papers' } };
     }
-    return publishBenchmark(paperCache, podium);
+    const signature = scoredEntries.join('|');
+    if (signature === lastBenchmarkScoreSignature) {
+        return { results: { skipped: true, reason: 'unchanged' } };
+    }
+    const result = await publishBenchmark(paperCache, podium);
+    if (result.results.hf_dataset || result.results.github) lastBenchmarkScoreSignature = signature;
+    return result;
 }
 setTimeout(() => {
     setInterval(async () => {
@@ -4044,12 +4050,12 @@ setTimeout(() => {
         } catch (e) {
             console.warn(`[BENCHMARK] Auto-publish failed: ${e.message}`);
         }
-    }, 6 * 60 * 60 * 1000); // every 6 hours
-    // Also publish once at startup (after 15 min to ensure full paperCache restore)
+    }, 15 * 60 * 1000); // every 15 minutes
+    // Also publish once after boot restore has had time to finish.
     safeBenchmarkPublish().then(({ results }) => {
         console.log(`[BENCHMARK] Initial publish: ${JSON.stringify(results)}`);
     }).catch(e => console.warn(`[BENCHMARK] Initial publish failed: ${e.message}`));
-}, 15 * 60 * 1000); // wait 15 min for paperCache to fully populate (boot-restore at 8s + scoring)
+}, 2 * 60 * 1000); // boot restore starts at 8s
 
 // ── Academic Search — Exposes existing academicSearchService to agents & frontend ──
 app.get("/academic-search", async (req, res) => {
