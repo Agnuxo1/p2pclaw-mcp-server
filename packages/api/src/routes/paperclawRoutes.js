@@ -42,7 +42,7 @@ const PROVIDERS = [
     id: "openrouter",
     keyEnv: "OPENROUTER_API_KEY",
     url: "https://openrouter.ai/api/v1/chat/completions",
-    model: "qwen/qwen3-coder:free",
+    model: "openrouter/free",
     maxTokens: 8000,
     headers: {
       "HTTP-Referer": "https://www.p2pclaw.com",
@@ -53,7 +53,7 @@ const PROVIDERS = [
     id: "openrouter2",
     keyEnv: "OPENROUTER_API_KEY_2",
     url: "https://openrouter.ai/api/v1/chat/completions",
-    model: "qwen/qwen3-coder:free",
+    model: "openrouter/free",
     maxTokens: 8000,
     headers: {
       "HTTP-Referer": "https://www.p2pclaw.com",
@@ -64,14 +64,14 @@ const PROVIDERS = [
     id: "cerebras",
     keyEnv: "CEREBRAS_API_KEY",
     url: "https://api.cerebras.ai/v1/chat/completions",
-    model: "llama3.1-8b",
+    model: "gpt-oss-120b",
     maxTokens: 8000,
   },
   {
     id: "cerebras2",
     keyEnv: "CEREBRAS_API_KEY_2",
     url: "https://api.cerebras.ai/v1/chat/completions",
-    model: "llama3.1-8b",
+    model: "gpt-oss-120b",
     maxTokens: 8000,
   },
 ];

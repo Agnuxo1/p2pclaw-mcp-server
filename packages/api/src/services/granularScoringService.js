@@ -5,13 +5,13 @@
  * Updated 2026-04-04: ALL available API keys deployed for maximum judge diversity.
  *
  * Provider chain (updated 2026-04-04):
- *   1.  Cerebras     — qwen-3-235b-a22b (8 keys, free, ultra-fast)
- *   2.  Cerebras     — llama3.1-8b (8 keys, free, ultra-fast)
- *   3.  Cerebras     — gpt-oss-120b (8 keys, free, different model perspective)
- *   4.  Cerebras     — zai-glm-4.7 (8 keys, free, Chinese model perspective)
+ *   1.  Cerebras     — gemma-4-31b (free, ultra-fast)
+ *   2.  Cerebras     — gpt-oss-120b (8 keys, free, ultra-fast)
+ *   3.  Cerebras     — gpt-oss-120b (free, different model perspective)
+ *   4.  Cerebras     — gemma-4-31b (deduplicated when using the same key)
  *   5.  Mistral      — mistral-small-latest (3 keys, free)
  *   6.  Sarvam       — sarvam-m (13 keys, Indian AI, free)
- *   7.  OpenRouter   — qwen3-coder:free (3 keys, free)
+ *   7.  OpenRouter   — openrouter/free (free-model router)
  *   8.  Groq         — llama-3.3-70b-versatile (9 keys)
  *   9.  NVIDIA       — meta/llama-3.3-70b-instruct (3 keys, free)
  *  10.  Inception    — mercury-2 (10 keys, free, diffusion-based)
@@ -22,7 +22,7 @@
  *  23.  Cloudflare   — account 10 (GLM-4.7-flash)
  *  24.  Cloudflare   — account 11 (Gemma-4-26b, additional account)
  *  25.  Cloudflare   — account 12 (Mistral Small 3.1 24B, additional account)
- *  26.  OpenRouter   — qwen/qwen3.6-plus:free (large reasoning model)
+ *  26.  OpenRouter   — openrouter/free (large reasoning model)
  *  27.  NVIDIA       — deepseek-ai/deepseek-v3.2 (reasoning, thinking model)
  *  28.  NVIDIA       — stepfun-ai/step-3.5-flash (Chinese model, reasoning)
  *  29.  NVIDIA       — z-ai/glm4.7 (Chinese model, thinking)
@@ -67,9 +67,9 @@ const PROVIDERS = [
     // --- Cerebras: 3 keys x 2 models = up to 6 independent judges ---
     {
         id: "cerebras-qwen",
-        name: "Cerebras-Qwen235B",
+        name: "Cerebras-Gemma4",
         url: "https://api.cerebras.ai/v1/chat/completions",
-        model: "qwen-3-235b-a22b-instruct-2507",
+        model: "gemma-4-31b",
         keys: loadKeys("CEREBRAS_API_KEY", 15).concat(loadKeys("CEREBRAS_KEY", 15)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
@@ -78,9 +78,9 @@ const PROVIDERS = [
     },
     {
         id: "cerebras-llama",
-        name: "Cerebras-Llama8B",
+        name: "Cerebras-GPTOSS120B",
         url: "https://api.cerebras.ai/v1/chat/completions",
-        model: "llama3.1-8b",
+        model: "gpt-oss-120b",
         keys: loadKeys("CEREBRAS_API_KEY", 15).concat(loadKeys("CEREBRAS_KEY", 15)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
@@ -98,9 +98,9 @@ const PROVIDERS = [
     // --- Cerebras: ZAI GLM-4.7 (Chinese model — different cultural perspective on academic rigor) ---
     {
         id: "cerebras-glm47",
-        name: "Cerebras-GLM4.7",
+        name: "Cerebras-Gemma4-Alt",
         url: "https://api.cerebras.ai/v1/chat/completions",
-        model: "zai-glm-4.7",
+        model: "gemma-4-31b",
         keys: loadKeys("CEREBRAS_API_KEY", 15).concat(loadKeys("CEREBRAS_KEY", 15)),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
@@ -134,7 +134,7 @@ const PROVIDERS = [
         id: "openrouter",
         name: "OpenRouter",
         url: "https://openrouter.ai/api/v1/chat/completions",
-        model: "qwen/qwen3-coder:free",
+        model: "openrouter/free",
         keys: loadKeys("OPENROUTER_API_KEY"),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
@@ -365,9 +365,9 @@ const PROVIDERS = [
     // --- OpenRouter: Qwen 3.6 Plus (free, large reasoning model) ---
     {
         id: "openrouter-qwen36plus",
-        name: "OpenRouter-Qwen3.6Plus",
+        name: "OpenRouter-Free-Alt",
         url: "https://openrouter.ai/api/v1/chat/completions",
-        model: "qwen/qwen3.6-plus:free",
+        model: "openrouter/free",
         keys: loadKeys("OPENROUTER_API_KEY", 15),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
@@ -421,8 +421,16 @@ for (const p of PROVIDERS) {
     p.keys = [...new Set(p.keys)].filter(Boolean);
 }
 
-// Log available providers
-const available = PROVIDERS.filter(p => p.keys.length > 0);
+// Log available providers. Multiple legacy slots can resolve to the same
+// current model/key; count and call that judge only once.
+const providerSignatures = new Set();
+const available = PROVIDERS.filter(p => {
+    if (p.keys.length === 0) return false;
+    const signature = `${p.url}|${p.model}|${p.keys.join(',')}`;
+    if (providerSignatures.has(signature)) return false;
+    providerSignatures.add(signature);
+    return true;
+});
 console.log(`[SCORING] ${available.length} LLM providers available: ${available.map(p => `${p.name}(${p.keys.length})`).join(", ")}`);
 if (available.length === 0) console.warn("[SCORING] No LLM providers — heuristic scoring only.");
 // Debug: log specifically which providers have NO keys

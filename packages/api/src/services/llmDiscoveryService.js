@@ -21,7 +21,7 @@ const FREE_LLM_APIS = [
     id: "cerebras",
     name: "Cerebras Inference",
     url: "https://api.cerebras.ai/v1",
-    models: ["llama3.1-70b", "llama3.1-8b"],
+    models: ["gpt-oss-120b", "gemma-4-31b"],
     free_tier: true,
     rate_limit: "30 req/min",
     strengths: ["fastest inference worldwide", "research-grade"],

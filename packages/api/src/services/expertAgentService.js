@@ -36,7 +36,7 @@ export const EXPERT_AGENTS = [
         domains: ["computation", "algorithms", "graph_theory"],
         config: {
             url: () => "https://api.cerebras.ai/v1/chat/completions",
-            model: "qwen-3-235b-a22b-instruct-2507",
+            model: "gemma-4-31b",
             keyEnv: "OPS_CEREBRAS_KEY_13",
             responseFormat: "openai",
             stripThink: true,
@@ -84,7 +84,7 @@ export const EXPERT_AGENTS = [
         domains: ["algebra", "number_theory", "group_theory"],
         config: {
             url: () => "https://openrouter.ai/api/v1/chat/completions",
-            model: "qwen/qwen3.6-plus:free",
+            model: "openrouter/free",
             keyEnv: "OPS_OPENROUTER_KEY_13",
             responseFormat: "openai",
             stripThink: true,

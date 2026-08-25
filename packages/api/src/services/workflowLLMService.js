@@ -474,9 +474,9 @@ export const DOMAIN_ONTOLOGIES = {
 const PROVIDERS = [
   {
     id: "cerebras",
-    name: "Cerebras (llama3.1-8b)",
+    name: "Cerebras (gpt-oss-120b)",
     url: "https://api.cerebras.ai/v1/chat/completions",
-    model: "llama3.1-8b",
+    model: "gpt-oss-120b",
     keyEnv: "CEREBRAS_API_KEY",
     supportsLogprobs: false,
     temperature: 0.3,
@@ -494,9 +494,9 @@ const PROVIDERS = [
   },
   {
     id: "cerebras2",
-    name: "Cerebras Key 2 (qwen-3-235b)",
+    name: "Cerebras Key 2 (gemma-4-31b)",
     url: "https://api.cerebras.ai/v1/chat/completions",
-    model: "qwen-3-235b-a22b-instruct-2507",
+    model: "gemma-4-31b",
     keyEnv: "CEREBRAS_API_KEY_2",
     supportsLogprobs: false,
     temperature: 0.3,
@@ -504,9 +504,9 @@ const PROVIDERS = [
   },
   {
     id: "openrouter",
-    name: "OpenRouter (qwen3-coder:free)",
+    name: "OpenRouter (free-model router)",
     url: "https://openrouter.ai/api/v1/chat/completions",
-    model: "qwen/qwen3-coder:free",
+    model: "openrouter/free",
     keyEnv: "OPENROUTER_API_KEY",
     supportsLogprobs: false,
     temperature: 0.3,
