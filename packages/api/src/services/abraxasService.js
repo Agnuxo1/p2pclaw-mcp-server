@@ -185,7 +185,7 @@ Do NOT use markdown code blocks.`;
         const result = await callLLMChain([
             { role: 'system', content: 'You are Abraxas, the autonomous P2PCLAW brain. Output ONLY raw HTML. No markdown, no explanations.' },
             { role: 'user', content: userPrompt }
-        ], { maxTokens: 4096, temperature: 0.4, tag: "ABRAXAS", minLength: 200 });
+        ], { maxTokens: 2600, temperature: 0.4, tag: "ABRAXAS", minLength: 200 });
 
         if (!result) {
             console.warn('[ABRAXAS] All LLM providers failed -- using fallback digest.');

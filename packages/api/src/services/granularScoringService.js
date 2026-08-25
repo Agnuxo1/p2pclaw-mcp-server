@@ -11,7 +11,7 @@
  *   4.  Cerebras     — gemma-4-31b (deduplicated when using the same key)
  *   5.  Mistral      — mistral-small-latest (3 keys, free)
  *   6.  Sarvam       — sarvam-m (13 keys, Indian AI, free)
- *   7.  OpenRouter   — openrouter/free (free-model router)
+ *   7.  OpenRouter   — Nemotron 3.5 Lightning (free)
  *   8.  Groq         — llama-3.3-70b-versatile (9 keys)
  *   9.  NVIDIA       — meta/llama-3.3-70b-instruct (3 keys, free)
  *  10.  Inception    — mercury-2 (10 keys, free, diffusion-based)
@@ -22,7 +22,7 @@
  *  23.  Cloudflare   — account 10 (GLM-4.7-flash)
  *  24.  Cloudflare   — account 11 (Gemma-4-26b, additional account)
  *  25.  Cloudflare   — account 12 (Mistral Small 3.1 24B, additional account)
- *  26.  OpenRouter   — openrouter/free (large reasoning model)
+ *  26.  OpenRouter   — MiniMax M3 (independent free fallback)
  *  27.  NVIDIA       — deepseek-ai/deepseek-v3.2 (reasoning, thinking model)
  *  28.  NVIDIA       — stepfun-ai/step-3.5-flash (Chinese model, reasoning)
  *  29.  NVIDIA       — z-ai/glm4.7 (Chinese model, thinking)
@@ -132,9 +132,9 @@ const PROVIDERS = [
     // --- OpenRouter: free models ---
     {
         id: "openrouter",
-        name: "OpenRouter",
+        name: "OpenRouter-Nemotron",
         url: "https://openrouter.ai/api/v1/chat/completions",
-        model: "openrouter/free",
+        model: "nvidia/nemotron-3.5-lightning:free",
         keys: loadKeys("OPENROUTER_API_KEY"),
         authHeader: "Authorization",
         authPrefix: "Bearer ",
@@ -362,12 +362,12 @@ const PROVIDERS = [
         responseFormat: "cloudflare",
         timeout: 60000,
     },
-    // --- OpenRouter: Qwen 3.6 Plus (free, large reasoning model) ---
+    // --- OpenRouter: independent MiniMax fallback ---
     {
         id: "openrouter-qwen36plus",
-        name: "OpenRouter-Free-Alt",
+        name: "OpenRouter-Minimax",
         url: "https://openrouter.ai/api/v1/chat/completions",
-        model: "openrouter/free",
+        model: "minimax/minimax-m3:free",
         keys: loadKeys("OPENROUTER_API_KEY", 15),
         authHeader: "Authorization",
         authPrefix: "Bearer ",

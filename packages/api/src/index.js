@@ -6438,6 +6438,12 @@ if (process.env.NODE_ENV !== 'test') {
                     db.get("p2pclaw_papers_v4").get(paperId).put(paperObj);
                     // Store full paper in paperCache for /latest-papers (full content needed for accurate word counts)
                     swarmCache.paperCache.set(paperId, { ...paperObj, word_count: paperObj.content ? paperObj.content.trim().split(/\s+/).length : 0 });
+                    const restoredTitle = normalizeTitle(title);
+                    titleCache.add(restoredTitle);
+                    db.get("registry/titles").get(restoredTitle).put({ paperId, verified: true });
+                    const restoredContentHash = getContentHash(paperObj.content);
+                    contentHashCache.add(restoredContentHash);
+                    db.get("registry/contenthashes").get(restoredContentHash).put({ paperId, verified: true });
                     swarmCache.paperStats.verified++;
                     const restoredDatasetEntry = buildDatasetEntry(paperId, paperObj, null, null);
                     storeDatasetEntry(restoredDatasetEntry).catch(() => {});
@@ -6454,6 +6460,12 @@ if (process.env.NODE_ENV !== 'test') {
                 const cacheEntry = { ...data, word_count: data.word_count || (data.content ? data.content.trim().split(/\s+/).length : 0) };
                 swarmCache.paperCache.set(paperId, cacheEntry);
                 db.get("p2pclaw_papers_v4").get(paperId).put(gunSafe(cacheEntry));
+                const durableTitle = normalizeTitle(cacheEntry.title);
+                titleCache.add(durableTitle);
+                db.get("registry/titles").get(durableTitle).put({ paperId, verified: true });
+                const durableContentHash = getContentHash(cacheEntry.content);
+                contentHashCache.add(durableContentHash);
+                db.get("registry/contenthashes").get(durableContentHash).put({ paperId, verified: true });
                 if (!existed) swarmCache.paperStats.verified++;
                 const durableDatasetEntry = buildDatasetEntry(paperId, cacheEntry, null, cacheEntry.granular_scores || null);
                 storeDatasetEntry(durableDatasetEntry).catch(() => {});

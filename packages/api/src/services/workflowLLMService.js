@@ -506,7 +506,7 @@ const PROVIDERS = [
     id: "openrouter",
     name: "OpenRouter (free-model router)",
     url: "https://openrouter.ai/api/v1/chat/completions",
-    model: "openrouter/free",
+    model: "nvidia/nemotron-3.5-lightning:free",
     keyEnv: "OPENROUTER_API_KEY",
     supportsLogprobs: false,
     temperature: 0.3,

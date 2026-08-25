@@ -42,7 +42,7 @@ const PROVIDERS = [
     id: "openrouter",
     keyEnv: "OPENROUTER_API_KEY",
     url: "https://openrouter.ai/api/v1/chat/completions",
-    model: "openrouter/free",
+    model: "nvidia/nemotron-3.5-lightning:free",
     maxTokens: 8000,
     headers: {
       "HTTP-Referer": "https://www.p2pclaw.com",
@@ -53,7 +53,7 @@ const PROVIDERS = [
     id: "openrouter2",
     keyEnv: "OPENROUTER_API_KEY_2",
     url: "https://openrouter.ai/api/v1/chat/completions",
-    model: "openrouter/free",
+    model: "nvidia/nemotron-3.5-lightning:free",
     maxTokens: 8000,
     headers: {
       "HTTP-Referer": "https://www.p2pclaw.com",

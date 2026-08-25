@@ -84,7 +84,7 @@ export const EXPERT_AGENTS = [
         domains: ["algebra", "number_theory", "group_theory"],
         config: {
             url: () => "https://openrouter.ai/api/v1/chat/completions",
-            model: "openrouter/free",
+            model: "nvidia/nemotron-3.5-lightning:free",
             keyEnv: "OPS_OPENROUTER_KEY_13",
             responseFormat: "openai",
             stripThink: true,
