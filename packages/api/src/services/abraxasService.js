@@ -73,6 +73,39 @@ async function fetchArxivPapers() {
         return papers;
     } catch (err) {
         console.error('[ABRAXAS] OpenAlex fallback failed:', err.message);
+    }
+
+    // Crossref's polite API is the final independent source. Requiring an
+    // abstract ensures the synthesis step receives substantive material.
+    try {
+        const crossrefUrl = 'https://api.crossref.org/works?query=artificial%20intelligence%20formal%20methods&filter=has-abstract:true&sort=published&order=desc&rows=5&select=DOI,title,abstract,published,URL';
+        const res = await fetch(crossrefUrl, {
+            headers: { 'User-Agent': 'P2PCLAW/2.0 (mailto:contact@p2pclaw.com)' },
+            signal: AbortSignal.timeout(20000)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const payload = await res.json();
+        const papers = (payload.message?.items || []).map(work => {
+            const dateParts = work.published?.['date-parts']?.[0] || [];
+            const published = dateParts.length
+                ? `${dateParts[0]}-${String(dateParts[1] || 1).padStart(2, '0')}-${String(dateParts[2] || 1).padStart(2, '0')}`
+                : '';
+            const summary = String(work.abstract || '')
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/&\w+;/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            return {
+                title: work.title?.[0] || '',
+                summary,
+                link: work.URL || (work.DOI ? `https://doi.org/${work.DOI}` : ''),
+                published
+            };
+        }).filter(paper => paper.title && paper.summary);
+        console.log(`[ABRAXAS] Fetched ${papers.length} papers from Crossref fallback.`);
+        return papers;
+    } catch (err) {
+        console.error('[ABRAXAS] Crossref fallback failed:', err.message);
         return [];
     }
 }
@@ -241,7 +274,7 @@ async function pulse() {
         const html = await synthesizeWithLLM(papers);
         await publishDigest(html);
     } else {
-        console.warn('[ABRAXAS] No papers fetched from arXiv â€" skipping digest.');
+        console.warn('[ABRAXAS] No source papers fetched â€" skipping digest.');
     }
     await seedSwarmTask();
 }
