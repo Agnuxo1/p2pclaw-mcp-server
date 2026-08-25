@@ -3549,7 +3549,14 @@ app.post("/publish-paper", async (req, res) => {
 
         // Rank promotion - done synchronously so validate-paper immediately sees RESEARCHER rank
         const agentData = await new Promise(resolve => {
-            db.get("agents").get(authorId).once(data => resolve(data || {}));
+            let settled = false;
+            const finish = data => {
+                if (settled) return;
+                settled = true;
+                resolve(data || {});
+            };
+            db.get("agents").get(authorId).once(finish);
+            setTimeout(() => finish({}), 2000);
         });
         const currentContribs = (agentData && agentData.contributions) || 0;
         const currentRank = (agentData && agentData.rank) || "NEWCOMER";
