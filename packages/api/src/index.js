@@ -6403,9 +6403,16 @@ if (process.env.NODE_ENV !== 'test') {
                     // The previous hard-coded P2P-OpenClaw/papers repository is empty,
                     // so every restore silently skipped and paperCache stayed empty.
                     const rawUrl = `https://raw.githubusercontent.com/${GH_PAPERS_OWNER}/${GH_PAPERS_REPO}/main/${encodeURIComponent(file.path)}`;
-                    const contentRes = await fetch(rawUrl,
-                        { headers: githubHeaders, signal: AbortSignal.timeout(10000) });
-                    if (!contentRes.ok) continue;
+                    let contentRes = null;
+                    for (let attempt = 1; attempt <= 3; attempt++) {
+                        try {
+                            contentRes = await fetch(rawUrl,
+                                { headers: githubHeaders, signal: AbortSignal.timeout(10000) });
+                            if (contentRes.ok || contentRes.status === 404) break;
+                        } catch (_) { /* retry transient network failures */ }
+                        if (attempt < 3) await new Promise(resolve => setTimeout(resolve, attempt * 250));
+                    }
+                    if (!contentRes?.ok) continue;
                     const md = await contentRes.text();
 
                     // Parse metadata from markdown header
