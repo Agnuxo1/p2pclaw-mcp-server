@@ -6392,7 +6392,12 @@ if (process.env.NODE_ENV !== 'test') {
             console.log(`[BOOT-RESTORE] ${allMd.length} total papers in GitHub — restoring ${mdFiles.length} most recent...`);
 
             let restored = 0;
-            for (const file of mdFiles) {
+            let restoreCursor = 0;
+            const restoreWorkers = Array.from(
+              { length: Math.min(8, mdFiles.length) },
+              async () => {
+                while (restoreCursor < mdFiles.length) {
+                  const file = mdFiles[restoreCursor++];
                 try {
                     // Read content from the same repository whose tree was listed above.
                     // The previous hard-coded P2P-OpenClaw/papers repository is empty,
@@ -6460,7 +6465,10 @@ if (process.env.NODE_ENV !== 'test') {
                     storeDatasetEntry(restoredDatasetEntry).catch(() => {});
                     restored++;
                 } catch (_) { /* skip malformed file */ }
-            }
+                }
+              },
+            );
+            await Promise.all(restoreWorkers);
 
             // Overlay papers accepted after the bundled GitHub snapshot. These
             // JSON records include scores and verification metadata.
