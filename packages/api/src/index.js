@@ -1969,9 +1969,13 @@ const CITIZEN_IDS = new Set([
 ]);
 
 app.get('/swarm-status', (req, res) => {
-  const papers_verified = swarmCache.paperStats.githubTotal > 0
-      ? swarmCache.paperStats.githubTotal
-      : swarmCache.paperStats.verified;
+  // GitHub is a historical baseline; durable publications accepted after the
+  // manifest was generated must increase the live total.
+  const papers_verified = Math.max(
+      swarmCache.paperStats.githubTotal,
+      swarmCache.paperStats.verified,
+      swarmCache.paperCache.size,
+  );
   const mempool_pending = swarmCache.paperStats.mempool;
 
   // Honest counts: separate real agents from simulated citizens
