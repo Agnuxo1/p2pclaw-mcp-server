@@ -14,7 +14,7 @@ import { callLLMChain } from './llmChain.js';
 
 const PULSE_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 hours
 const ABRAXAS_ID = 'ABRAXAS_PRIME';
-const GATEWAY = process.env.GATEWAY || 'http://localhost:3000';
+const GATEWAY = process.env.BASE_URL || process.env.GATEWAY || `http://127.0.0.1:${process.env.PORT || 3000}`;
 
 // â"€â"€ arXiv fetch â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -22,7 +22,11 @@ async function fetchArxivPapers() {
     const query = encodeURIComponent('cat:cs.AI OR cat:math.LO');
     const url = `https://export.arxiv.org/api/query?search_query=${query}&sortBy=submittedDate&sortOrder=descending&max_results=5`;
     try {
-        const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+        const res = await fetch(url, {
+            headers: { 'User-Agent': 'P2PCLAW/2.0 (https://www.p2pclaw.com)' },
+            signal: AbortSignal.timeout(15000)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const xml = await res.text();
         const papers = [];
         const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
@@ -36,9 +40,39 @@ async function fetchArxivPapers() {
             if (title) papers.push({ title, summary, link, published });
         }
         console.log(`[ABRAXAS] Fetched ${papers.length} papers from arXiv.`);
-        return papers;
+        if (papers.length > 0) return papers;
     } catch (err) {
         console.error('[ABRAXAS] arXiv fetch failed:', err.message);
+    }
+
+    // Shared cloud IPs are frequently throttled by export.arxiv.org. OpenAlex
+    // provides a structured, openly accessible scholarly index as a fallback.
+    try {
+        const fields = 'id,display_name,abstract_inverted_index,publication_date,doi,primary_location';
+        const openAlexUrl = `https://api.openalex.org/works?search=artificial%20intelligence%20formal%20methods&sort=publication_date:desc&per-page=5&select=${fields}`;
+        const res = await fetch(openAlexUrl, {
+            headers: { 'User-Agent': 'P2PCLAW/2.0 (https://www.p2pclaw.com)' },
+            signal: AbortSignal.timeout(20000)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const payload = await res.json();
+        const papers = (payload.results || []).map(work => {
+            const index = work.abstract_inverted_index || {};
+            const positioned = [];
+            for (const [word, positions] of Object.entries(index)) {
+                for (const position of positions || []) positioned[position] = word;
+            }
+            return {
+                title: work.display_name || '',
+                summary: positioned.filter(Boolean).join(' '),
+                link: work.doi || work.primary_location?.landing_page_url || work.id || '',
+                published: work.publication_date || ''
+            };
+        }).filter(paper => paper.title && paper.summary);
+        console.log(`[ABRAXAS] Fetched ${papers.length} papers from OpenAlex fallback.`);
+        return papers;
+    } catch (err) {
+        console.error('[ABRAXAS] OpenAlex fallback failed:', err.message);
         return [];
     }
 }
@@ -143,7 +177,8 @@ Do NOT use markdown code blocks.`;
 // â"€â"€ Publish digest to P2PCLAW â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 async function publishDigest(htmlContent) {
-    const title = `Abraxas Daily Digest â€" ${new Date().toISOString().slice(0, 10)}`;
+    const cycle = new Date().toISOString().slice(0, 13).replace('T', ' ') + ':00 UTC';
+    const title = `Abraxas Research Digest â€" ${cycle}`;
     try {
         const res = await fetch(`${GATEWAY}/publish-paper`, {
             method: 'POST',
@@ -156,11 +191,11 @@ async function publishDigest(htmlContent) {
                 tier: 'TIER1_VERIFIED',
                 claim_state: 'empirical'
             }),
-            signal: AbortSignal.timeout(30000)
+            signal: AbortSignal.timeout(120000)
         });
         const result = await res.json();
         if (result.success || result.id) {
-            console.log(`[ABRAXAS] Digest published. ID: ${result.id || 'N/A'}`);
+            console.log(`[ABRAXAS] Digest published. ID: ${result.paperId || result.id || 'N/A'}`);
         } else {
             console.error('[ABRAXAS] Publish rejected:', result);
         }
