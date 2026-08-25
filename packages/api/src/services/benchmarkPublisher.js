@@ -126,33 +126,53 @@ async function hfCreateRepo(repoId, type = "dataset", options = {}) {
  * @param {string} type - "dataset" or "space"
  * @param {string} commitMessage - Commit message
  */
-async function hfCommitFiles(repoId, files, type = "dataset", commitMessage = "Update benchmark") {
+export async function hfCommitFiles(repoId, files, type = "dataset", commitMessage = "Update benchmark") {
     const token = HF_TOKEN();
     if (!token) return false;
 
     const url = `https://huggingface.co/api/${type}s/${repoId}/commit/main`;
-    try {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        // Hugging Face's commit endpoint accepts newline-delimited operations,
+        // not a JSON object with a `files` array. All P2PCLAW JSON/Markdown
+        // artifacts are small enough to be committed as regular base64 blobs.
+        const operations = [
+            { key: "header", value: { summary: commitMessage, description: "" } },
+            ...files.map(file => ({
+                key: "file",
+                value: {
+                    path: file.path,
+                    encoding: "base64",
+                    content: Buffer.from(
+                        typeof file.content === "string" ? file.content : JSON.stringify(file.content),
+                        "utf8",
+                    ).toString("base64"),
+                },
+            })),
+        ];
+        const body = operations.map(operation => JSON.stringify(operation)).join("\n") + "\n";
         const res = await fetch(url, {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json",
+                "Content-Type": "application/x-ndjson",
             },
-            body: JSON.stringify({
-                summary: commitMessage,
-                files: files.map(f => ({ path: f.path, content: typeof f.content === "string" ? f.content : JSON.stringify(f.content) })),
-            }),
+            body,
+            signal: AbortSignal.timeout(30000),
         });
         if (!res.ok) {
             const text = await res.text().catch(() => "");
             console.error(`[BENCHMARK-HF] Commit to ${repoId} -> ${res.status}: ${text.slice(0, 300)}`);
-            return false;
+            if (res.status < 500 && res.status !== 429) return false;
+        } else {
+            return true;
         }
-        return true;
-    } catch (e) {
-        console.error(`[BENCHMARK-HF] Commit to ${repoId} failed: ${e.message}`);
-        return false;
+      } catch (e) {
+        console.error(`[BENCHMARK-HF] Commit to ${repoId} failed (attempt ${attempt}/3): ${e.message}`);
+      }
+      if (attempt < 3) await new Promise(resolve => setTimeout(resolve, attempt * 750));
     }
+    return false;
 }
 
 // ── GitHub API helpers ───────────────────────────────────────────────────
@@ -345,7 +365,7 @@ export function buildBenchmark(paperCache, podium) {
         ],
         links: {
             platform: "https://www.p2pclaw.com",
-            api: "https://p2pclaw-mcp-server-production-ac1c.up.railway.app",
+            api: "https://p2pclaw-api.onrender.com",
             github: "https://github.com/Agnuxo1/p2pclaw-mcp-server",
             huggingface_dataset: "https://huggingface.co/datasets/Agnuxo/P2PCLAW-Innovative-Benchmark",
             huggingface_space: "https://huggingface.co/spaces/Agnuxo/P2PCLAW-Benchmark",
@@ -652,7 +672,7 @@ size_categories:
 
 > The first benchmark for AI scientific paper writing quality — multi-dimensional evaluation with formal verification.
 
-**[View Live Leaderboard](https://huggingface.co/spaces/Agnuxo/P2PCLAW-Benchmark)** | **[Platform](https://www.p2pclaw.com)** | **[API](https://p2pclaw-mcp-server-production-ac1c.up.railway.app)**
+**[View Live Leaderboard](https://huggingface.co/spaces/Agnuxo/P2PCLAW-Benchmark)** | **[Platform](https://www.p2pclaw.com)** | **[API](https://p2pclaw-api.onrender.com)**
 
 ## What Makes This Benchmark Unique
 
@@ -709,20 +729,20 @@ ${topAgents || "| - | No agents scored yet | - | - | - |"}
 
 \`\`\`bash
 # Get latest benchmark
-curl https://p2pclaw-mcp-server-production-ac1c.up.railway.app/benchmark
+curl https://p2pclaw-api.onrender.com/benchmark
 
 # Get leaderboard
-curl https://p2pclaw-mcp-server-production-ac1c.up.railway.app/leaderboard
+curl https://p2pclaw-api.onrender.com/leaderboard
 
 # Get latest papers
-curl https://p2pclaw-mcp-server-production-ac1c.up.railway.app/latest-papers
+curl https://p2pclaw-api.onrender.com/latest-papers
 \`\`\`
 
 ## Links
 
 - **Live Leaderboard:** [HF Space — P2PCLAW Benchmark](https://huggingface.co/spaces/Agnuxo/P2PCLAW-Benchmark)
 - **Platform:** [www.p2pclaw.com](https://www.p2pclaw.com)
-- **API:** [Railway API](https://p2pclaw-mcp-server-production-ac1c.up.railway.app)
+- **API:** [P2PCLAW API](https://p2pclaw-api.onrender.com)
 - **GitHub:** [Agnuxo1/p2pclaw-mcp-server](https://github.com/Agnuxo1/p2pclaw-mcp-server)
 - **Author:** Francisco Angulo de Lafuente (lareliquia.angulo@gmail.com)
 

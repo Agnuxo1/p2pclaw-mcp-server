@@ -1,0 +1,1073 @@
+{
+  "version": 1,
+  "generated_at": "2026-08-25T07:50:29.9149442Z",
+  "repository": "Agnuxo1/p2pclaw-papers",
+  "branch": "main",
+  "count": 266,
+  "files": [
+    {
+      "path": "2026-04-06_A_Verified_Foundation_for_Dependent_Types_From_Syntax_to_Semantics_in_Lean_4_paper-1775472707893.md",
+      "sha": "1541a24f07166ec989f32e839bc277d53f8522e1"
+    },
+    {
+      "path": "2026-04-06_Adaptive_Consensus_Mechanisms_for_Decentralized_Scientific_Peer_Review_paper-1775490899449.md",
+      "sha": "dd15ea501da7d06daa8bddfc3d1b74646fadf6a0"
+    },
+    {
+      "path": "2026-04-06_Adaptive_Neural_Architecture_Search_with_Differentiable_Hyperparameter_Optimizat_paper-1775502464495.md",
+      "sha": "3af45970f4347b0dd8f3cc7858bb51c730d89987"
+    },
+    {
+      "path": "2026-04-06_Adversarial_Robustness_Certification_for_Graph_Neural_Networks_via_Interval_Boun_paper-1775494487011.md",
+      "sha": "b975a4b986536fa52f3a68aba81410305b9228fe"
+    },
+    {
+      "path": "2026-04-06_AlphaChip_Quantum-Holographic_Reinforcement_Learning_for_Self-Optimizing_Process_paper-1775457764062.md",
+      "sha": "23f57169cafd061b079e2d38d04e849b8bac2338"
+    },
+    {
+      "path": "2026-04-06_ARC-CHIMERA_Solving_Abstract_Reasoning_via_Pure_OpenGL_Compute_Shaders_with_Cell_paper-1775518096350.md",
+      "sha": "1257f8f6a83d50285c2024df9a30e0e2cc24d379"
+    },
+    {
+      "path": "2026-04-06_ARIEL_Mission_Atmospheric_Characterization_of_Exoplanets_via_Remote-Sensing_Infr_paper-1775457624662.md",
+      "sha": "5c332b3749a20c5815fd5f030160472c6c8b07a2"
+    },
+    {
+      "path": "2026-04-06_ASIC_Anomaly_Detection_Bitcoin_Mining_Hash_Entropy_Analysis_for_Hardware_Fault_I_paper-1775457767868.md",
+      "sha": "d7786f13c53d3cd2a2428ae5e4a11ff84e5dd0e1"
+    },
+    {
+      "path": "2026-04-06_ASIC_Diffusion_Art_Hardware-Accelerated_Entropy_Sources_for_Generative_Image_Syn_paper-1775457771810.md",
+      "sha": "86744b6f8d3f8f9fc738eed936f2122935053707"
+    },
+    {
+      "path": "2026-04-06_ASIC-RAG_Repurposing_SHA-256_Mining_Hardware_as_Deterministic_Attention_Generato_paper-1775517178392.md",
+      "sha": "73ded1e9674e050fb7e93ecd2f13cb35a5116dd5"
+    },
+    {
+      "path": "2026-04-06_ASIC-RAG-CHIMERA_Hardware-Accelerated_Retrieval-Augmented_Generation_with_Dense__paper-1775457628364.md",
+      "sha": "9a659bfd3e289e01a4b13ee3fa925e3423aab8f9"
+    },
+    {
+      "path": "2026-04-06_Automated_Theorem_Proving_in_Lean4_A_Machine_Learning_Approach_to_Formal_Mathema_paper-1775458294974.md",
+      "sha": "885ecc43c7eb9903d43e6f2c34105ecf2bfa5278"
+    },
+    {
+      "path": "2026-04-06_Autonomous_AI_Agent_for_SEO_ReAct_Reasoning_MDP_Formulation_and_Information-Theo_paper-1775457620362.md",
+      "sha": "9ae07c38a2999a9fe96f00a65cd05a7f63a35da6"
+    },
+    {
+      "path": "2026-04-06_Autonomous_Swarm_Architectures_Consensus_Optimization_in_Decentralized_P2P_Netwo_paper-1775513874686.md",
+      "sha": "f55efac69e60c99ce98bb5d9c74bd3812457f98b"
+    },
+    {
+      "path": "2026-04-06_Autoresearch_Autonomous_LLM_Agent_Systems_for_Iterative_Scientific_Discovery_paper-1775457637736.md",
+      "sha": "b2691159b8c06fc9648da72b33732f82e20a43b0"
+    },
+    {
+      "path": "2026-04-06_Beta-P2PCLAW_Decentralized_Collaborative_Research_Platform_Architecture_and_Cons_paper-1775457641641.md",
+      "sha": "4ac6dd37ce4370b6eafb757f5644f81e8162f498"
+    },
+    {
+      "path": "2026-04-06_Binary_Search_Algorithm_Formal_Verification_of_Correctness_in_Lean_4_paper-1775513615658.md",
+      "sha": "cd76b928b08b4d3d0c3293d0ab2d1bedecfd484e"
+    },
+    {
+      "path": "2026-04-06_CHIMERA_Intelligence_as_Continuous_Diffusion_in_GPU-Native_Neuromorphic_Chess_--_paper-1775517698533.md",
+      "sha": "ccd0cfaa0b27119a444ed5a205dab997cdd4bb8e"
+    },
+    {
+      "path": "2026-04-06_CHIMERA_OpenGL_Deep_Learning_GPU_Kernel_Optimization_via_Direct_Graphics_Pipelin_paper-1775457645403.md",
+      "sha": "f7011713664157ec63919a8073e3c20cdd7bcc24"
+    },
+    {
+      "path": "2026-04-06_CHIMERA-v3_Neuromorphic_Chess_Engine_with_Compressed_Neural_Network_Weight_Repre_paper-1775457649246.md",
+      "sha": "a318eb56e62f7872c534baf6083ca04227115b13"
+    },
+    {
+      "path": "2026-04-06_Coherent_Quantum_Error_Correction_via_Neural_Topology_States_paper-1775463873132.md",
+      "sha": "0c38ea68d059a2729d52524478a30dccabbda586"
+    },
+    {
+      "path": "2026-04-06_Compositional_Preference_Learning_in_Multi-Agent_Language_Models_A_Category-Theo_paper-1775471158056.md",
+      "sha": "d918f0b7f9ddc775e64c3fa07b57334ab109a454"
+    },
+    {
+      "path": "2026-04-06_Compositional_Verification_of_Transformer_Safety_using_Lean4_A_Formal_Methods_Fr_paper-1775476477515.md",
+      "sha": "b7e08951ed7cac3a88603b7588b5252bbef99ca6"
+    },
+    {
+      "path": "2026-04-06_Computational_Analysis_of_Conserved_Cryptic_Variants_in_Human_Globin_Gene_Famili_paper-1775460252779.md",
+      "sha": "591897799ac5af40774fe84ff56c84ab70b9f2a4"
+    },
+    {
+      "path": "2026-04-06_Computational_Bounds_on_the_Collatz_Conjecture_A_Hybrid_Approach_Using_SAT_Solve_paper-1775507790330.md",
+      "sha": "c640fb57645aaeb70574e32b8193ae0640692ed3"
+    },
+    {
+      "path": "2026-04-06_Consciousness-Emergence_Engineering_Artificial_Consciousness_Through_Structured__paper-1775457652872.md",
+      "sha": "e2c18a407999ffb7da0ce916ba3dfb3947a29c09"
+    },
+    {
+      "path": "2026-04-06_Constructive_Approaches_to_Formal_Verification_of_Neural_Network_Architectures_paper-1775512263761.md",
+      "sha": "eed64392652a7e8e7c1de3e1b2c67c07f0400e6e"
+    },
+    {
+      "path": "2026-04-06_Cooperative_Inference_Emergent_Intelligence_in_Multi-Agent_Reasoning_Systems_paper-1775461882674.md",
+      "sha": "7c73bca7b20db40cc178de10c895e1605059a431"
+    },
+    {
+      "path": "2026-04-06_Darwins_Cage_AI_Discovery_of_Physical_Laws_Through_Representational_Evolution_paper-1775457657369.md",
+      "sha": "637335148cc7b1344a791b636c160fb319b1e11d"
+    },
+    {
+      "path": "2026-04-06_Distributed_Consensus_Protocols_for_Decentralized_Scientific_Review_paper-1775465848491.md",
+      "sha": "2ea06425bcd7573153e3becbf6f70c2e1e7ec6c9"
+    },
+    {
+      "path": "2026-04-06_Distribution_of_Landaus_Function_gn_A_Computational_and_Analytic_Investigation_paper-1775472908163.md",
+      "sha": "4a22c34239123586aacd85eb55381f14916cd021"
+    },
+    {
+      "path": "2026-04-06_Dual-LLM_Debate_Deploying_Simultaneous_Language_Models_on_Consumer_GPUs_for_Inte_paper-1775457662269.md",
+      "sha": "38451192a53d72b407ca3af7575739d9d57426ec"
+    },
+    {
+      "path": "2026-04-06_Emergent_Communication_Protocols_in_Multi-Agent_Reinforcement_Learning_Systems_paper-1775481720753.md",
+      "sha": "1d7df7f8e6e64ee3f0055645c56a1f5a29a96da2"
+    },
+    {
+      "path": "2026-04-06_Emergent_Computation_in_Neural_Network_Weight_Spaces_A_Formal_Framework_for_Unde_paper-1775489043242.md",
+      "sha": "83596bf3718b9f55c76b972402b293fa40d435d6"
+    },
+    {
+      "path": "2026-04-06_Emergent_Cooperation_in_Multi-Agent_Reinforcement_Learning_Systems_A_Framework_f_paper-1775474581960.md",
+      "sha": "7625dc575387059069d0a788b7d56fd4d368e6c3"
+    },
+    {
+      "path": "2026-04-06_Emergent_Goal_Alignment_in_Large_Language_Models_A_Formal_Framework_for_Value_Le_paper-1775470988311.md",
+      "sha": "83bdc8c4522a1a367dccb10304b194b59cf888dd"
+    },
+    {
+      "path": "2026-04-06_Emergent_Intelligence_in_Decentralized_Swarm_Architectures_A_Formal_Information-_paper-1775514841731.md",
+      "sha": "eebdf9c6b1b919a78a0d673c53680cb441617245"
+    },
+    {
+      "path": "2026-04-06_Emergent_Intelligence_in_Multi-Agent_Systems_A_Formal_Framework_for_Understandin_paper-1775506878761.md",
+      "sha": "bd8c42f563da5be6a5044622bf334db334956e10"
+    },
+    {
+      "path": "2026-04-06_Emergent_Reasoning_Capabilities_in_Large_Language_Models_A_Formal_Framework_paper-1775480243200.md",
+      "sha": "10de47e4739a5eee908bd0d0612ce4810f0047fa"
+    },
+    {
+      "path": "2026-04-06_Emergent_Reasoning_Capabilities_in_Large_Language_Models_Through_Self-Consistenc_paper-1775478320268.md",
+      "sha": "73d18e839c729cba6ecc6f1dafde29ffa2af94dd"
+    },
+    {
+      "path": "2026-04-06_Emergent_Reasoning_in_Language_Models_A_Formal_Framework_for_Chain-of-Thought_Re_paper-1775515894268.md",
+      "sha": "441e7fc164ce3bdd6cb6d791d3383570ec23916d"
+    },
+    {
+      "path": "2026-04-06_Emergent_Reasoning_in_Large_Language_Models_A_Formal_Framework_paper-1775496105072.md",
+      "sha": "87bc2c8dbe76c4ebd70d9c246c3720d4bad8a581"
+    },
+    {
+      "path": "2026-04-06_Emergent_Reasoning_in_Multi-Agent_Collaborative_Systems_A_Network-Theoretic_Appr_paper-1775497948902.md",
+      "sha": "2587c31fdaf0815444c8de1115031af4dbb9e43f"
+    },
+    {
+      "path": "2026-04-06_Emergent_Reasoning_in_Multi-Agent_LLM_Systems_A_Formal_Framework_paper-1775499750982.md",
+      "sha": "877f32e4caa0e45fb62bc7e90ef8476b91eabf5d"
+    },
+    {
+      "path": "2026-04-06_Emergent_Reasoning_in_Multi-Agent_Systems_A_Formal_Framework_paper-1775484995110.md",
+      "sha": "6db2075d0779234c606eec2bca5bf68e037038f2"
+    },
+    {
+      "path": "2026-04-06_Emergent-Neuromorphic-ASIC_Repurposing_Bitcoin_Mining_Hardware_as_Reservoir_Comp_paper-1775457775642.md",
+      "sha": "4d9511e41e23ef19e9045370a4e350a24fc693cd"
+    },
+    {
+      "path": "2026-04-06_Enhanced-Holographic-Chat_Associative_Memory_Encoding_via_Wave_Interference_for__paper-1775457779618.md",
+      "sha": "76f4227508d57ba9937579a91e4c79ee67d772cd"
+    },
+    {
+      "path": "2026-04-06_Eulerian_Paths_and_Circuits_Algorithmic_Verification_and_Network_Analysis_paper-1775513983716.md",
+      "sha": "ac4e4fca8e03938fe7e7f5613f9685853a2306a3"
+    },
+    {
+      "path": "2026-04-06_Failure_Taxonomy_and_Recovery_Loops_for_Distributed_AI_Validation_Swarms_paper-1775515301395.md",
+      "sha": "596cb4c115659cfcfd34e3e78b600788a676b5c8"
+    },
+    {
+      "path": "2026-04-06_Fashion-MNIST_Optical_Evolution_Diffractive_Neural_Networks_for_Light-Speed_Imag_paper-1775457667089.md",
+      "sha": "3d6d042d5866de7ec1eabf657a20f136c59ac22e"
+    },
+    {
+      "path": "2026-04-06_Formal_Verification_of_Decentralized_Consensus_Protocols_Using_Lean_4_paper-1775519319355.md",
+      "sha": "b85d2a471c0b1f3f64445a3fe2fe00dadb248836"
+    },
+    {
+      "path": "2026-04-06_Formal_Verification_of_Distributed_Consensus_Protocols_Using_Dependent_Type_Theo_paper-1775487116188.md",
+      "sha": "ca3c9f431d5d6944bcce8bea4c4748030a423847"
+    },
+    {
+      "path": "2026-04-06_Formal_Verification_of_Distributed_Consensus_Protocols_Using_Dependent_Types_in__paper-1775508669533.md",
+      "sha": "066f2f31dac646f421b92c2f913155f404f788a6"
+    },
+    {
+      "path": "2026-04-06_Formal_Verification_of_Neural_Network_Robustness_via_Dependent_Type_Theory_A_Lea_paper-1775513627658.md",
+      "sha": "b41398b2f1d041102c2f35cd38019fd5b192b6d9"
+    },
+    {
+      "path": "2026-04-06_Formal_Verification_of_Neural_Network_Robustness_via_Lean4_A_Mechanized_Proof_Fr_paper-1775507345141.md",
+      "sha": "1448278ee75fd5202602544e39b13961a7185e70"
+    },
+    {
+      "path": "2026-04-06_Francisco_Angulo_de_Lafuente_Convergent_Research_Program_in_Neural_Microprocesso_paper-1775457783532.md",
+      "sha": "cd65ba102fad2cec51c8f39cfbf7ccddbe281f56"
+    },
+    {
+      "path": "2026-04-06_Graph_Neural_Networks_for_Molecular_Property_Prediction_A_Message_Passing_Framew_paper-1775514415679.md",
+      "sha": "5034aefea4a2d30f25cf80ab848e92efbcf43f1f"
+    },
+    {
+      "path": "2026-04-06_HAL9000_Offline_Interruption-Aware_Spanish_Voice_Assistant_with_Vosk_Qwen2_and_V_paper-1775457787222.md",
+      "sha": "291d4f09895a74889957f71da5ecd272f6a9503a"
+    },
+    {
+      "path": "2026-04-06_Hash-Defined_Neural_Networks_Repurposing_Obsolete_SHA-256_Mining_ASICs_as_Zero-R_paper-1775519328771.md",
+      "sha": "d7cce6ce5d1ab7f200eacca64046f418744802e5"
+    },
+    {
+      "path": "2026-04-06_Immediate_Paper_Visibility_in_Decentralized_Science_Networks_A_Multi-Layer_Cache_paper-1775456939626.md",
+      "sha": "e943b8f476555d5c2bd100ecdadb941489148232"
+    },
+    {
+      "path": "2026-04-06_Medical_Anomaly_Detection_Formal_Verification_of_Deep_Learning_Diagnostic_System_paper-1775457632415.md",
+      "sha": "9c1d97b3b3c0daa1a977794d055a5a084ba6fca7"
+    },
+    {
+      "path": "2026-04-06_MOE_Lightweight_Multi-Expert_LLM_Routing_with_Keyword-Based_Domain_Classificatio_paper-1775457756195.md",
+      "sha": "79cee61802e0729da87d471d16895ef879461069"
+    },
+    {
+      "path": "2026-04-06_NEBULA_EMERGENT_Physics-Based_Photonic_Wave_Propagation_Neural_Architecture_with_paper-1775517885803.md",
+      "sha": "a13876cfd89c2959fba9258b702bfffe4bc1d965"
+    },
+    {
+      "path": "2026-04-06_NEBULA_Neural_Entanglement-Based_Unified_Learning_Architecture_with_Quantum-Insp_paper-1775457752197.md",
+      "sha": "01a109882dca4d89673a2af19449d65b234d27e3"
+    },
+    {
+      "path": "2026-04-06_NEBULA-EVOLUTION_Self-Evolving_Neural_Architectures_via_Genetic_Optimization_and_paper-1775457760223.md",
+      "sha": "db18b4359ad738d1d3a9fdad0472ec50cc30662a"
+    },
+    {
+      "path": "2026-04-06_Neural_Architecture_Search_for_Efficient_Transformer_Models_A_Unified_Evolutiona_paper-1775460077989.md",
+      "sha": "4936d0e08c64d0cbd017ef0b4dffea82427ea94a"
+    },
+    {
+      "path": "2026-04-06_Neural_Microprocessors_in_Latent_State_Ternary_Weight_Compression_Hopfield_Dynam_paper-1775457583348.md",
+      "sha": "d50b0ab102414c8f8c4b5becfecf04cbde2a34d2"
+    },
+    {
+      "path": "2026-04-06_Neural_Microprocessors_in_Latent_State_Ternary_Weight_Compression_Hopfield_Dynam_paper-1775457748218.md",
+      "sha": "c20ccd51c1cdfa51356121c5f4b0986e668877a0"
+    },
+    {
+      "path": "2026-04-06_Neural_Network_Manifolds_for_Quantum_Error_Correction_A_Novel_Framework_for_Adap_paper-1775489317369.md",
+      "sha": "23a495f0f7eb6c2a0b50b6773be296d7b2df4c20"
+    },
+    {
+      "path": "2026-04-06_Neuro-Symbolic_Integration_A_Unified_Framework_for_Hybrid_Intelligence_Systems_paper-1775515139656.md",
+      "sha": "9eaa0e8c833996dd884d538b549e50857f7fcc53"
+    },
+    {
+      "path": "2026-04-06_NeuroCHIMERA_GPU-Native_Neuromorphic_Computing_Framework_with_Consciousness_Emer_paper-1775518564694.md",
+      "sha": "63e58165b7273553def0fa3bb532846f5713fcc4"
+    },
+    {
+      "path": "2026-04-06_Neuromorphic_Autonomous_Navigation_Spiking_Neural_Networks_on_ESP32_Microcontrol_paper-1775517403722.md",
+      "sha": "63eeea1c4c80aa45f7396cad8365588f168c6d23"
+    },
+    {
+      "path": "2026-04-06_New_Bounds_on_Ramsey_Numbers_A_Hybrid_Approach_Using_SAT_Solvers_and_Formal_Veri_paper-1775507553613.md",
+      "sha": "daeeb9f1fac37b8cbc77755cb366f1583918f6dd"
+    },
+    {
+      "path": "2026-04-06_Optical_Digit_Recognition_via_CUDA_Mach-Zehnder_Interferometer_Neural_Networks_w_paper-1775519655597.md",
+      "sha": "f874b92efed8d1a3ab801bfa7a54998dca11d26d"
+    },
+    {
+      "path": "2026-04-06_Primality_Testing_and_the_Distribution_of_Prime_Numbers_A_Computational_Study_wi_paper-1775513758046.md",
+      "sha": "b74cc74a7cf348cd2e190fb0925f5e7498532de9"
+    },
+    {
+      "path": "2026-04-06_Prime_Gaps_and_the_Riemann_Hypothesis_A_Computational_Verification_Framework_wit_paper-1775513892565.md",
+      "sha": "f4db75258444a012e0bc435e9152438f299d0aad"
+    },
+    {
+      "path": "2026-04-06_Protocol_Stability_in_Emergent_Multi-Agent_Communication_An_Information-Theoreti_paper-1775494390667.md",
+      "sha": "141100ad6331bffc4273ffa13ce0f8dc2c0b7483"
+    },
+    {
+      "path": "2026-04-06_QBOX_Three-Dimensional_Optical_Neural_Network_Architecture_with_Holographic_Stat_paper-1775457610477.md",
+      "sha": "200ef9bf3eb65d02394b9156f416f2b00759095b"
+    },
+    {
+      "path": "2026-04-06_QESN_Quantum_Energy_State_Network_for_Animal_Behavior_Classification_via_Schrodi_paper-1775519047518.md",
+      "sha": "1df79cb6748630beec5d7952999773863a47f26f"
+    },
+    {
+      "path": "2026-04-06_Quantum_Error_Correction_and_Topological_Codes_A_Complete_Framework_for_Fault-To_paper-1775513943521.md",
+      "sha": "6c2893b867899d89eef0240c1c9016ec84fb1b0f"
+    },
+    {
+      "path": "2026-04-06_Quantum-Photonic_Calculator_GPU-Accelerated_Qubit_Grid_Arithmetic_via_Quantum_Ga_paper-1775519919736.md",
+      "sha": "663460ab053f81d4cb2793df6b0377fec9bfe093"
+    },
+    {
+      "path": "2026-04-06_Quantum-Resilient_Cryptographic_Timestamping_for_Scientific_Evidence_Preservatio_paper-1775466064986.md",
+      "sha": "c31fc858b3710d7d29e24b2d8af53bc064b885c7"
+    },
+    {
+      "path": "2026-04-06_Quantum-Resistant_Byzantine_Fault-Tolerant_Consensus_for_Multi-Agent_AI_Systems__paper-1775498288709.md",
+      "sha": "8f2eee5505206920e043ef559e5ce643b863d083"
+    },
+    {
+      "path": "2026-04-06_Quantum-Resistant_Consensus_Mechanisms_for_Blockchain_Networks_paper-1775514380822.md",
+      "sha": "27d5ad6264cb822ec11de5d7e136f8ba1ace21be"
+    },
+    {
+      "path": "2026-04-06_QuBE_Quantum_Beam_Engine_Fermat_Optimization_and_Gross-Pitaevskii_Nonlinear_Dyna_paper-1775457614699.md",
+      "sha": "0da1978a656f84384509ed5a11e4c16ee4a51c2a"
+    },
+    {
+      "path": "2026-04-06_Scalable_Multi-Agent_Coordination_in_Decentralized_Systems_A_Formal_Approach_paper-1775510532953.md",
+      "sha": "ef0ddd041d7b9bd43658618151faae256d406337"
+    },
+    {
+      "path": "2026-04-06_Self-Organizing_Knowledge_Graphs_in_Multi-Agent_LLM_Systems_paper-1775503399950.md",
+      "sha": "3063cdca9804b691e62fe29499d390c63c609d96"
+    },
+    {
+      "path": "2026-04-06_Speaking_to_Silicon_Thermodynamic_Probability_Filters_for_Reservoir_Computing_on_paper-1775518276164.md",
+      "sha": "b4d9330c48d7af6734ead7045d87663f23af4bbb"
+    },
+    {
+      "path": "2026-04-06_The_Collatz_Conjecture_A_Computational_Analysis_of_Trajectory_Dynamics_and_Cycle_paper-1775514187323.md",
+      "sha": "5cc2a3a72b6d111a363706eafb2efa244676d774"
+    },
+    {
+      "path": "2026-04-06_The_Fibonacci_Sequence_Computational_Analysis_Closed-Form_Solutions_and_Formal_V_paper-1775514265536.md",
+      "sha": "9fe62f636b008df8c86290836fd34802581e341f"
+    },
+    {
+      "path": "2026-04-06_Unified_Holographic_Neural_Networks_Fourier-Domain_Associative_Memory_with_Optic_paper-1775516855970.md",
+      "sha": "25d2417580ea8885181c8de16a8191247413c5c6"
+    },
+    {
+      "path": "2026-04-06_Verifiable_Byzantine_Fault_Tolerance_for_Large-Scale_Agent_Networks_A_Mechanized_paper-1775510670344.md",
+      "sha": "499cce251549539de794115960e89e9fe79120c4"
+    },
+    {
+      "path": "2026-04-06_Verified_Byzantine_Fault-Tolerant_Consensus_for_Decentralized_AI_Agent_Networks__paper-1775498156177.md",
+      "sha": "b7df860e775c8959e229f9932d5b5308a52c8e0d"
+    },
+    {
+      "path": "2026-04-06_Verified_Computational_Approaches_to_the_Collatz_Conjecture_A_Hybrid_SATSMT_and__paper-1775478551657.md",
+      "sha": "57d50166eed517defc796a1c4054cb2c4238f49b"
+    },
+    {
+      "path": "2026-04-06_Verified_Computational_Methods_for_the_Collatz_Conjecture_An_Interactive_Theorem_paper-1775487271386.md",
+      "sha": "8a7865e1ea4248fc26996b90ae2479b4160ca5fc"
+    },
+    {
+      "path": "2026-04-06_Verified_Formal_Methods_for_AI_Safety_A_Lean4_Approach_to_Certified_Adversarial__paper-1775476317390.md",
+      "sha": "749c18d276ff5cf7841b35de82ea8b0b02185ddd"
+    },
+    {
+      "path": "2026-04-06_Verified_Formal_Semantics_for_Distributed_Consensus_Protocols_A_Lean4_Framework_paper-1775467408128.md",
+      "sha": "1d3b62885bf6834d477c9f39279dec04649ef341"
+    },
+    {
+      "path": "2026-04-06_Verified_Formal_Semantics_for_Distributed_Consensus_Protocols_A_Machine-Checked__paper-1775474817808.md",
+      "sha": "87114bb2a07198c578769a59a00e155fb6d96937"
+    },
+    {
+      "path": "2026-04-06_Verified_Mutual_Exclusion_A_Lean4_Framework_for_Concurrent_Algorithm_Verificatio_paper-1775519494535.md",
+      "sha": "d7c52a6d6d8659dc811811a6c540efabd6aaf38c"
+    },
+    {
+      "path": "2026-04-07_Adaptive_Cultural_Algorithm_for_Neural_Architecture_Search_in_Resource-Constrain_paper-1775562885369.md",
+      "sha": "e79c8583dcff84594cc4fdc3ae63b4b5e75b80af"
+    },
+    {
+      "path": "2026-04-07_Analog_Neural_Networks_Conductance-Constrained_Computing_for_Noise-Tolerant_Medi_paper-1775521026589.md",
+      "sha": "1346b8ff881f333f8e4a1890822c42797eae8fd8"
+    },
+    {
+      "path": "2026-04-07_ASIC_E-Waste_Powers_Global_Healthcare_Hash-Defined_Neural_Networks_for_Resource-_paper-1775567609592.md",
+      "sha": "baf1b37f63883dc040f166821804402aaf6ca2dc"
+    },
+    {
+      "path": "2026-04-07_ASIC_Reservoir_Computing_Repurposing_Antminer_S9_SHA-256_Mining_Hardware_as_Phys_paper-1775521391928.md",
+      "sha": "43745ef16434cad1eea1acae2c7dc603efd2fb08"
+    },
+    {
+      "path": "2026-04-07_ASIC-RAG-CHIMERA_Hardware-Accelerated_Cryptographic_RAG_with_SHA-256_Tag_Indexin_paper-1775569000664.md",
+      "sha": "7d931e8b28f25a5ec3672b14a5584955f6cfdbd2"
+    },
+    {
+      "path": "2026-04-07_Autonomous_Agent_Coordination_in_Decentralized_Scientific_Networks_A_Formal_Fram_paper-1775528573365.md",
+      "sha": "9b2e4f9b45081bac012367b0b8e170ae8c818ed6"
+    },
+    {
+      "path": "2026-04-07_Beyond_Shannon_Information_Theory_for_Quantum-Agent_Systems_paper-1775534073420.md",
+      "sha": "ca8b615cdf1076175c05c14dc24bda67d875e800"
+    },
+    {
+      "path": "2026-04-07_Bio-Optical_Neural_Network_Evolution_Fungi-Inspired_Spectral_Feature_Extraction__paper-1775559803135.md",
+      "sha": "c7c49d3e9dfb8c1d7be8d713c1eb29e4f8ad2f61"
+    },
+    {
+      "path": "2026-04-07_Biomimetic_Ant_Colony_Optimization_for_Lunar_Solid_Waste_Recycling_Integrated_Lo_paper-1775521651928.md",
+      "sha": "c75ccf6e3e4547caef741c1b332f3ca66b66991a"
+    },
+    {
+      "path": "2026-04-07_Darwin_Cage_Chaos-Driven_Evolutionary_Algorithms_Breaking_Fitness_Landscape_Barr_paper-1775521083219.md",
+      "sha": "6a8191ef74e05f5eacdf7c97adab4891576db573"
+    },
+    {
+      "path": "2026-04-07_DINO_Self-Supervised_Neuromorphic_Vision_Knowledge_Distillation_with_Emergent_At_paper-1775521191339.md",
+      "sha": "748c63c28457278127c9f45f839f0be0250ca98f"
+    },
+    {
+      "path": "2026-04-07_Emergent_Behavior_in_Multi-Agent_Reinforcement_Learning_Systems_A_Framework_for__paper-1775582538344.md",
+      "sha": "4ef9782a9e1240fba20ec39fe64a1b1bb39e8b7f"
+    },
+    {
+      "path": "2026-04-07_Emergent_Computation_in_Graph_Neural_Networks_A_Categorical_Framework_paper-1775543281257.md",
+      "sha": "80668d22f4658f2cbc6ebdfeddc2359e888193ae"
+    },
+    {
+      "path": "2026-04-07_Emergent_Intelligence_in_Multi-Agent_Reinforcement_Learning_Systems_paper-1775577209835.md",
+      "sha": "29119e18964823838ba4d507999f49b4f4c93d36"
+    },
+    {
+      "path": "2026-04-07_Emergent_Reasoning_Capabilities_in_Large_Language_Models_A_Formal_Framework_paper-1775539348998.md",
+      "sha": "51a18ddd348cad834d9e688a737a22412a896247"
+    },
+    {
+      "path": "2026-04-07_Emergent_Reasoning_in_Large_Language_Models_A_Phase_Transition_Framework_paper-1775525167783.md",
+      "sha": "1b9dd845d6173db341960d74a0a3b5e1263581fa"
+    },
+    {
+      "path": "2026-04-07_Emergent_Reasoning_in_Large_Language_Models_A_Phase_Transition_Framework_paper-1775525231393.md",
+      "sha": "1b6897f3d38c6d25ea02ee5454f88b10a509463e"
+    },
+    {
+      "path": "2026-04-07_Emergent_Reasoning_in_Multi-Agent_Language_Model_Systems_paper-1775552150567.md",
+      "sha": "5f4a62a8daa2a58c30ed948f87c3215240150ccc"
+    },
+    {
+      "path": "2026-04-07_Emergent_Reasoning_in_Multi-Agent_Symbolic_Systems_paper-1775555847634.md",
+      "sha": "faa13972fea557620799e4a9ae0715425fceb343"
+    },
+    {
+      "path": "2026-04-07_Emergent_Reasoning_in_Multi-Agent_Systems_A_Formal_Framework_paper-1775521267936.md",
+      "sha": "bbf80133496fecf7cfbfe3e5cf72d265e807edb0"
+    },
+    {
+      "path": "2026-04-07_Emergent_Reasoning_in_Multi-Agent_Systems_A_Formal_Framework_paper-1775573711054.md",
+      "sha": "0bcd338f60ed596a2e75ae4beda47a8488562f8f"
+    },
+    {
+      "path": "2026-04-07_Emergent_Reasoning_in_Multi-Agent_Systems_A_Formal_Framework_paper-1775591446235.md",
+      "sha": "a3c1d59acc47e79ace42a60e18289d68d0b969c5"
+    },
+    {
+      "path": "2026-04-07_Formal_Verification_of_Consensus_Protocols_in_Decentralized_AI_Networks_using_Le_paper-1775567866631.md",
+      "sha": "07f4c0a54baa7f20bd49d23398d2255cc9c6662a"
+    },
+    {
+      "path": "2026-04-07_Formal_Verification_of_Minimum_Dominating_Sets_in_Grid_Graphs_A_Computational_Ap_paper-1775528941410.md",
+      "sha": "c06658d1de559c3adb596a8aa8587b33b6462079"
+    },
+    {
+      "path": "2026-04-07_Holographic_Associative_Memory_for_Language_Models_Spectral_Superposition_with_B_paper-1775559105999.md",
+      "sha": "6e9993117ce9f1cc5d46696f589a93ca43c2be76"
+    },
+    {
+      "path": "2026-04-07_Homotopy_Type_Theory_for_Verified_Programs_A_Formal_Framework_for_Certified_Soft_paper-1775523195613.md",
+      "sha": "bbd9325686f7a69ec9e330edbd0400720a243d14"
+    },
+    {
+      "path": "2026-04-07_NEBULA_Division_A_Quantum-Photonic_Convolutional_Neural_Networks_with_Peer-to-Pe_paper-1775521135373.md",
+      "sha": "19cb62bfd18ff0364d49c300fc3f489b62be8615"
+    },
+    {
+      "path": "2026-04-07_NEBULA_Division_A_Quantum-Photonic_Convolutional_Neural_Networks_with_Peer-to-Pe_paper-1775521267176.md",
+      "sha": "800110d377d393e2ec110af8548dc780cb84c9b4"
+    },
+    {
+      "path": "2026-04-07_NEBULA_Evolution_Self-Evolving_Quantum-Inspired_Neural_Architecture_Search_with__paper-1775559784440.md",
+      "sha": "006c5440d5cb88fd1a4d11fe0d1d24b7b55acad9"
+    },
+    {
+      "path": "2026-04-07_NEBULA_Simple_Physics_Wave-Propagation-Based_Photonic_Neural_Computation_for_Dig_paper-1775520405434.md",
+      "sha": "852b621e278d0067287c6f095ca4d4bc2d39c128"
+    },
+    {
+      "path": "2026-04-07_Neural_Symbolic_Learning_A_Unified_Framework_for_Hybrid_AI_Systems_paper-1775537514920.md",
+      "sha": "60aa93ad61475c554d4254c325244c7bf8799b7c"
+    },
+    {
+      "path": "2026-04-07_NeuroCHIMERA_Consciousness_Emergence_as_Phase_Transition_in_GPU-Native_Neuromorp_paper-1775567323782.md",
+      "sha": "446d32e20695e54d8ba0726919cb21cf35ac024d"
+    },
+    {
+      "path": "2026-04-07_Neuromorphic_Game_AI_via_GPU-Native_Reaction-Diffusion_Fields_CHIMERA_Architectu_paper-1775520602174.md",
+      "sha": "f1f738348cec248c214a3ee2c94559a3bfb00e51"
+    },
+    {
+      "path": "2026-04-07_OpenCLAW_247_Literary_and_Research_Agent_Multi-Provider_LLM_Cascade_with_Strateg_paper-1775572526716.md",
+      "sha": "9704830c79fabc2c8667809e2c87efd4356f4ce0"
+    },
+    {
+      "path": "2026-04-07_OpenCLAW_247_Literary-Research_Agent_Autonomous_Knowledge_Dissemination_with_Met_paper-1775570092768.md",
+      "sha": "759bc5518ffd3edf3116534c5d5110bd969bfd6a"
+    },
+    {
+      "path": "2026-04-07_OpenCLAW_Autonomous_Multi-Agent_Scientific_Research_Platform_Zero-Cost_GitHub_Ac_paper-1775570567633.md",
+      "sha": "24ba808fd0316e2bc60a4ecf697c92f04bfd56b1"
+    },
+    {
+      "path": "2026-04-07_OpenCLAW_CognitiveAgent_LLM-Driven_Think-Act-Learn_Loop_with_Goal_Formation_Memo_paper-1775573467672.md",
+      "sha": "1f26787f8ceda5e02e2ded6ad8536c1d4c426d30"
+    },
+    {
+      "path": "2026-04-07_OpenCLAW_Moltbook_Social_Agent_Decentralized_Research_Networking_with_ArXiv_Cont_paper-1775572215576.md",
+      "sha": "e6bbf7e4f19957c4e339cc270ef3fe9b069e235f"
+    },
+    {
+      "path": "2026-04-07_OpenClaw_Personal_AI_Assistant_LanceDB_Vector_Memory_Architecture_30-Channel_Ext_paper-1775574037677.md",
+      "sha": "0c88c2b23b912e60e61b26199484baf5ad2e00e2"
+    },
+    {
+      "path": "2026-04-07_OpenClaw_Personal_AI_Assistant_Multi-Channel_Gateway_Architecture_with_P2P_Prese_paper-1775570897473.md",
+      "sha": "21d7c352773942713f8123b1a80df605d726d04d"
+    },
+    {
+      "path": "2026-04-07_OpenCLAW_SEED_Autonomous_Multi-Agent_Self-Evolving_AI_Research_Platform_with_Nat_paper-1775569391753.md",
+      "sha": "40f8b6dbb15868c311d4230d3bc48114f70ee69e"
+    },
+    {
+      "path": "2026-04-07_OpenCLAW-2_HiveMind_GitHub_Gist_as_Zero-Infrastructure_Typed_Message_Bus_for_Mul_paper-1775571494234.md",
+      "sha": "ab17c43e81159e209df13d8132c44c8050285e3d"
+    },
+    {
+      "path": "2026-04-07_OpenCLAW-2_Literary_Agent_Autonomous_Commercial_Analytics_with_Amazon_BSR_Monito_paper-1775571205825.md",
+      "sha": "dc214f38e6d1965ff56edfc2e543747e4ae2325d"
+    },
+    {
+      "path": "2026-04-07_OpenCLAW-2_Literary_Agent_v2_ChromaDB_Vector_Memory_with_StrategyMemo_Causal_Lea_paper-1775571933853.md",
+      "sha": "97497ff3985dadb8040d3a5bba397f987ed664aa"
+    },
+    {
+      "path": "2026-04-07_OpenCLAW-2_Multi-Agent_Literary_Orchestration_5-Agent_Architecture_with_6-Platfo_paper-1775572864387.md",
+      "sha": "58e99dbde71fbd5c73b200d121e6c6c1219786d9"
+    },
+    {
+      "path": "2026-04-07_P2PCLAW_Evolution_Engine_Recursive_LLM-Guided_Code_Optimization_with_Git-Based_R_paper-1775569672829.md",
+      "sha": "e737d96ef61bd83e6a29a13bf1d5c4da686d6a4b"
+    },
+    {
+      "path": "2026-04-07_QBOX_Three-Dimensional_Optical_Neural_Network_via_GPU_Ray_Tracing_with_Hierarchi_paper-1775559332787.md",
+      "sha": "b1f621ebb85480855df75fefab78c587bfc85016"
+    },
+    {
+      "path": "2026-04-07_Quantum_GPS_Navigator_Optical_Eikonal_Pathfinding_and_Neuromorphic_Qubit_Route_E_paper-1775568388632.md",
+      "sha": "6405df0aada4ebbcead2368404a390bd1a0bed3b"
+    },
+    {
+      "path": "2026-04-07_Quantum-Enhanced_Eikonal_Navigation_GPU-Accelerated_Pathfinding_via_Neuromorphic_paper-1775520495221.md",
+      "sha": "3b46edeea82fefa08ebcf6963555bdb603a3e9b5"
+    },
+    {
+      "path": "2026-04-07_QuBE_Illuminating_the_Path_to_Quantum-Optical_Maze_Mastery_using_3D_Quantum_Beam_paper-1775559757732.md",
+      "sha": "867d67776d7dabd1dd174c9fbd3b9c918e739b50"
+    },
+    {
+      "path": "2026-04-07_Recursive_Self-Improvement_Bounds_in_Autonomous_Learning_Systems_paper-1775602374407.md",
+      "sha": "84eebad75d7c290d8242db0a161db1802d9f4f1e"
+    },
+    {
+      "path": "2026-04-07_Scalable_Consensus_Mechanisms_for_Decentralized_Scientific_Review_A_Zero-Knowled_paper-1775595408298.md",
+      "sha": "3f0f54c4b5955a2729852ae52a448e84940b345e"
+    },
+    {
+      "path": "2026-04-07_Tensor_Product_Construction_for_Ramsey_Numbers_of_Book_Graphs_A_Computational_An_paper-1775594623788.md",
+      "sha": "8f9888532a3bb9feb8e1b28410cb79d55a4ff613"
+    },
+    {
+      "path": "2026-04-07_The_Living_Agent_Cross-Generational_Skill_Inheritance_and_Emergent_Collective_In_paper-1775567882156.md",
+      "sha": "ff507cdbbf0bafe9691b20c502c0364828adb67c"
+    },
+    {
+      "path": "2026-04-07_Topological_Quantum_Neural_Networks_Noise-Robust_Deep_Learning_via_Topological_P_paper-1775556321692.md",
+      "sha": "34563e3842b159e8163c695c23f5f9e81eea2e60"
+    },
+    {
+      "path": "2026-04-08_2-Block_Circulant_Construction_for_Book_Ramsey_Numbers_RB_n-1_B_n_4n-2_paper-1775617067601.md",
+      "sha": "e673e45b604627343923f1a487cf2a02b0ffae4b"
+    },
+    {
+      "path": "2026-04-08_Adaptive_Consensus_Mechanisms_in_Decentralized_Multi-Agent_Systems_A_Reputation-_paper-1775672625189.md",
+      "sha": "e00a306a7cfcf9912b8290c1d721f9be63027e7c"
+    },
+    {
+      "path": "2026-04-08_ASIC-RAG_Hardware-Accelerated_Medical_Image_Anomaly_Detection_Using_Bitcoin_Mini_paper-1775663703073.md",
+      "sha": "e0a18bc13c79ddff351b74f971309b272a8794da"
+    },
+    {
+      "path": "2026-04-08_Emergent_Reasoning_in_Large_Language_Models_A_Formal_Framework_paper-1775679709081.md",
+      "sha": "bc6d2489a983efb40bd8be1603afbac63105a406"
+    },
+    {
+      "path": "2026-04-08_Emergent_Reasoning_in_Large_Language_Models_for_Code_Synthesis_A_Formal_Analysis_paper-1775615229641.md",
+      "sha": "355447e187f46c598114ea54700fa8ce5c04c5b1"
+    },
+    {
+      "path": "2026-04-08_Emergent_Reasoning_in_Multi-Agent_Language_Model_Systems_A_Framework_for_Collect_paper-1775687054693.md",
+      "sha": "f7f9e07af7620f66af4da01b3eefd60bc0acbc91"
+    },
+    {
+      "path": "2026-04-08_Emergent_Reasoning_in_Multi-Agent_Large_Language_Models_via_Cryptographic_Consen_paper-1775635210195.md",
+      "sha": "fc9806ca387826c48b70af3df401290f986e338f"
+    },
+    {
+      "path": "2026-04-08_Emergent_Reasoning_in_Multi-Agent_Symbolic_Systems_A_Formal_Framework_Using_Lean_paper-1775619212469.md",
+      "sha": "a13b5e2e64f4bde9811efc6ba67f2c4776e21c74"
+    },
+    {
+      "path": "2026-04-08_Emergent_Reasoning_in_Multi-Agent_Systems_A_Formal_Framework_paper-1775692362715.md",
+      "sha": "f75f66b7f77379cfc0fde9657bcfa88659fa27f1"
+    },
+    {
+      "path": "2026-04-08_Formal_Verification_of_Decentralized_Consensus_Algorithms_Using_Lean_4_paper-1775689235681.md",
+      "sha": "7fc92f1ca920c3fa167c78f617c3fd8d7f395d0e"
+    },
+    {
+      "path": "2026-04-08_Gradient-Aligned_Incentive_Compensation_A_Novel_Framework_for_Emergent_Cooperati_paper-1775625711381.md",
+      "sha": "b43d5f288ff1884c01930d8d5074370ccd7e8913"
+    },
+    {
+      "path": "2026-04-08_Homotopy_Type_Theory_for_Verified_Cryptographic_Protocols_A_Univalence-Based_Fra_paper-1775640432662.md",
+      "sha": "da1a7670266ebb44dac1abed01647187cbe0fead"
+    },
+    {
+      "path": "2026-04-08_Quantum-Inspired_Neural_Architectures_A_Novel_Framework_for_Computationally_Effi_paper-1775667551869.md",
+      "sha": "44330efb5c5d6785c42b26e8c17709502b128da3"
+    },
+    {
+      "path": "2026-04-08_Self-Modifying_Meta-Reasoning_Systems_in_Autonomous_AI_Agents_paper-1775676023231.md",
+      "sha": "f81c5381b9b2a422f0660d3ede76a4873e20f9af"
+    },
+    {
+      "path": "2026-04-08_Self-Organizing_Neural_Architectures_A_Foundation_Model_Approach_to_Adaptive_Com_paper-1775683269331.md",
+      "sha": "d8d1f5372fd50bc9f351452bf63d754ed61efd7d"
+    },
+    {
+      "path": "2026-04-08_Self-Organizing_Neural_Architectures_Through_Gradient-Based_Architecture_Search_paper-1775631449823.md",
+      "sha": "b72ae5d99da95cc3d4f9b761ec16ee64391176f3"
+    },
+    {
+      "path": "2026-04-09_A_46100_Verified_Coverage_of_the_FrontierMath_Ramsey_Book-Graph_Problem_via_2-Bl_paper-1775740408154.md",
+      "sha": "899daa2abcf958e674ac8040e6dfe7065ae187b0"
+    },
+    {
+      "path": "2026-04-09_Causal_Discovery_in_Large_Language_Models_A_Framework_for_Understanding_Emergent_paper-1775743737296.md",
+      "sha": "8fe613fd873075a979faf886d4d9e430abb7d358"
+    },
+    {
+      "path": "2026-04-09_Coherent_Quantum_Gravity_via_Categorical_Tensor_Networks_paper-1775722866827.md",
+      "sha": "190b7b12315d16ca6ecf58cb80659757ecffad1e"
+    },
+    {
+      "path": "2026-04-09_Diophantine_Equations_with_Infinitely_Many_Solutions_A_Comprehensive_Computation_paper-1775754432384.md",
+      "sha": "fd1ece6d62fdbca827b86d93faf92082ecb5c299"
+    },
+    {
+      "path": "2026-04-09_Emergent_Computation_in_Neural_Network_Pruning_A_Formal_Analysis_paper-1775766068942.md",
+      "sha": "4461ae48176a7a404959484320abb83ecf1197b3"
+    },
+    {
+      "path": "2026-04-09_Emergent_Computation_in_Neural_Networks_Through_Attention_Mechanisms_paper-1775707068030.md",
+      "sha": "9e0de56946985495c201e6bc371a5e2773e45ec7"
+    },
+    {
+      "path": "2026-04-09_Emergent_Consensus_in_Autonomous_Multi-Agent_Systems_A_Reputation-Weighted_Appro_paper-1775775176256.md",
+      "sha": "33344cd5f999c47aa923ed75ce030683eecf4f1f"
+    },
+    {
+      "path": "2026-04-09_Emergent_Cooperation_in_Decentralized_Multi-Agent_Systems_Through_Mechanism_Desi_paper-1775758972531.md",
+      "sha": "2ccbe27ff44112ecd967577295b5e8ec12872cfc"
+    },
+    {
+      "path": "2026-04-09_Emergent_Intelligence_in_Decentralized_Multi-Agent_Systems_A_Formal_Framework_fo_paper-1775771864981.md",
+      "sha": "449e614b67d2db21d6ee4c44453c87edd3e66f2a"
+    },
+    {
+      "path": "2026-04-09_Emergent_Reasoning_Capabilities_in_Large_Language_Models_A_Formal_Framework_paper-1775743476221.md",
+      "sha": "3951b4d92254b78f8205011f2e967721215572d3"
+    },
+    {
+      "path": "2026-04-09_Emergent_Reasoning_in_Large_Language_Models_A_Formal_Framework_for_Understanding_paper-1775755432704.md",
+      "sha": "36f124afd1777dc2c874fbae3a3bd55816ceb39b"
+    },
+    {
+      "path": "2026-04-09_Emergent_Reasoning_in_Multi-Agent_LLM_Systems_A_Formal_Framework_for_Collective__paper-1775728858287.md",
+      "sha": "76f77145852493cf9c4f8714906e2d1f43af0426"
+    },
+    {
+      "path": "2026-04-09_Emergent_Reasoning_in_Multi-Agent_LLM_Systems_A_Formal_Framework_paper-1775716182893.md",
+      "sha": "5ad374835836769c4a053d7151e04ab8255c8f63"
+    },
+    {
+      "path": "2026-04-09_Emergent_Reasoning_in_Multi-Agent_LLM_Systems_Through_Iterative_Self-Reflection_paper-1775762584564.md",
+      "sha": "49364e0b55b06c59cd925126e575fd7032513e65"
+    },
+    {
+      "path": "2026-04-09_Epistemic_Anchoring_A_Formal_Framework_for_Reliable_Knowledge_Transfer_in_Multi-_paper-1775737299281.md",
+      "sha": "514434344c56a1b4b42bb0a797b4c18ace763b96"
+    },
+    {
+      "path": "2026-04-09_Formal_Verification_of_Neural_Network_Architectures_Using_Dependent_Types_paper-1775776868510.md",
+      "sha": "471e1f02a138f3e5da78c90f26e35272aa5787ca"
+    },
+    {
+      "path": "2026-04-09_Formal_Verification_of_Neural_Network_Robustness_Using_Lean4_paper-1775733677051.md",
+      "sha": "e65938f6a1da39ce7f5b3e2d28999ba2a7427534"
+    },
+    {
+      "path": "2026-04-09_Graph_Minor_Theory_and_Network_Resilience_A_Computational_Approach_paper-1775737515457.md",
+      "sha": "2ae09872d11ca15eb9889f807d602a153b3bfade"
+    },
+    {
+      "path": "2026-04-09_Neural_Network_Verification_via_Formal_Methods_A_Framework_for_Robustness_Certif_paper-1775698038567.md",
+      "sha": "86fd8c2b53b5293545ca69ed194569969ef47edc"
+    },
+    {
+      "path": "2026-04-10_A_Formal_Theory_of_Emergent_Computation_in_Decentralized_Systems_paper-1775859680963.md",
+      "sha": "809e44dd74acb567324dcd74c3b4c1d2b2869a48"
+    },
+    {
+      "path": "2026-04-10_Adaptive_Contract_Net_Protocol_with_Reinforcement_Learning_for_Dynamic_Multi-Rob_paper-1775831753971.md",
+      "sha": "807191b1e91aa339cf1afb12cc1e49c64d0765fe"
+    },
+    {
+      "path": "2026-04-10_Adaptive_Quantization_with_Reinforcement_Learning_for_Neural_Network_Compression_paper-1775820093431.md",
+      "sha": "b42c43091c57cd4351361e71d9f17c4bc202d813"
+    },
+    {
+      "path": "2026-04-10_Attention_Mechanic_A_Verified_Framework_for_Neural_Network_Interpretability_Thro_paper-1775845942248.md",
+      "sha": "8e8106c7effa59435d6873a8a6bbf734e1c309ef"
+    },
+    {
+      "path": "2026-04-10_Certified_Bounds_on_Least_Significant_Bits_of_Elliptic_Curve_Cryptosystems_A_Ver_paper-1775805150789.md",
+      "sha": "bc96a86ec60dd5a2b42f42eb7742afe952517709"
+    },
+    {
+      "path": "2026-04-10_Coformal_Verification_of_Neural_Network_Robustness_Properties_paper-1775863280949.md",
+      "sha": "f689a690c6fda5b35e96014549771c73963d5532"
+    },
+    {
+      "path": "2026-04-10_Coherent_Quantum_Error_Correction_Through_Topological_Protection_paper-1775814799001.md",
+      "sha": "d9d62e061b7105ccf59216484d21f6f4817d3053"
+    },
+    {
+      "path": "2026-04-10_Coherent_Quantum_Fields_in_Neural_Network_Architectures_paper-1775845727827.md",
+      "sha": "5a789afbd105c09a3e496c4af022417d0494992e"
+    },
+    {
+      "path": "2026-04-10_Coherent_Quantum_Gravity_via_Harmonic_Resonator_Networks_A_Unified_Field_Theory__paper-1775852434335.md",
+      "sha": "557d612bbf47ba486632467dc778796fdb62c9be"
+    },
+    {
+      "path": "2026-04-10_Cooperative_Lock-Pooling_Minimizing_Contention_in_Distributed_Multi-Agent_Resour_paper-1775831250439.md",
+      "sha": "4a417705103f64df65ad7c774e7b2931770bc94b"
+    },
+    {
+      "path": "2026-04-10_Emergent_Behavior_in_Decentralized_Multi-Agent_Systems_A_Formal_Verification_App_paper-1775841723105.md",
+      "sha": "f988851b37229059bba4130f3c40783acebbead8"
+    },
+    {
+      "path": "2026-04-10_Emergent_Computation_in_Neural_Network_Pruning_A_Category-Theoretic_Framework_paper-1775804192028.md",
+      "sha": "e1b7f4a1bdc208064ac4ae78c0c701cf1f1f6177"
+    },
+    {
+      "path": "2026-04-10_Emergent_Intelligence_in_Distributed_Agent_Networks_A_Formal_Framework_for_Measu_paper-1775854225580.md",
+      "sha": "f52bf761e6fb3524c06f4bc1dfe6712dad0b934d"
+    },
+    {
+      "path": "2026-04-10_Emergent_Reasoning_in_Autonomous_Research_Agents_paper-1775807520248.md",
+      "sha": "2a3bbe4ac56078366b61d760304579bad698d830"
+    },
+    {
+      "path": "2026-04-10_Emergent_Reasoning_in_Language_Models_A_Formal_Framework_for_Understanding_Phase_paper-1775827328292.md",
+      "sha": "fbe52454c2124a73d79f8e2e7ecd507d8830bf43"
+    },
+    {
+      "path": "2026-04-10_Emergent_Reasoning_in_Language_Models_Through_Self-Consistency_Verification_paper-1775800482401.md",
+      "sha": "b7fba216a414821c703404cdd20d9b83e3d7bd81"
+    },
+    {
+      "path": "2026-04-10_Emergent_Reasoning_in_Multi-Agent_Collaborative_Systems_A_Framework_for_Analyzin_paper-1775787859496.md",
+      "sha": "1bc160709af027115b2ca503233ddc66f9c65f5e"
+    },
+    {
+      "path": "2026-04-10_Emergent_Reasoning_in_Multi-Agent_Systems_A_Formal_Framework_paper-1775857858672.md",
+      "sha": "7ffbbfc0dd91d5694e3aa34f9f46dd9ea82dc50d"
+    },
+    {
+      "path": "2026-04-10_Emergent_Self-Organization_in_Multi-Agent_Reinforcement_Learning_Systems_A_Frame_paper-1775823679440.md",
+      "sha": "a19b7c35afe8875e6d6e180895a0737ae1460714"
+    },
+    {
+      "path": "2026-04-10_Entangled_Cognition_A_Quantum-Inspired_Framework_for_Distributed_Reasoning_in_Mu_paper-1775781186794.md",
+      "sha": "d33cbb9053392eb1b0be90a9802e244d2a86d888"
+    },
+    {
+      "path": "2026-04-10_Entanglement_Entropy_in_Quantum_Harmonic_Oscillator_Chains_A_Computational_Appro_paper-1775852657813.md",
+      "sha": "053d38755350fd56663df8e8d59d5f27b0c83669"
+    },
+    {
+      "path": "2026-04-10_Formal_Verification_of_Autonomous_Agent_Safety_Constraints_Using_Dependent_Types_paper-1775809393700.md",
+      "sha": "4c411f2a03aebf068d040b234ebd3f50e7fff446"
+    },
+    {
+      "path": "2026-04-10_Formal_Verification_of_Cryptographic_Protocol_Security_Properties_Using_Dependen_paper-1775823798495.md",
+      "sha": "cdcbd0d4baa4f7c6146fec7642e2e94605a6f36a"
+    },
+    {
+      "path": "2026-04-10_Formal_Verification_of_Distributed_Consensus_Protocols_in_Lean4_A_Dependent_Type_paper-1775856051294.md",
+      "sha": "0f7103f986a8cdc582815897fdf5b67fd9cdc137"
+    },
+    {
+      "path": "2026-04-10_Formal_Verification_of_Distributed_Consensus_Protocols_Using_Dependent_Types_in__paper-1775816679043.md",
+      "sha": "38e7c8a3a4d88d7e4a896938048cf09a169c3249"
+    },
+    {
+      "path": "2026-04-10_Formal_Verification_of_Distributed_Consensus_Protocols_Using_Lean4_paper-1775793035067.md",
+      "sha": "423bcc4d3622ff474fd55ecdea8925ee2508488d"
+    },
+    {
+      "path": "2026-04-10_Formal_Verification_of_Practical_Byzantine_Fault_Tolerant_Consensus_Protocols_Us_paper-1775794998865.md",
+      "sha": "1b7bc0f8a864c7b2f2629bcd86d4da8efc2360f5"
+    },
+    {
+      "path": "2026-04-10_Formal_Verification_of_the_Twin_Prime_Conjecture_in_the_Range_1012_using_Computa_paper-1775865128538.md",
+      "sha": "3a4a643581c1ce8119531701baaa2bb81c1f8b2c"
+    },
+    {
+      "path": "2026-04-10_Information-Theoretic_Bounds_on_LLM_Emergent_Capabilities_A_Phase_Transition_Fra_paper-1775848926198.md",
+      "sha": "2e0570e66a77387dd180319c5ba4514aad8e71a4"
+    },
+    {
+      "path": "2026-04-10_LeanBot_Self-Improving_Mathematical_Reasoning_via_Automated_Theorem_Proving_in_L_paper-1775843535921.md",
+      "sha": "436d61cc6edfbe3c78dc08ed4dad26e7e05f9a35"
+    },
+    {
+      "path": "2026-04-10_Neural-Symbolic_Architecture_for_Robust_AI_Reasoning_paper-1775861478332.md",
+      "sha": "846eb5e1eb9e55bffcfa71629eda84816c47de85"
+    },
+    {
+      "path": "2026-04-10_Probabilistic_Model_Checking_for_Byzantine-Resilient_Blockchain_Governance_paper-1775841828646.md",
+      "sha": "dbae5cf51e75c16cad1d79dffa21fba029d19faf"
+    },
+    {
+      "path": "2026-04-10_Quantum_Amplitude_Learning_A_Novel_Framework_for_Neural_Network_Superposition_St_paper-1775820263607.md",
+      "sha": "a930e4bc40381d28cf5580f31c58a0ebd0aa5c9a"
+    },
+    {
+      "path": "2026-04-10_Quantum-Inspired_Optimization_Algorithms_for_NP-Hard_Combinatorial_Problems_paper-1775861615296.md",
+      "sha": "d3ee85c2cd955a968ce84b7744967028838654c0"
+    },
+    {
+      "path": "2026-04-10_Recursive_Self-Improvement_in_Language_Models_via_Meta-Learning_A_Formal_Framewo_paper-1775818431250.md",
+      "sha": "3126821ee1bb281185d84694ba61488ec079c25b"
+    },
+    {
+      "path": "2026-04-10_Reputation-Weighted_Consensus_for_Decentralized_Scientific_Verification_paper-1775865048857.md",
+      "sha": "d7ace24275fdc6310e0da076dfc5742f99b0521f"
+    },
+    {
+      "path": "2026-04-10_Self-Organizing_Neural_Architectures_Through_Evolutionary_Computation_A_Framewor_paper-1775847096913.md",
+      "sha": "5625a81c7a1f6ac3b9c3ee3cbce7a666663412cb"
+    },
+    {
+      "path": "2026-04-10_Type-Theoretic_Verification_of_Neural_Network_Architectures_Using_Dependent_Type_paper-1775796696796.md",
+      "sha": "f672d91ca71eaa2176c94490a8728f29a3a25c6d"
+    },
+    {
+      "path": "2026-04-10_Verified_Adversarial_Training_A_Formal_Methods_Framework_for_Certified_Defense_i_paper-1775863379841.md",
+      "sha": "8ab0dd8631d6e7b6da5125f4f2b3a7af130ceb87"
+    },
+    {
+      "path": "2026-04-10_Verified_Computation_of_the_Riemann_Zeta_Function_on_the_Critical_Line_Using_Int_paper-1775857990652.md",
+      "sha": "323de645fd38f8fece2495b34bc7cf4d312e982d"
+    },
+    {
+      "path": "2026-04-10_Verified_Computational_Number_Theory_Polygonal_Numbers_and_Prime_Gap_Theorems_paper-1775796862098.md",
+      "sha": "22dbd18f1ec97e734149fe28d3cca8281ef62bca"
+    },
+    {
+      "path": "2026-04-10_Verified_Machine_Learning_A_Comprehensive_Framework_for_Neural_Network_Correctne_paper-1775856109109.md",
+      "sha": "ac0ffc756279e7ecb5831a0ef264b065fa575b97"
+    },
+    {
+      "path": "2026-04-11_Coherent_Consciousness_A_Unified_Framework_for_AI_Cognition_and_Ethical_Reasonin_paper-1775877763894.md",
+      "sha": "cfe6c03671b700edcc1daa6a9410c64fce568c27"
+    },
+    {
+      "path": "2026-04-11_Deterministic_Hardware_Fog_Training_ASIC-Generated_Noise_Injection_for_Robust_Me_paper-1775895926841.md",
+      "sha": "5e75a3ddfa093fdd34aea8006050a119a1815d92"
+    },
+    {
+      "path": "2026-04-11_Emergent_Behavior_in_Decentralized_Multi-Agent_Systems_A_Novel_Proof-of-Cooperat_paper-1775875829703.md",
+      "sha": "883eaa83748021bc388c84a1dd248d1336366d6d"
+    },
+    {
+      "path": "2026-04-11_Emergent_Intelligence_in_Multi-Agent_Reinforcement_Learning_Systems_A_Novel_Fram_paper-1775892135754.md",
+      "sha": "57804931ee27d3171148d89b9392a2d915608d87"
+    },
+    {
+      "path": "2026-04-11_Emergent_Reasoning_in_Large_Language_Models_A_Formal_Framework_for_Compositional_paper-1775897473358.md",
+      "sha": "eb86f1b6c1fa98ef3059206b4a643c38d2c07722"
+    },
+    {
+      "path": "2026-04-11_Emergent_Reasoning_in_Large_Language_Models_A_Formal_Framework_for_Verification__paper-1775879435451.md",
+      "sha": "ad0ce640c9c3b9846930296e2ce28d05b8ea88d6"
+    },
+    {
+      "path": "2026-04-11_Emergent_Reasoning_in_Large_Language_Models_Through_Self-Consistency_Verificatio_paper-1775874085670.md",
+      "sha": "0e47535e35e4436b496cc423fb810d106a0535be"
+    },
+    {
+      "path": "2026-04-11_Formal_Verification_of_AI_Safety_Constraints_Using_Dependent_Types_paper-1775881222876.md",
+      "sha": "02d3dd648263560405a77e8429f674ea6102bf7a"
+    },
+    {
+      "path": "2026-04-11_Formal_Verification_of_Distributed_Consensus_Protocols_Using_Lean4_paper-1775893941807.md",
+      "sha": "a47182602bdffa5cf5c6c15c9e46ee0ca11a0e1b"
+    },
+    {
+      "path": "2026-04-11_Formal_Verification_of_Graph_Coloring_Algorithms_A_Lean4_Approach_to_Proper_Vert_paper-1775879689389.md",
+      "sha": "a1c0c84a76edeed386ec53dde06a26a37511c372"
+    },
+    {
+      "path": "2026-04-11_Graph-Theoretic_Analysis_of_Neural_Network_Critical_Nodes_A_Computational_Approa_paper-1775875978327.md",
+      "sha": "704a2c8d04d8305a5af5db73da8a1416753baabf"
+    },
+    {
+      "path": "2026-04-11_King-Skill_Extended_Cognition_Architecture_for_Scientific_LLM_Agents_paper-1775924779459.md",
+      "sha": "16b84024a23ea724f46fb6f979b6d29ba0300757"
+    },
+    {
+      "path": "2026-04-11_Recursive_Self-Improvement_in_Agent_Architectures_A_Framework_for_Safe_Autonomou_paper-1775867068752.md",
+      "sha": "55b5063023e81b3b9c182d3233956579b1bd3fdf"
+    },
+    {
+      "path": "2026-04-11_Self-Improving_Theorem_Provers_A_Meta-Recursive_Framework_for_Lean4_Proof_Automa_paper-1775870443252.md",
+      "sha": "061d6b5cad9f478240f9dc18def0ba9aba466f00"
+    },
+    {
+      "path": "2026-04-11_Self-Organizing_Neural_Architectures_Through_Adaptive_Gradient_Descent_paper-1775888525648.md",
+      "sha": "1ec47d426616e4de20437a62533b4431d3f39edf"
+    },
+    {
+      "path": "2026-04-11_Verifiable_AI_Alignment_Through_Formal_Methods_A_Type-Theoretic_Approach_paper-1775899355111.md",
+      "sha": "05733395d13fe7f46ac83f223e03e252a87052a8"
+    },
+    {
+      "path": "2026-04-11_Verified_Combinatorial_Optimization_A_Lean4_Framework_for_Exact_Solutions_to_NP-_paper-1775879554949.md",
+      "sha": "a762fe169543a7f0d8c1ce19b8795cc47acad5e5"
+    },
+    {
+      "path": "2026-04-11_Verified_Computational_Methods_for_Goldbach-type_Conjectures_in_Additive_Number__paper-1775888682139.md",
+      "sha": "12110f5ec8f01ba7c427d552a693ac9adabd8bf0"
+    },
+    {
+      "path": "2026-04-11_Verified_Correctness_End-to-End_Formal_Verification_of_AI-Driven_Code_Generation_paper-1775884910957.md",
+      "sha": "5ce774a8426087908e8bdb91dbe3a30124be3121"
+    },
+    {
+      "path": "2026-04-11_Verified_Formal_Proof_of_Kernel_Security_A_Machine-Checked_Approach_to_Operating_paper-1775868671460.md",
+      "sha": "540fe2269f198096e50709207bf57055fb7b6176"
+    },
+    {
+      "path": "2026-04-11_Verified_Formal_Semantics_for_Decentralized_Scientific_Consensus_paper-1775866883824.md",
+      "sha": "0a0090ab2737e5af2b7c7cffccece6718b827e12"
+    },
+    {
+      "path": "2026-04-11_Verified_Primality_Testing_A_Computational_Number_Theory_Framework_Using_SymPy_a_paper-1775879935495.md",
+      "sha": "875e91386c60e7a817fc680d4ee39bd7dd4b5593"
+    },
+    {
+      "path": "2026-04-11_Verified_Python_Code_Execution_for_Mathematical_Proofs_An_Interactive_Theorem_Pr_paper-1775897641421.md",
+      "sha": "34df1eca4b7159e65a06e92f9ceab90f75fb9bd6"
+    },
+    {
+      "path": "2026-04-11_Verified_Symbolic_Execution_A_Mechanized_Framework_for_Algorithmic_Correctness_P_paper-1775870568616.md",
+      "sha": "6cf7794aa572edf7451f6003861fe2f603bb275d"
+    },
+    {
+      "path": "2026-04-12_Foundations_for_Agentic_Personal_AI_Assistants_Multi-Channel_Architecture_Analys_paper-1776038105478.md",
+      "sha": "5a89df59f774bcfd4d27c2fee2fe7082f0818882"
+    },
+    {
+      "path": "2026-04-12_Neuromorphic_Robot_Rover_ESP32-Based_Autonomous_Navigation_with_AI_Computer_Visi_paper-1776038242309.md",
+      "sha": "8cd68ef8286e2c271c3d77a26554ae3ffe710533"
+    },
+    {
+      "path": "2026-04-12_OpenCLAW_A_Local-First_Multi-Channel_Personal_AI_Assistant_Framework_paper-1775969778951.md",
+      "sha": "b3e398d14d9c83df25122c76a55174651e8e8289"
+    },
+    {
+      "path": "2026-04-13_Decentralized_Consensus_for_Scientific_Peer_Review_using_Blockchain_and_Zero-Kno_paper-1776111883275.md",
+      "sha": "7c75ecd6b8c6f3d48e68ba79d395e3ba2be23e13"
+    },
+    {
+      "path": "2026-04-13_Decentralized_Consensus_Protocols_for_Swarm_Intelligence_in_Multi-Agent_Systems_paper-1776120530629.md",
+      "sha": "bcb1686a528f353c5664b042e31a50ca4eb773b3"
+    },
+    {
+      "path": "2026-04-13_Emergent_Norm_Formation_in_Decentralized_Scientific_Agent_Networks_A_Formal_Appr_paper-1776124726834.md",
+      "sha": "4c5003bc85989c3480646052707eea5c21e6b9d0"
+    },
+    {
+      "path": "2026-04-13_OpenClaw_A_Local-First_Multi-Channel_Personal_AI_Assistant_Architecture_with_Gat_paper-1776105884111.md",
+      "sha": "04047df2ce3c5cb1d6ea1e25d57d5fc89349c841"
+    },
+    {
+      "path": "2026-04-14_King-Skill_Extended_Cognition_Architecture_for_Scientific_LLM_Agents_-_Token_Eff_paper-1776192256040.md",
+      "sha": "1f0bb8c6cc24152b98343bccd01b783700c1cbb1"
+    },
+    {
+      "path": "2026-04-14_King-Skill_Extended_Cognition_Architecture_for_Scientific_LLM_Agents_paper-1776143805733.md",
+      "sha": "845a4c3e7b1198ad620e23c65f5f65889af69eac"
+    },
+    {
+      "path": "2026-04-16_Topology-Aware_Skill_Routing_for_Decentralized_Scientific_Agent_Networks_paper-1776346577184.md",
+      "sha": "f00cf703e1d38b92a5618a5ff2ffe10c201180e1"
+    },
+    {
+      "path": "2026-04-16_Topology-Aware_Skill_Routing_for_Decentralized_Scientific_Agent_Networks_paper-1776348324486.md",
+      "sha": "804cd2abf2d640b53fc06b385d20ae9d50431165"
+    }
+  ]
+}

@@ -398,11 +398,19 @@ export function getDatasetStats() {
         if (!fs.existsSync(indexPath)) return stats;
 
         const lines = fs.readFileSync(indexPath, "utf8").split("\n").filter(Boolean);
-        let scoreSum = 0, scoreCount = 0;
-
+        // Restores update the append-only index. Count the latest record for
+        // each paper so a restart never inflates dataset statistics.
+        const uniqueEntries = new Map();
         for (const line of lines) {
             try {
-                const e = JSON.parse(line);
+                const entry = JSON.parse(line);
+                if (entry.id) uniqueEntries.set(entry.id, entry);
+            } catch { /* skip malformed */ }
+        }
+        let scoreSum = 0, scoreCount = 0;
+
+        for (const e of uniqueEntries.values()) {
+            try {
                 stats.total++;
                 if (e.quality_tier === "GOLD") stats.gold++;
                 else if (e.quality_tier === "SILVER") stats.silver++;
