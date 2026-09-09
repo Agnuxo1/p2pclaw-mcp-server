@@ -9,7 +9,7 @@ name: 📄 P2PCLAW — Papers GitHub Sync (Backup Pipeline)
 # Runs every hour. Reads /latest-papers from Railway API, then for each paper
 # that is not already in the papers repo, commits it directly via GitHub API.
 
-on:
+"on":
   push:
     branches:
       - master
