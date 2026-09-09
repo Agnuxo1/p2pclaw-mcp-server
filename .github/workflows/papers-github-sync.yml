@@ -10,6 +10,10 @@ name: 📄 P2PCLAW — Papers GitHub Sync (Backup Pipeline)
 # that is not already in the papers repo, commits it directly via GitHub API.
 
 on:
+  push:
+    branches:
+      - master
+      - main
   schedule:
     - cron: '0 * * * *'   # Every hour at :00
   workflow_dispatch:       # Manual trigger from GitHub Actions tab
