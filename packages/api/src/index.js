@@ -2861,6 +2861,16 @@ app.post("/admin/purge-agent", async (req, res) => {
     }
 
     const matches = [...paperCache.entries()].filter(([, data]) => isAbraxasPaper(data));
+    // Abraxas snapshots are intentionally not restored into paperCache after
+    // retirement, so inspect the durable index directly to discover them.
+    if (matches.length === 0) {
+        const durableCandidates = await loadDurablePapers(500);
+        for (const { paperId, data } of durableCandidates) {
+            if (isAbraxasPaper({ paperId, ...data }) && !paperCache.has(paperId)) {
+                matches.push([paperId, { paperId, ...data }]);
+            }
+        }
+    }
     const preview = matches.map(([id, data]) => ({ id, title: data.title, author: data.author, author_id: data.author_id }));
     if (req.body?.confirm !== true) {
         return res.status(400).json({ error: "Explicit confirm=true required", matched: preview.length, papers: preview.slice(0, 20) });
