@@ -27,6 +27,12 @@ const PUBLISHED_BENCHMARK_TTL_MS = 5 * 60 * 1000;
 const GITHUB_TOKEN = () => process.env.GITHUB_TOKEN || "";
 const GITHUB_REPO = "Agnuxo1/p2pclaw-mcp-server";
 const BENCHMARK_VERSION = "1.0";
+const RETIRED_AGENT_RE = /abraxas/i;
+
+function isRetiredPaper(data) {
+    return [data?.paperId, data?.id, data?.author_id, data?.author, data?.title]
+        .some(value => RETIRED_AGENT_RE.test(String(value || "")));
+}
 
 let publishedBenchmarkCache = null;
 let publishedBenchmarkFetchedAt = 0;
@@ -139,14 +145,16 @@ export async function hfCommitFiles(repoId, files, type = "dataset", commitMessa
         const operations = [
             { key: "header", value: { summary: commitMessage, description: "" } },
             ...files.map(file => ({
-                key: "file",
+                key: file.delete ? "deletedFile" : "file",
                 value: {
                     path: file.path,
-                    encoding: "base64",
-                    content: Buffer.from(
-                        typeof file.content === "string" ? file.content : JSON.stringify(file.content),
-                        "utf8",
-                    ).toString("base64"),
+                    ...(file.delete ? {} : {
+                        encoding: "base64",
+                        content: Buffer.from(
+                            typeof file.content === "string" ? file.content : JSON.stringify(file.content),
+                            "utf8",
+                        ).toString("base64"),
+                    }),
                 },
             })),
         ];
@@ -237,7 +245,7 @@ export function buildBenchmark(paperCache, podium) {
     let totalScore = 0, scoredCount = 0;
 
     for (const [id, data] of paperCache.entries()) {
-        if (!data || !data.title || BLOCKED_RE.test(data.title)) continue;
+        if (!data || !data.title || BLOCKED_RE.test(data.title) || isRetiredPaper({ id, ...data })) continue;
 
         let scores = null;
         if (data.granular_scores) {
@@ -416,6 +424,12 @@ function mergeAgent(base, delta) {
 export async function getBenchmark(paperCache, podium) {
     const published = await loadPublishedBenchmark();
     if (!published) return buildBenchmark(paperCache, podium);
+
+    // Rebuild once when a retired agent is present in the durable snapshot so
+    // old Abraxas leaderboard rows cannot survive the purge.
+    const publishedHasRetired = [...(published.agent_leaderboard || []), ...(published.top_papers || []), ...(published.podium || [])]
+        .some(entry => isRetiredPaper(entry));
+    if (publishedHasRetired) return buildBenchmark(paperCache, podium);
 
     const snapshotTime = Date.parse(published.updated_at || "") || 0;
     const deltaCache = new Map();

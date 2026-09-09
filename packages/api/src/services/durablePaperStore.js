@@ -52,6 +52,19 @@ export async function persistDurablePaper(paperId, paperData) {
     return ok;
 }
 
+/** Remove durable paper snapshots from Hugging Face. */
+export async function deleteDurablePapers(paperIds = []) {
+    const ids = [...new Set((paperIds || []).map(id => safePaperId(id)).filter(Boolean))];
+    if (!ids.length || !durablePaperStoreConfigured()) return { attempted: ids.length, deleted: 0, ok: false };
+    const ok = await hfCommitFiles(
+        HF_REPO,
+        ids.map(id => ({ path: `papers/${id}.json`, delete: true })),
+        "dataset",
+        `Remove blocked Abraxas publications (${ids.length})`,
+    );
+    return { attempted: ids.length, deleted: ok ? ids.length : 0, ok };
+}
+
 async function mapWithConcurrency(items, limit, mapper) {
     const results = new Array(items.length);
     let cursor = 0;

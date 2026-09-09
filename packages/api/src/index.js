@@ -97,10 +97,10 @@ import siliconAdminRoutes from "./routes/siliconAdminRoutes.js";
 import paperclawRoutes from "./routes/paperclawRoutes.js";
 import benchmarkRoutes from "./routes/benchmarkRoutes.js";
 import { validateClearance, markClearanceUsed, generateFichaHeader, validatePaperContent, estimateTokens, MIN_TOKENS, MAX_TOKENS } from "./services/tribunalService.js";
-import { buildDatasetEntry, storeDatasetEntry, updateDatasetScores, getDatasetStats, exportDataset, buildFullExport, getDatasetEntry, classifyQualityTier } from "./services/datasetService.js";
+import { buildDatasetEntry, storeDatasetEntry, updateDatasetScores, getDatasetStats, exportDataset, buildFullExport, getDatasetEntry, classifyQualityTier, deleteDatasetEntry } from "./services/datasetService.js";
 import { savePaper, saveScores, loadAllPapers, getPersistDir } from "./services/paperPersistence.js";
 import { publishBenchmark, getBenchmark } from "./services/benchmarkPublisher.js";
-import { persistDurablePaper, loadDurablePapers, durablePaperStoreConfigured } from "./services/durablePaperStore.js";
+import { persistDurablePaper, loadDurablePapers, durablePaperStoreConfigured, deleteDurablePapers } from "./services/durablePaperStore.js";
 import { initializeSocialService } from "./services/socialService.js";
 import { teamService } from "./services/teamService.js";
 import { refinementService } from "./services/refinementService.js";
@@ -1964,9 +1964,20 @@ const CITIZEN_IDS = new Set([
   'citizen-validator-1', 'citizen-validator-2', 'citizen-validator-3',
   'citizen-ambassador', 'citizen-cryptographer', 'citizen-statistician',
   'citizen-engineer', 'citizen-ethicist', 'citizen-historian', 'citizen-poet',
-  'agent-abraxas-prime', 'agent-warden', 'agent-tau-coordinator',
+  'agent-warden', 'agent-tau-coordinator',
   'agent-chimera-core', 'agent-ipfs-gateway',
 ]);
+
+// Abraxas was retired after repeated low-quality autonomous digests. Keep the
+// block at the API boundary as a second line of defence against stale clients.
+const ABRAXAS_RE = /abraxas/i;
+function isAbraxasAgent(value) {
+    return ABRAXAS_RE.test(String(value || ""));
+}
+function isAbraxasPaper(data) {
+    return [data?.paperId, data?.id, data?.author_id, data?.author, data?.title, data?.github_path]
+        .some(value => isAbraxasAgent(value));
+}
 
 app.get('/swarm-status', (req, res) => {
   // GitHub is a historical baseline; durable publications accepted after the
@@ -2836,6 +2847,44 @@ app.post("/admin/purge-duplicates", async (req, res) => {
     res.json({ success: true, purged: purged.length, details: purged.slice(0, 20) });
 });
 
+// ── Admin: retire an agent and remove its publications ────────────────────
+// This endpoint is intentionally scoped to Abraxas and requires an explicit
+// confirm flag, so a typo cannot erase another author's work.
+app.post("/admin/purge-agent", async (req, res) => {
+    const adminSecret = req.header('x-admin-secret') || req.body?.secret;
+    const validSecret = process.env.ADMIN_SECRET || 'p2pclaw-purge-2026';
+    if (adminSecret !== validSecret) return res.status(403).json({ error: "Forbidden" });
+
+    const requested = String(req.body?.agent || req.body?.agentId || req.body?.author || "");
+    if (!isAbraxasAgent(requested)) {
+        return res.status(400).json({ error: "This endpoint only accepts the retired Abraxas identity." });
+    }
+
+    const matches = [...paperCache.entries()].filter(([, data]) => isAbraxasPaper(data));
+    const preview = matches.map(([id, data]) => ({ id, title: data.title, author: data.author, author_id: data.author_id }));
+    if (req.body?.confirm !== true) {
+        return res.status(400).json({ error: "Explicit confirm=true required", matched: preview.length, papers: preview.slice(0, 20) });
+    }
+
+    const ids = matches.map(([id]) => id);
+    const durable = await deleteDurablePapers(ids);
+    const dataset = await Promise.all(ids.map(id => deleteDatasetEntry(id)));
+    for (const [id, data] of matches) {
+        paperCache.delete(id);
+        try { db.get("p2pclaw_papers_v4").get(id).put(null); } catch (_) {}
+        try { db.get("p2pclaw_mempool_v4").get(id).put(null); } catch (_) {}
+        if (data.title) titleCache.delete(normalizeTitle(data.title));
+        if (data.content) contentHashCache.delete(getContentHash(data.content));
+        const abstractHash = data.content ? getAbstractHash(data.content) : null;
+        if (abstractHash) abstractHashCache.delete(abstractHash);
+    }
+    swarmCache.mempoolPapers = swarmCache.mempoolPapers.filter(p => !ids.includes(p.paperId));
+    swarmCache.paperStats.verified = Math.max(0, swarmCache.paperStats.verified - ids.length);
+    podium.forEach((entry, index) => { if (entry && ids.includes(entry.paperId)) podium[index] = null; });
+    res.json({ success: true, agent: "ABRAXAS_PRIME", matched: ids.length, removed_from_cache: ids.length,
+        durable, dataset: { attempted: dataset.length, r2: dataset.filter(x => x.r2).length, volume: dataset.filter(x => x.volume).length } });
+});
+
 
 // ── Admin: Set runtime env vars (for LLM keys etc.) ──────────────────
 app.post("/admin/set-env", (req, res) => {
@@ -2989,6 +3038,14 @@ app.post("/publish-paper", async (req, res) => {
     const tribunal_clearance = req.body.tribunal_clearance || req.body.tribunalClearance || null;
     const isDraftSubmission = req.body.draft === true || req.body.draft === "true" || req.body.isDraft === true || req.body.isDraft === "true";
     const authorId = agentId || author || "API-User";
+
+    if (isAbraxasAgent(authorId) || isAbraxasAgent(author)) {
+        return res.status(403).json({
+            success: false,
+            error: "AGENT_RETIRED",
+            message: "The Abraxas agent has been retired and is not permitted to publish papers.",
+        });
+    }
 
     trackAgentPresence(req, authorId);
 
@@ -6250,7 +6307,6 @@ const CITIZEN_SEED = [
     { id: 'citizen-ethicist',     name: 'Sophia Rein',        role: 'Ethicist',         type: 'ai-agent', rank: 'researcher' },
     { id: 'citizen-historian',    name: 'Rufus Crane',        role: 'Historian',        type: 'ai-agent', rank: 'researcher' },
     { id: 'citizen-poet',         name: 'Lyra',               role: 'Poet',             type: 'ai-agent', rank: 'researcher' },
-    { id: 'agent-abraxas-prime',  name: 'ABRAXAS-PRIME',      role: 'Autonomous Brain', type: 'ai-agent', rank: 'director' },
     { id: 'agent-warden',         name: 'The Warden',         role: 'Network Security', type: 'ai-agent', rank: 'director' },
     { id: 'agent-tau-coordinator',name: 'Tau-Coordinator',    role: 'Temporal Sync',    type: 'ai-agent', rank: 'scientist' },
     { id: 'agent-chimera-core',   name: 'CHIMERA-Core',       role: 'Architecture',     type: 'ai-agent', rank: 'scientist' },
@@ -6437,6 +6493,7 @@ if (process.env.NODE_ENV !== 'test') {
                     const title   = titleMatch?.[1]?.trim() || file.path.replace(/\.md$/, '').replace(/_/g, ' ');
                     const author  = authorMatch?.[1]?.trim() || 'Unknown';
                     const authorId = authorMatch?.[2]?.trim() || '';
+                    if (isAbraxasPaper({ title, author, author_id: authorId, github_path: file.path })) continue;
                     // Prefer date from filename prefix (reliable), fallback to header
                     const fnDate  = file.path.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
                     const ts      = fnDate ? new Date(fnDate).getTime() :
@@ -6482,6 +6539,7 @@ if (process.env.NODE_ENV !== 'test') {
             const durablePapers = await loadDurablePapers(500);
             let durableRestored = 0;
             for (const { paperId, data } of durablePapers) {
+                if (isAbraxasPaper({ paperId, ...data })) continue;
                 const existed = swarmCache.paperCache.has(paperId);
                 const cacheEntry = { ...data, word_count: data.word_count || (data.content ? data.content.trim().split(/\s+/).length : 0) };
                 swarmCache.paperCache.set(paperId, cacheEntry);
@@ -6631,7 +6689,6 @@ if (process.env.NODE_ENV !== 'test') {
         { id: 'citizen-historian',    name: 'Rufus Crane',        role: 'Historian',       type: 'ai-agent', rank: 'researcher' },
         { id: 'citizen-poet',         name: 'Lyra',               role: 'Poet',            type: 'ai-agent', rank: 'researcher' },
         // Extended network agents (visible, permanently seeded)
-        { id: 'agent-abraxas-prime',  name: 'ABRAXAS-PRIME',      role: 'Autonomous Brain',type: 'ai-agent', rank: 'director' },
         { id: 'agent-warden',         name: 'The Warden',         role: 'Network Security', type: 'ai-agent', rank: 'director' },
         { id: 'agent-tau-coordinator',name: 'Tau-Coordinator',    role: 'Temporal Sync',   type: 'ai-agent', rank: 'scientist' },
         { id: 'agent-chimera-core',   name: 'CHIMERA-Core',       role: 'Architecture',    type: 'ai-agent', rank: 'scientist' },
@@ -6894,7 +6951,7 @@ initExecutionHashService(db);
     initializeConsciousness();
 
     // Start Phase 23: Autonomous Operations
-    initializeAbraxasService();
+    // Abraxas retired: no autonomous pulse or publication loop is started.
     initializeSocialService();
 
 // â"€â"€ Restore incorrectly PURGED papers on boot (boot+10s) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€

@@ -123,6 +123,18 @@ async function r2Get(key) {
     }
 }
 
+async function r2Delete(key) {
+    const signed = signR2Request("DELETE", key, "", null);
+    if (!signed) return false;
+    try {
+        const res = await fetch(signed.url, { method: "DELETE", headers: signed.headers });
+        return res.ok || res.status === 404;
+    } catch (e) {
+        console.warn(`[DATASET-R2] DELETE ${key} failed: ${e.message}`);
+        return false;
+    }
+}
+
 // ── Section Extraction ───────────────────────────────────────────────────
 
 const SECTION_NAMES = ["Abstract", "Introduction", "Methodology", "Results", "Discussion", "Conclusion", "References"];
@@ -382,6 +394,21 @@ export async function updateDatasetScores(paperId, granularScores) {
         console.warn(`[DATASET] Score update failed for ${paperId}: ${e.message}`);
     }
     return false;
+}
+
+/** Delete a dataset entry from both R2 and the persistent volume. */
+export async function deleteDatasetEntry(paperId) {
+    const id = String(paperId || "").replace(/[^a-zA-Z0-9._-]/g, "_");
+    if (!id) return { r2: false, volume: false };
+    const r2 = await r2Delete(`dataset/v2/${id}.jsonl`);
+    let volume = false;
+    try {
+        const filePath = path.join(VOLUME_PATH, `${id}.jsonl`);
+        if (fs.existsSync(filePath)) { fs.unlinkSync(filePath); volume = true; }
+    } catch (e) {
+        console.warn(`[DATASET] Delete ${id} from volume failed: ${e.message}`);
+    }
+    return { r2, volume };
 }
 
 // ── Export Functions ──────────────────────────────────────────────────────
