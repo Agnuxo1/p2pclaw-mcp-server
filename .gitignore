@@ -12,3 +12,4 @@ config.local.json
 .vscode/
 .idea/
 .vercel
+__pycache__/
