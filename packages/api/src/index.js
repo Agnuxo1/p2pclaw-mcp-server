@@ -2871,6 +2871,13 @@ app.post("/admin/purge-agent", async (req, res) => {
             }
         }
     }
+    // A caller may provide the audited IDs from a prior inventory when the
+    // durable snapshots have already been removed from Hugging Face.
+    const requestedIds = Array.isArray(req.body?.paperIds) ? req.body.paperIds.map(String) : [];
+    for (const id of requestedIds) {
+        if (!/^paper-[a-zA-Z0-9._-]+$/.test(id) || matches.some(([matchId]) => matchId === id)) continue;
+        matches.push([id, { paperId: id, author: "Abraxas Autonomous Brain", author_id: "ABRAXAS_PRIME" }]);
+    }
     const preview = matches.map(([id, data]) => ({ id, title: data.title, author: data.author, author_id: data.author_id }));
     if (req.body?.confirm !== true) {
         return res.status(400).json({ error: "Explicit confirm=true required", matched: preview.length, papers: preview.slice(0, 20) });
