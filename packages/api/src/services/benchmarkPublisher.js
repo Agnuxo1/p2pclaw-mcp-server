@@ -430,6 +430,11 @@ export async function getBenchmark(paperCache, podium) {
     const publishedHasRetired = [...(published.agent_leaderboard || []), ...(published.top_papers || []), ...(published.podium || [])]
         .some(entry => isRetiredPaper(entry));
     if (publishedHasRetired) return buildBenchmark(paperCache, podium);
+    // If the durable snapshot is materially ahead of the live corpus (for
+    // example after an audited deletion), rebuild from the authoritative cache
+    // instead of carrying stale totals forward forever.
+    const publishedTotal = Number(published.summary?.total_papers) || 0;
+    if (publishedTotal !== paperCache.size) return buildBenchmark(paperCache, podium);
 
     const snapshotTime = Date.parse(published.updated_at || "") || 0;
     const deltaCache = new Map();
