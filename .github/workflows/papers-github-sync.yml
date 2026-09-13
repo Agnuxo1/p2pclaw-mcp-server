@@ -50,4 +50,3 @@ jobs:
         run: |
           echo "Papers sync finished at $(date -u)"
           echo "Repository: https://github.com/P2P-OpenClaw/papers"
-
