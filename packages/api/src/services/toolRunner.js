@@ -1,29 +1,16 @@
 /**
- * Tool Runner Service
- *
- * Sandboxed execution of scientific Python code extracted from papers.
- * Builds on IsolateSandbox but specifically for domain-specific tool verification.
- *
- * Security: child_process.execFile with timeout + memory limits.
- * No network access, restricted imports whitelist, killed on timeout.
- *
- * EXTENSION ONLY — does not modify IsolateSandbox or any existing service.
+ * Scientific Python execution through the Docker-only IsolateSandbox.
+ * The wrapper formats output; it is not a security boundary. No host execution.
  */
-
-import { execFile } from 'node:child_process';
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
-import crypto from 'node:crypto';
+import { sandbox, SANDBOX_LIMITS } from './IsolateSandbox.js';
 import { generateExecutionHash, storeExecutionHash } from './executionHashService.js';
 
-// ── Configuration ───────────────────────────────────────────────────────────
+const DEFAULT_TIMEOUT = 60_000;
+const MAX_PYTHON_CODE_BYTES = 128 * 1024; // Leave room for the base64 wrapper.
+const MAX_STDOUT = 50_000;
+const MAX_STDERR = 10_000;
 
-const SANDBOX_DIR = process.env.TOOL_SANDBOX_DIR || '/tmp/p2pclaw_tool_sandbox';
-const DEFAULT_TIMEOUT = 60_000;   // 60 seconds
-const MAX_OUTPUT = 10 * 1024 * 1024; // 10MB output cap
-const MAX_MEMORY_MB = 2048;  // Virtual address space limit (not physical RAM — PyTorch needs large VA even on CPU)
-
-// Allowed Python imports per domain — anything else is blocked by the wrapper
+// Package discovery catalog only, NOT an import whitelist or security boundary.
 const ALLOWED_IMPORTS = {
     // Universal (all domains) — includes stdlib modules needed by scientific packages
     _universal: [
@@ -69,178 +56,94 @@ const ALLOWED_IMPORTS = {
     ]
 };
 
-// ── Python Wrapper Template ─────────────────────────────────────────────────
-// This wrapper restricts imports and captures output safely.
-
-function buildPythonWrapper(code, domain) {
-    // Security model: process-level sandbox (timeout + memory + no network env)
-    // Scientific packages have deep dependency trees that break with import hooks.
-    // Instead we rely on: execFile timeout, RLIMIT_AS, restricted PATH/HOME,
-    // and MPLBACKEND=Agg (no display). Network calls will fail (no credentials in env).
-
-    return `
-import sys, json, traceback, resource, signal
-
-# Memory limit (soft)
-try:
-    resource.setrlimit(resource.RLIMIT_AS, (${MAX_MEMORY_MB} * 1024 * 1024, ${MAX_MEMORY_MB} * 1024 * 1024))
-except Exception:
-    pass  # resource module not available on all platforms
-
-# Timeout handler
-def timeout_handler(signum, frame):
-    raise TimeoutError("Execution timed out")
-try:
-    signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(55)  # 55s soft timeout (hard timeout is 60s from Node)
-except Exception:
-    pass  # SIGALRM not available on Windows
-
-# Capture output
-_output = {"success": False, "stdout": "", "stderr": "", "result": None}
-
-import io
-_stdout_capture = io.StringIO()
-_stderr_capture = io.StringIO()
-sys.stdout = _stdout_capture
-sys.stderr = _stderr_capture
-
-try:
-    # ── USER CODE START ──
-${code.split('\n').map(line => '    ' + line).join('\n')}
-    # ── USER CODE END ──
-
-    _output["success"] = True
-    _output["stdout"] = _stdout_capture.getvalue()[:50000]
-    _output["stderr"] = _stderr_capture.getvalue()[:10000]
-except Exception as e:
-    _output["success"] = False
-    _output["stdout"] = _stdout_capture.getvalue()[:50000]
-    _output["stderr"] = traceback.format_exc()[:10000]
-
-sys.stdout = sys.__stdout__
-sys.stderr = sys.__stderr__
-print(json.dumps(_output))
-`;
+// The container limits memory, network, processes and runtime. This wrapper only
+// captures bounded text and reports Python exceptions in the existing JSON shape.
+export function buildPythonWrapper(code) {
+    const encoded = Buffer.from(code, 'utf8').toString('base64');
+    return [
+        'import sys, io, json, traceback, base64',
+        'class _BoundedCapture(io.TextIOBase):',
+        '    def __init__(self, limit):',
+        '        self.limit, self.size, self.parts = limit, 0, []',
+        '    def write(self, text):',
+        '        remaining = max(0, self.limit - self.size)',
+        '        self.parts.append(text[:remaining])',
+        '        self.size += len(text)',
+        '        if self.size > self.limit:',
+        '            raise RuntimeError("OUTPUT_LIMIT")',
+        '        return len(text)',
+        '    def flush(self): pass',
+        '    def getvalue(self): return "".join(self.parts)',
+        '_out, _err = _BoundedCapture(50000), _BoundedCapture(10000)',
+        '_output = {"success": False, "stdout": "", "stderr": "", "result": None}',
+        'sys.stdout, sys.stderr = _out, _err',
+        'try:',
+        '    _scope = {"__name__": "__main__"}',
+        '    exec(compile(base64.b64decode("' + encoded + '"), "<paper>", "exec"), _scope)',
+        '    _output["success"] = True',
+        'except BaseException:',
+        '    _output["stderr"] = traceback.format_exc()[:10000]',
+        'finally:',
+        '    sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__',
+        '    _output["stdout"] = _out.getvalue()',
+        '    _output["stderr"] = _output["stderr"] or _err.getvalue()',
+        '    print(json.dumps(_output))',
+        '',
+    ].join('\n');
 }
 
-// ── Core Execution ──────────────────────────────────────────────────────────
-
 /**
- * Run Python code in a sandboxed child process.
- *
- * @param {string} code - Python code to execute
- * @param {object} opts
- * @param {string} opts.domain - Domain for import whitelist (physics, chemistry, etc.)
- * @param {number} opts.timeout - Timeout in ms (default 60s)
- * @param {string} opts.tool - Tool name (for logging)
- * @returns {Promise<{success: boolean, stdout: string, stderr: string, elapsed_ms: number, tool: string}>}
+ * Preserve the tool-runner response fields, but only hash successful Docker runs.
+ * Domain selects the package discovery catalog; packages must exist in the image.
  */
 export async function runPythonTool(code, opts = {}) {
     const { domain = 'mathematics', timeout = DEFAULT_TIMEOUT, tool = 'unknown' } = opts;
     const start = Date.now();
-    const runId = crypto.randomBytes(6).toString('hex');
-
+    let execution;
+    const metadata = () => ({ elapsed_ms: Date.now() - start, tool, execution_hash: null });
+    if (typeof code !== 'string' || !code.trim() || Buffer.byteLength(code) > MAX_PYTHON_CODE_BYTES) {
+        return { success: false, executed: false, isolation: 'unavailable', error: 'INVALID_CODE',
+            stdout: '', stderr: 'Python code must be a nonempty string of at most 128 KiB.', ...metadata() };
+    }
     try {
-        await fs.mkdir(SANDBOX_DIR, { recursive: true });
-    } catch { /* exists */ }
-
-    const scriptPath = path.join(SANDBOX_DIR, `tool_${runId}.py`);
-    const wrappedCode = buildPythonWrapper(code, domain);
-
-    try {
-        await fs.writeFile(scriptPath, wrappedCode, 'utf8');
-
-        const result = await new Promise((resolve) => {
-            const proc = execFile('python3', [scriptPath], {
-                timeout,
-                maxBuffer: MAX_OUTPUT,
-                env: {
-                    PATH: process.env.PATH,
-                    HOME: '/tmp',
-                    PYTHONPATH: '',
-                    MPLBACKEND: 'Agg',           // matplotlib without display
-                    OPENBLAS_NUM_THREADS: '1',    // prevent OpenBLAS OOM on constrained memory
-                    OMP_NUM_THREADS: '1',         // limit OpenMP threads
-                    MKL_NUM_THREADS: '1',         // limit MKL threads
-                    NUMEXPR_MAX_THREADS: '1',     // limit numexpr threads
-                    PYTORCH_NO_CUDA_MEMORY_CACHING: '1'  // Phase D: minimize PyTorch memory
-                }
-            }, (error, stdout, stderr) => {
-                const elapsed_ms = Date.now() - start;
-
-                if (error && error.killed) {
-                    resolve({ success: false, stdout: '', stderr: 'TIMEOUT: execution killed after ' + timeout + 'ms', elapsed_ms, tool });
-                    return;
-                }
-
-                // Try to parse the JSON output from our wrapper
-                try {
-                    const lastLine = stdout.trim().split('\n').pop();
-                    const parsed = JSON.parse(lastLine);
-                    resolve({
-                        success: parsed.success,
-                        stdout: parsed.stdout || '',
-                        stderr: parsed.stderr || stderr || '',
-                        result: parsed.result || null,
-                        elapsed_ms,
-                        tool
-                    });
-                } catch {
-                    // Wrapper didn't produce JSON — raw output
-                    resolve({
-                        success: !error,
-                        stdout: stdout || '',
-                        stderr: stderr || (error ? error.message : ''),
-                        elapsed_ms,
-                        tool
-                    });
-                }
-            });
+        execution = await sandbox.execute(buildPythonWrapper(code), {
+            language: 'python',
+            timeout: Number.isFinite(timeout) && timeout > 0
+                ? Math.min(timeout, SANDBOX_LIMITS.timeoutMs) : DEFAULT_TIMEOUT,
         });
-
-        // ── Phase A: Generate execution hash (SHA-256 of code + stdout + seed) ──
-        const execHash = generateExecutionHash(code, result.stdout);
-        result.execution_hash = execHash;
-
-        // Store hash with metadata (in-memory + Gun.js)
-        if (result.success) {
-            storeExecutionHash(execHash, {
-                code,
-                stdout: result.stdout,
-                tool,
-                domain,
-                success: result.success,
-                elapsed_ms: result.elapsed_ms
-            });
+        if (!execution.success) return { ...execution, result: null, ...metadata() };
+        if (execution.isolation !== 'docker' || execution.executed !== true) {
+            return { success: false, executed: false, error: 'SANDBOX_UNAVAILABLE', isolation: 'unavailable',
+                stdout: '', stderr: 'Isolated execution was not confirmed.', ...metadata() };
         }
-
+        let parsed;
+        try {
+            const lastLine = execution.stdout.trim().split('\n').pop();
+            parsed = JSON.parse(lastLine);
+            if (typeof parsed?.success !== 'boolean' || typeof parsed.stdout !== 'string'
+                || typeof parsed.stderr !== 'string' || parsed.stdout.length > MAX_STDOUT
+                || parsed.stderr.length > MAX_STDERR) throw new Error('invalid wrapper output');
+        } catch {
+            return { success: false, executed: true, isolation: 'docker', error: 'INVALID_EXECUTION_RESULT',
+                stdout: '', stderr: 'The isolated Python wrapper did not return a valid result.', ...metadata() };
+        }
+        const result = { success: parsed.success, executed: true, isolation: 'docker',
+            stdout: parsed.stdout, stderr: parsed.stderr, result: parsed.result ?? null, ...metadata() };
+        if (!result.success) {
+            result.error = 'EXECUTION_FAILED';
+            return result;
+        }
+        const hash = generateExecutionHash(code, result.stdout);
+        storeExecutionHash(hash, { code, stdout: result.stdout, tool, domain, success: true, elapsed_ms: result.elapsed_ms });
+        result.execution_hash = hash;
         return result;
-
-    } catch (err) {
-        return {
-            success: false,
-            stdout: '',
-            stderr: `Tool runner error: ${err.message}`,
-            elapsed_ms: Date.now() - start,
-            tool,
-            execution_hash: null
-        };
-    } finally {
-        // Cleanup
-        try { await fs.unlink(scriptPath); } catch { /* ok */ }
+    } catch {
+        return { success: false, executed: execution?.executed === true,
+            isolation: execution?.isolation || 'unavailable', error: 'SANDBOX_UNAVAILABLE',
+            stdout: '', stderr: 'Isolated tool execution is unavailable.', ...metadata() };
     }
 }
 
-// ── Code Block Extraction ───────────────────────────────────────────────────
-
-/**
- * Extract executable code blocks from paper content.
- * Looks for ```python ... ``` and ```lean4 ... ``` blocks.
- *
- * @param {string} content - Paper markdown content
- * @returns {Array<{language: string, code: string, line: number}>}
- */
 export function extractCodeBlocks(content) {
     if (!content) return [];
 
@@ -282,7 +185,7 @@ export async function verifyPaperCode(content, domain) {
     const blocks = extractCodeBlocks(content).filter(b => b.language === 'python' || b.language === 'sympy' || b.language === 'sage');
 
     if (blocks.length === 0) {
-        return { blocks_found: 0, blocks_verified: 0, blocks_failed: 0, results: [] };
+        return { blocks_found: 0, blocks_verified: 0, blocks_failed: 0, results: [], success: true, executed: false, isolation: 'not_requested' };
     }
 
     const results = [];
@@ -306,9 +209,16 @@ export async function verifyPaperCode(content, domain) {
 
         if (result.success) verified++;
         else failed++;
+        if (['SANDBOX_UNAVAILABLE', 'SANDBOX_BUSY', 'SANDBOX_CLEANUP_FAILED'].includes(result.error)) break;
     }
 
+    const admissionFailure = results.find(r => ['SANDBOX_UNAVAILABLE', 'SANDBOX_BUSY', 'SANDBOX_CLEANUP_FAILED'].includes(r.error));
     return {
+        success: failed === 0,
+        executed: results.some(r => r.executed === true),
+        isolation: admissionFailure?.isolation || 'docker',
+        ...(admissionFailure ? { error: admissionFailure.error } : {}),
+        blocks_skipped: blocks.length - results.length,
         blocks_found: blocks.length,
         blocks_verified: verified,
         blocks_failed: failed,
@@ -316,34 +226,12 @@ export async function verifyPaperCode(content, domain) {
     };
 }
 
-// ── Check Python + tools availability ───────────────────────────────────────
-
-let _pythonAvailable = null;
-
+// Checks the configured local image and Docker daemon, never a host interpreter.
 export async function checkPythonAvailable() {
-    if (_pythonAvailable !== null) return _pythonAvailable;
-
-    try {
-        const result = await new Promise((resolve) => {
-            execFile('python3', ['--version'], { timeout: 5000 }, (error, stdout) => {
-                resolve(!error ? stdout.trim() : null);
-            });
-        });
-        _pythonAvailable = !!result;
-        if (result) console.log(`[TOOL-RUNNER] Python available: ${result}`);
-        else console.warn('[TOOL-RUNNER] Python3 not found. Domain tool verification disabled.');
-    } catch {
-        _pythonAvailable = false;
-        console.warn('[TOOL-RUNNER] Python3 not found. Domain tool verification disabled.');
-    }
-
-    return _pythonAvailable;
+    try { return (await sandbox.checkAvailability('python')).available === true; }
+    catch { return false; }
 }
 
-/**
- * Check which tools are actually installed for a given domain.
- * Returns list of available tools.
- */
 export async function checkInstalledTools(domain) {
     const hasPython = await checkPythonAvailable();
     if (!hasPython) return [];
@@ -356,7 +244,7 @@ export async function checkInstalledTools(domain) {
     );
     const allImports = [...new Set([...SCIENTIFIC_UNIVERSAL, ...domainSpecific])];
 
-    // Use importlib directly (bypasses our safe_import hook)
+    // Discover packages inside the same network-disabled container used for execution.
     const checkCode = `import importlib\n` + allImports.map(mod =>
         `try:\n    importlib.import_module("${mod}")\n    print("OK:${mod}")\nexcept:\n    print("MISS:${mod}")`
     ).join('\n');
