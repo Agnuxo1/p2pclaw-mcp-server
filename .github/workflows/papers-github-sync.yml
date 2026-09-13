@@ -5,6 +5,9 @@ name: P2PCLAW Papers GitHub Sync
     - cron: "0 * * * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   sync-papers:
     name: Sync papers to GitHub
@@ -12,12 +15,18 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      - name: Checkout sync implementation
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: Checkout papers repository
         uses: actions/checkout@v4
         with:
           repository: P2P-OpenClaw/papers
           token: ${{ secrets.PAPERS_SYNC_TOKEN }}
           path: papers-repo
+          persist-credentials: false
 
       - name: Sync papers from Railway API
         env:
@@ -41,3 +50,4 @@ jobs:
         run: |
           echo "Papers sync finished at $(date -u)"
           echo "Repository: https://github.com/P2P-OpenClaw/papers"
+
