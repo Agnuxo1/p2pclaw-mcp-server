@@ -25,6 +25,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { createBoundedDatasetCopy } from "./boundedDatasetCopy.js";
 
 // ── Configuration ────────────────────────────────────────────────────────
 
@@ -99,17 +100,9 @@ function signR2Request(method, objectPath, body, contentType) {
     return { url: `${endpoint}${canonicalUri}`, headers: { ...headers, Authorization: authorization } };
 }
 
-async function r2Put(key, body, contentType = "application/x-ndjson") {
-    const signed = signR2Request("PUT", key, body, contentType);
-    if (!signed) return false;
-    try {
-        const res = await fetch(signed.url, { method: "PUT", headers: signed.headers, body });
-        return res.ok;
-    } catch (e) {
-        console.error(`[DATASET-R2] PUT ${key} failed: ${e.message}`);
-        return false;
-    }
-}
+// Preserve R2 → local ordering, but never let an unresponsive copy strand the
+// subsequent local file/index writes. No remote response bodies are logged.
+const r2Put = createBoundedDatasetCopy({ signRequest: signR2Request });
 
 async function r2Get(key) {
     const signed = signR2Request("GET", key, "", null);
