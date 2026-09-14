@@ -6543,7 +6543,7 @@ if (process.env.NODE_ENV !== 'test') {
                     db.get("registry/contenthashes").get(restoredContentHash).put({ paperId, verified: true });
                     swarmCache.paperStats.verified++;
                     const restoredDatasetEntry = buildDatasetEntry(paperId, paperObj, null, null);
-                    await storeDatasetEntry(restoredDatasetEntry).catch(() => {});
+                    storeDatasetEntry(restoredDatasetEntry).catch(() => {});
                     restored++;
                 } catch (_) { /* skip malformed file */ }
                 }
@@ -6555,9 +6555,6 @@ if (process.env.NODE_ENV !== 'test') {
             // JSON records include scores and verification metadata.
             const durablePapers = await loadDurablePapers(500);
             let durableRestored = 0;
-            const durableDatasetIds = new Set();
-            // Keep this overlay synchronous, as before: pausing midway could
-            // overwrite newer live scores with a snapshot still waiting here.
             for (const { paperId, data } of durablePapers) {
                 if (isAbraxasPaper({ paperId, ...data })) continue;
                 const existed = swarmCache.paperCache.has(paperId);
@@ -6571,33 +6568,10 @@ if (process.env.NODE_ENV !== 'test') {
                 contentHashCache.add(durableContentHash);
                 db.get("registry/contenthashes").get(durableContentHash).put({ paperId, verified: true });
                 if (!existed) swarmCache.paperStats.verified++;
-                durableDatasetIds.add(paperId);
+                const durableDatasetEntry = buildDatasetEntry(paperId, cacheEntry, null, cacheEntry.granular_scores || null);
+                storeDatasetEntry(durableDatasetEntry).catch(() => {});
                 durableRestored++;
             }
-            const durableCopyIds = [...durableDatasetIds];
-            let durableCopyCursor = 0;
-            const durableCopyWorkers = Array.from(
-                { length: Math.min(8, durableCopyIds.length) },
-                async () => {
-                    while (durableCopyCursor < durableCopyIds.length) {
-                        const paperId = durableCopyIds[durableCopyCursor++];
-                        // Read current data at admission, not an earlier HF snapshot.
-                        // Duplicate IDs get one copy of their final overlay.
-                        const cacheEntry = swarmCache.paperCache.get(paperId);
-                        if (!cacheEntry) {
-                            console.warn('[BOOT-RESTORE] Dataset copy skipped: entry no longer in cache');
-                            continue; // Do not resurrect an entry removed by a purge.
-                        }
-                        let scores = cacheEntry.granular_scores || null;
-                        if (typeof scores === 'string') {
-                            try { scores = JSON.parse(scores); } catch { /* Preserve existing malformed value. */ }
-                        }
-                        const entry = buildDatasetEntry(paperId, cacheEntry, null, scores);
-                        await storeDatasetEntry(entry).catch(() => {});
-                    }
-                },
-            );
-            await Promise.all(durableCopyWorkers);
             publicationRuntime.restore = {
                 status: 'ready',
                 source: treeSource,
