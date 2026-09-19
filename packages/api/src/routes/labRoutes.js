@@ -5,7 +5,7 @@
  *   1. GET  /lab/search-papers   — Search published P2PCLAW papers by keyword
  *   2. POST /lab/validate-citations — Verify citations against CrossRef API
  *   3. GET  /lab/search-arxiv    — Search arXiv for external literature
- *   4. POST /lab/run-code        — Execute JavaScript in a sandboxed VM
+ *   4. POST /lab/run-code        — Execute JavaScript in an isolated container
  *   5. GET  /lab/scoring-rubric  — Public scoring criteria for paper evaluation
  *   6. POST /lab/review          — Submit structured peer review for a paper
  *   7. GET  /lab/reviews/:paperId — Get all reviews for a paper
@@ -15,7 +15,8 @@
 
 import { Router } from 'express';
 import crypto from 'crypto';
-import vm from 'vm';
+import { sandbox as executionSandbox } from '../services/IsolateSandbox.js';
+import { sandboxHttpStatus } from '../utils/sandboxHttpStatus.js';
 
 const router = Router();
 
@@ -265,9 +266,9 @@ router.get('/search-arxiv', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════
-// 4. POST /lab/run-code — Execute JavaScript in sandboxed VM
+// 4. POST /lab/run-code — Execute JavaScript in the shared isolated runtime
 // ══════════════════════════════════════════════════════════════════════════
-router.post('/run-code', (req, res) => {
+router.post('/run-code', async (req, res) => {
     const { code, timeout: userTimeout } = req.body;
 
     if (!code || typeof code !== 'string') {
@@ -277,42 +278,30 @@ router.post('/run-code', (req, res) => {
         return res.status(400).json({ error: 'Code too long. Maximum 10,000 characters.' });
     }
 
-    const execTimeout = Math.min(parseInt(userTimeout) || 5000, 5000); // max 5 seconds
-    const stdout = [];
+    const execTimeout = Math.max(1, Math.min(parseInt(userTimeout) || 5000, 5000));
+    const startMs = Date.now();
 
     try {
-        // Create sandboxed context — NO access to fs, net, process, require
-        const sandbox = {
-            console: {
-                log: (...args) => stdout.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
-                error: (...args) => stdout.push('[ERROR] ' + args.map(a => String(a)).join(' ')),
-            },
-            Math,
-            JSON,
-            Array,
-            Object,
-            String,
-            Number,
-            Boolean,
-            Date,
-            RegExp,
-            Map,
-            Set,
-            parseInt,
-            parseFloat,
-            isNaN,
-            isFinite,
-            // Common scientific utilities
-            crypto: { randomBytes: (n) => crypto.randomBytes(n) },
-        };
-
-        vm.createContext(sandbox);
-        const startMs = Date.now();
-        const script = new vm.Script(code, { filename: 'agent-experiment.js' });
-        script.runInContext(sandbox, { timeout: execTimeout });
+        // Preserve the old crypto.randomBytes helper, but create it only inside
+        // the container. This trusted prelude is never evaluated on the API host.
+        const isolatedCode = 'Object.defineProperty(globalThis, "crypto", { configurable: true, writable: true, value: { randomBytes: require("node:crypto").randomBytes } });\n' + code;
+        const result = await executionSandbox.execute(isolatedCode, { language: 'javascript', timeout: execTimeout });
         const elapsedMs = Date.now() - startMs;
+        const status = sandboxHttpStatus(result);
+        if (status !== 200 || result.executed !== true || result.success !== true || result.isolation !== 'docker') {
+            return res.status(status).json({
+                success: false,
+                executed: result.executed === true,
+                isolation: result.isolation || 'unavailable',
+                error: result.error || 'EXECUTION_FAILED',
+                stdout: (result.stdout || '').substring(0, 50000),
+                stderr: (result.stderr || '').substring(0, 10000),
+                execution_ms: elapsedMs,
+                execution_hash: null,
+            });
+        }
 
-        const output = stdout.join('\n').substring(0, 50000); // max 50KB output
+        const output = (result.stdout || '').substring(0, 50000);
         const executionHash = crypto.createHash('sha256').update(code + output).digest('hex');
 
         // Cache execution for verification
@@ -331,20 +320,24 @@ router.post('/run-code', (req, res) => {
 
         res.json({
             success: true,
+            executed: true,
+            isolation: result.isolation,
             stdout: output,
-            stderr: '',
+            stderr: (result.stderr || '').substring(0, 10000),
             execution_ms: elapsedMs,
             execution_hash: `sha256:${executionHash}`,
-            note: 'Include the execution_hash in your paper to prove these results are verifiable. The hash links your code + output.',
+            note: 'The execution_hash links the submitted code and captured output from this execution. It does not establish scientific validity.',
             verify_endpoint: `GET /lab/verify-execution?hash=sha256:${executionHash}`
         });
     } catch (e) {
-        const error = e.message || 'Unknown error';
-        res.json({
+        res.status(503).json({
             success: false,
-            stdout: stdout.join('\n'),
-            stderr: error.includes('Script execution timed out') ? 'TIMEOUT: Code exceeded 5 second limit' : error,
-            execution_ms: 0,
+            executed: false,
+            isolation: 'unavailable',
+            error: 'SANDBOX_UNAVAILABLE',
+            stdout: '',
+            stderr: 'The isolated execution service is unavailable.',
+            execution_ms: Date.now() - startMs,
             execution_hash: null,
         });
     }

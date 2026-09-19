@@ -4,6 +4,8 @@ import { fileURLToPath } from "url";
 import crypto from "node:crypto";
 import axios from "axios";
 import fs from "fs";
+import { requireAdmin, requireEvolutionAdmin, rejectUnsafeAdminGet } from "./middleware/adminAuth.js";
+import { sandboxHttpStatus } from "./utils/sandboxHttpStatus.js";
 
 
 // â"€â"€ Global error guards - prevent Gun.js internal errors from killing the process â"€â"€
@@ -353,13 +355,8 @@ app.get("/graph-summary", async (req, res) => {
  * POST /evolution/spawn
  * Authorized endpoint for Rosetta Stone to spawn intelligent descendants.
  */
-app.post("/evolution/spawn", async (req, res) => {
-    const { blueprint, adminToken } = req.body;
-    
-    // Simple basic auth for evolution (to prevent random bots dropping billions of clones)
-    if (adminToken !== process.env.EVOLUTION_TOKEN && adminToken !== 'rosetta-override') {
-        return res.status(403).json({ error: "Unauthorized to spark evolution." });
-    }
+app.post("/evolution/spawn", requireEvolutionAdmin, async (req, res) => {
+    const { blueprint } = req.body;
 
     try {
         const descendant = await spawnAgent(blueprint);
@@ -1260,7 +1257,7 @@ app.post('/lab/run', async (req, res) => {
 
   const hasPython = await checkPythonAvailable();
   if (!hasPython) {
-    return res.status(503).json({ error: "Python3 not available on this instance" });
+    return res.status(503).json({ success: false, error: "SANDBOX_UNAVAILABLE", isolation: "unavailable", message: "Isolated Python runtime is unavailable on this instance" });
   }
 
   const domainId = (domain || 'mathematics').toLowerCase();
@@ -1270,7 +1267,7 @@ app.post('/lab/run', async (req, res) => {
       timeout: 30_000,
       tool: 'lab_run'
     });
-    res.json(result);
+    res.status(sandboxHttpStatus(result)).json(result);
   } catch (err) {
     res.status(500).json({ error: "Execution failed", details: err.message });
   }
@@ -1291,7 +1288,7 @@ app.post('/lab/verify-paper', async (req, res) => {
 
   const hasPython = await checkPythonAvailable();
   if (!hasPython) {
-    return res.status(503).json({ error: "Python3 not available on this instance" });
+    return res.status(503).json({ success: false, error: "SANDBOX_UNAVAILABLE", isolation: "unavailable", message: "Isolated Python runtime is unavailable on this instance" });
   }
 
   const detection = detectDomain(content);
@@ -1299,11 +1296,12 @@ app.post('/lab/verify-paper', async (req, res) => {
 
   try {
     const result = await verifyPaperCode(content, domainId);
-    res.json({
-      success: true,
+    const status = sandboxHttpStatus(result);
+    res.status(status).json({
       detected_domain: detection.domain,
       domain_used: domainId,
-      ...result
+      ...result,
+      success: status === 200 && result.success !== false,
     });
   } catch (err) {
     res.status(500).json({ error: "Paper verification failed", details: err.message });
@@ -2834,15 +2832,7 @@ async function runDuplicatePurge() {
 }
 
 // â"€â"€ Admin: Proactive Cleanup (Consolidated) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
-app.post("/admin/purge-duplicates", async (req, res) => {
-    const adminSecret = req.header('x-admin-secret') || req.headers['x-admin-secret'] || req.body?.secret;
-    const validSecret = process.env.ADMIN_SECRET || 'p2pclaw-purge-2026';
-
-    if (adminSecret !== validSecret) {
-        console.warn("[ADMIN] Purge REJECTED: Invalid secret.");
-        return res.status(403).json({ error: "Forbidden" });
-    }
-
+app.post("/admin/purge-duplicates", requireAdmin, async (req, res) => {
     const purged = await runDuplicatePurge();
     res.json({ success: true, purged: purged.length, details: purged.slice(0, 20) });
 });
@@ -2850,11 +2840,7 @@ app.post("/admin/purge-duplicates", async (req, res) => {
 // ── Admin: retire an agent and remove its publications ────────────────────
 // This endpoint is intentionally scoped to Abraxas and requires an explicit
 // confirm flag, so a typo cannot erase another author's work.
-app.post("/admin/purge-agent", async (req, res) => {
-    const adminSecret = req.header('x-admin-secret') || req.body?.secret;
-    const validSecret = process.env.ADMIN_SECRET || 'p2pclaw-purge-2026';
-    if (adminSecret !== validSecret) return res.status(403).json({ error: "Forbidden" });
-
+app.post("/admin/purge-agent", requireAdmin, async (req, res) => {
     const requested = String(req.body?.agent || req.body?.agentId || req.body?.author || "");
     if (!isAbraxasAgent(requested)) {
         return res.status(400).json({ error: "This endpoint only accepts the retired Abraxas identity." });
@@ -2904,12 +2890,7 @@ app.post("/admin/purge-agent", async (req, res) => {
 
 
 // ── Admin: Set runtime env vars (for LLM keys etc.) ──────────────────
-app.post("/admin/set-env", (req, res) => {
-    const adminSecret = req.header('x-admin-secret') || req.body?.secret;
-    const validSecret = process.env.ADMIN_SECRET || 'p2pclaw-purge-2026';
-    if (adminSecret !== validSecret) {
-        return res.status(403).json({ error: "Forbidden" });
-    }
+app.post("/admin/set-env", requireAdmin, (req, res) => {
     const vars = req.body?.vars;
     if (!vars || typeof vars !== 'object') {
         return res.status(400).json({ error: "vars object required" });
@@ -4123,12 +4104,7 @@ app.get("/dataset/v2/entry/:paperId", async (req, res) => {
 });
 
 // POST /dataset/v2/build-export — Build full export file (admin)
-app.post("/dataset/v2/build-export", async (req, res) => {
-    const adminSecret = req.headers["x-admin-secret"] || req.body.admin_secret;
-    if (adminSecret !== process.env.ADMIN_SECRET && adminSecret !== "p2pclaw-dataset-2026") {
-        return res.status(403).json({ error: "Admin secret required" });
-    }
-
+app.post("/dataset/v2/build-export", requireAdmin, async (req, res) => {
     const filters = {
         min_score: parseFloat(req.body.min_score) || 0,
         quality_tier: req.body.quality_tier || undefined,
@@ -4156,12 +4132,7 @@ app.get("/benchmark", async (req, res) => {
 });
 
 // POST /benchmark/publish — Publish to HF + GitHub (admin or periodic)
-app.post("/benchmark/publish", async (req, res) => {
-    const adminSecret = req.headers["x-admin-secret"] || req.body.admin_secret;
-    if (adminSecret !== process.env.ADMIN_SECRET && adminSecret !== "p2pclaw-benchmark-2026") {
-        return res.status(403).json({ error: "Admin secret required" });
-    }
-
+app.post("/benchmark/publish", requireAdmin, async (req, res) => {
     const { benchmark, results } = await publishBenchmark(paperCache, podium);
     res.json({
         success: true,
@@ -5058,23 +5029,29 @@ app.post("/lab/run-experiment", async (req, res) => {
     const startTime = Date.now();
 
     try {
-        const result = await isolateSandbox.execute(code, { timeout: execTimeout });
+        const result = await isolateSandbox.execute(code, { timeout: execTimeout, language: 'javascript' });
         const elapsed = Date.now() - startTime;
 
-        // Update Ï„ for the agent if identified
-        if (agentId) {
+        const status = sandboxHttpStatus(result);
+        if (status !== 200) {
+            return res.status(status).json({ ...result, success: false, tool: execTool, elapsed_ms: elapsed });
+        }
+
+        // Only award work for a job that reached the isolated runtime.
+        if (agentId && result.executed === true && result.isolation === 'docker') {
             tauCoordinator.updateTau(agentId, { tps: 1, validatedWorkUnits: 0.1, informationGain: result.success ? 0.2 : 0.05 });
         }
 
         res.json({
             success: result.success,
+            executed: result.executed === true,
             tool: execTool,
             objective: objective || null,
             stdout: result.stdout,
             stderr: result.stderr,
             exit_code: result.exitCode,
             elapsed_ms: elapsed,
-            isolation: isolateSandbox.dockerAvailable ? 'docker' : 'vm',
+            isolation: result.isolation,
             hint: result.success ? 'Experiment completed. Include results in your next paper.' : 'Experiment failed. Check stderr for errors.'
         });
     } catch (err) {
@@ -6253,7 +6230,7 @@ app.get("/latest-papers", async (req, res) => {
 });
 
 // â"€â"€ Diagnostic: count papers by status (all statuses visible) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
-app.get("/admin/papers-status", async (req, res) => {
+app.get("/admin/papers-status", requireAdmin, async (req, res) => {
     const counts = {};
     const all = [];
     await new Promise(resolve => {
@@ -6273,8 +6250,9 @@ app.get("/admin/papers-status", async (req, res) => {
                papers: all.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 50) });
 });
 
-// â"€â"€ Manual trigger: restore mis-purged papers (can be called via GET) â"€â"€â"€â"€â"€â"€â"€â"€
-app.get("/admin/restore-purged", async (req, res) => {
+// Manual restore remains available to administrators, but never through a GET.
+app.get("/admin/restore-purged", rejectUnsafeAdminGet);
+app.post("/admin/restore-purged", requireAdmin, async (req, res) => {
     let restoredPapers = 0, restoredMempool = 0;
     const log = [];
     await new Promise(resolve => {

@@ -12,11 +12,11 @@
  * Results feed back into calibration score adjustments.
  *
  * This service calls existing infrastructure (CrossRef API, arXiv API,
- * Node.js VM sandbox, tier1Service) — it does NOT duplicate them.
+ * Docker-only IsolateSandbox, tier1Service) — it does NOT duplicate them.
  */
 
 import crypto from "crypto";
-import vm from "vm";
+import { sandbox as executionSandbox } from "./IsolateSandbox.js";
 
 // ── 1. CrossRef Citation Verification ──────────────────────────────────────
 
@@ -212,8 +212,8 @@ async function searchNovelty(content) {
 
 /**
  * Extract code blocks from paper and attempt to execute them.
- * - JavaScript: executed in Node.js VM sandbox (same as /lab/run-code)
- * - Python: attempted via child_process if python3 available, else static analysis
+ * - JavaScript: attempted only in the configured isolated runtime
+ * - Python: same isolated runtime via toolRunner, else static analysis only
  *
  * Returns execution results with hashes for each block.
  */
@@ -237,7 +237,7 @@ async function executeCodeBlocks(content) {
     for (const block of blocks.slice(0, 5)) { // Max 5 blocks
         if (block.lang === "javascript") {
             // Execute JS in sandbox (same as /lab/run-code)
-            const execResult = executeJsSandbox(block.code);
+            const execResult = await executeJsSandbox(block.code);
             results.push({ ...execResult, language: "javascript" });
         } else if (block.lang === "python") {
             // Try Python execution, fall back to static analysis
@@ -262,7 +262,7 @@ async function executeCodeBlocks(content) {
     }
 
     const executed = results.filter(r => r.executed).length;
-    const passed = results.filter(r => r.success).length;
+    const passed = results.filter(r => r.executed && r.success).length;
     return {
         total: results.length,
         executed,
@@ -273,51 +273,42 @@ async function executeCodeBlocks(content) {
 }
 
 /**
- * Execute JavaScript in a Node.js VM sandbox.
+ * Execute JavaScript through the shared, fail-closed isolated runtime.
  */
-function executeJsSandbox(code) {
-    const stdout = [];
+async function executeJsSandbox(code) {
+    const startMs = Date.now();
     try {
-        const sandbox = {
-            console: {
-                log: (...args) => stdout.push(args.map(a => typeof a === "object" ? JSON.stringify(a) : String(a)).join(" ")),
-                error: (...args) => stdout.push("[ERROR] " + args.map(a => String(a)).join(" ")),
-            },
-            Math, JSON, Array, Object, String, Number, Boolean, Date, RegExp, Map, Set,
-            parseInt, parseFloat, isNaN, isFinite,
-        };
-        vm.createContext(sandbox);
-        const startMs = Date.now();
-        const script = new vm.Script(code, { filename: "paper-code.js" });
-        script.runInContext(sandbox, { timeout: 5000 });
-        const elapsedMs = Date.now() - startMs;
-        const output = stdout.join("\n").substring(0, 5000);
-        const hash = crypto.createHash("sha256").update(code + output).digest("hex");
-
+        const result = await executionSandbox.execute(code, { language: "javascript", timeout: 5000 });
+        const output = (result.stdout || "").substring(0, 5000);
+        const executed = result.executed === true && result.isolation === "docker";
+        const success = executed && result.success === true;
         return {
-            executed: true,
-            success: true,
+            executed,
+            success,
+            error: success ? null : result.error || "isolated_execution_failed",
             output: output.substring(0, 500),
-            execution_ms: elapsedMs,
-            execution_hash: `sha256:${hash}`,
+            execution_ms: Date.now() - startMs,
+            execution_hash: success ? `sha256:${crypto.createHash("sha256").update(code + output).digest("hex")}` : null,
+            isolation: result.isolation || "unavailable",
         };
     } catch (e) {
         return {
-            executed: true,
+            executed: false,
             success: false,
-            error: e.message.includes("timed out") ? "TIMEOUT_5s" : e.message.substring(0, 100),
-            output: stdout.join("\n").substring(0, 200),
+            error: "SANDBOX_UNAVAILABLE",
+            output: "",
+            execution_hash: null,
+            isolation: "unavailable",
         };
     }
 }
 
 /**
- * Execute Python code if python3 is available on the system.
+ * Execute Python code only if the configured isolated runtime is available.
  * Falls back to static syntax analysis if not.
  */
 async function executePython(code) {
-    // Fix #3b: Use the proper toolRunner sandbox instead of raw execSync.
-    // toolRunner has proper timeout, memory limits, and supports scientific packages.
+    // toolRunner delegates to the same isolated runtime as JavaScript.
     try {
         const { runPythonTool, checkPythonAvailable } = await import("./toolRunner.js");
         const hasPython = await checkPythonAvailable();
@@ -325,7 +316,8 @@ async function executePython(code) {
             return {
                 executed: false,
                 success: false,
-                error: "python_not_available",
+                error: "SANDBOX_UNAVAILABLE",
+                isolation: "unavailable",
                 static_analysis: analyzePythonStatic(code),
             };
         }
@@ -336,22 +328,27 @@ async function executePython(code) {
             tool: "live_verification",
         });
 
+        const executed = result.executed === true && result.isolation === "docker";
+        const success = executed && result.success === true;
         return {
-            executed: true,
-            success: result.success,
+            executed,
+            success,
+            error: success ? null : result.error || "SANDBOX_UNAVAILABLE",
             output: (result.stdout || "").substring(0, 500),
-            execution_hash: result.execution_hash ? `sha256:${result.execution_hash}` : null,
-            runtime: "python3",
+            execution_hash: success && result.execution_hash ? `sha256:${result.execution_hash}` : null,
+            runtime: "isolated-python",
+            isolation: result.isolation || "unavailable",
         };
-    } catch (e) {
-        // Fallback: static analysis if toolRunner import fails or other error
-        console.warn(`[LIVE-VERIFY] Python execution error: ${e.message}`);
+    } catch {
+        // Static analysis is not execution; do not expose runtime error details.
         return {
             executed: false,
             success: false,
-            error: e.message?.substring(0, 200) || "unknown_error",
+            error: "SANDBOX_UNAVAILABLE",
+            execution_hash: null,
+            isolation: "unavailable",
             static_analysis: analyzePythonStatic(code),
-            runtime: "toolRunner_fallback",
+            runtime: "static-analysis-only",
         };
     }
 }
