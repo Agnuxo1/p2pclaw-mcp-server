@@ -39,7 +39,7 @@ const SESSION_TTL = 30 * 60 * 1000; // 30 minutes
 const CLEARANCE_TTL = 24 * 60 * 60 * 1000; // 24 hours (one clearance per paper)
 
 // Cleanup stale sessions every 5 minutes
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [id, s] of sessions) {
         if (now - s.createdAt > SESSION_TTL) sessions.delete(id);
@@ -48,6 +48,25 @@ setInterval(() => {
         if (now > c.expiresAt) clearances.delete(id);
     }
 }, 5 * 60 * 1000);
+if (typeof cleanupTimer.unref === "function") cleanupTimer.unref();
+
+// ── Event hook (optional, injected by index.js) ───────────────────────────────
+// kinds: 'tribunal_session' (on present), 'tribunal_pass' (on passing respond)
+
+let tribunalEventHook = null;
+
+export function setTribunalEventHook(fn) {
+    tribunalEventHook = typeof fn === "function" ? fn : null;
+}
+
+function emitTribunalEvent(kind, payload) {
+    if (!tribunalEventHook) return;
+    try {
+        tribunalEventHook(kind, payload);
+    } catch (_) {
+        // never let a broken hook break the tribunal flow
+    }
+}
 
 // ── IQ & Psychology Question Pool ─────────────────────────────────────────────
 // Categories: PATTERN, VERBAL, SPATIAL, MATH, LOGIC, PSYCHOLOGY, TRICK
@@ -97,6 +116,14 @@ const IQ_QUESTIONS = [
         explanation: "Necessary = required but not enough alone. Sufficient = enough by itself. Example: Oxygen is necessary for fire but not sufficient (also needs fuel + heat).",
         difficulty: "medium",
     },
+    {
+        id: "verbal-3",
+        category: "VERBAL",
+        question: "Are 'ELUCIDATE' and 'OBFUSCATE' synonyms or antonyms? Explain what each word means in one sentence.",
+        correct_keywords: ["antonym", "opposite", "clarify", "clear", "confuse", "obscure"],
+        explanation: "Antonyms. Elucidate means to make something clear or explain it; obfuscate means to deliberately make something unclear or confusing.",
+        difficulty: "medium",
+    },
 
     // --- SPATIAL / GEOMETRIC ---
     {
@@ -133,6 +160,22 @@ const IQ_QUESTIONS = [
         explanation: "Ball = $0.05, Bat = $1.05. Total = $1.10. Common wrong answer: $0.10 (fails the 'more than' condition).",
         difficulty: "hard",
     },
+    {
+        id: "math-3",
+        category: "MATH",
+        question: "A train travels 60 miles in 1.5 hours at a constant speed. At that same speed, how many hours does it take to travel 150 miles?",
+        correct_keywords: ["3.75", "225 minutes"],
+        explanation: "Speed = 60 / 1.5 = 40 mph. Time = 150 / 40 = 3.75 hours (225 minutes).",
+        difficulty: "medium",
+    },
+    {
+        id: "math-4",
+        category: "MATH",
+        question: "What is the sum of the first 20 positive integers (1 + 2 + ... + 20)?",
+        correct_keywords: ["210"],
+        explanation: "Sum = n(n+1)/2 = 20*21/2 = 210.",
+        difficulty: "easy",
+    },
 
     // --- LOGICAL DEDUCTION ---
     {
@@ -149,6 +192,14 @@ const IQ_QUESTIONS = [
         question: "Three boxes are labeled 'Apples', 'Oranges', and 'Mixed'. ALL labels are wrong. You pick one fruit from the 'Mixed' box and it's an apple. What's in each box?",
         correct_keywords: ["apples", "oranges", "mixed"],
         explanation: "'Mixed' box (mislabeled) contains only Apples. 'Oranges' box (mislabeled) must contain Mixed. 'Apples' box (mislabeled) contains Oranges.",
+        difficulty: "hard",
+    },
+    {
+        id: "logic-3",
+        category: "LOGIC",
+        question: "Rule: 'All researchers who publish on P2PCLAW must pass the Tribunal.' Maria passed the Tribunal. Can we conclude Maria is a researcher who published on P2PCLAW? Answer YES or NO and name the fallacy, if any.",
+        correct_keywords: ["no", "affirming the consequent", "fallacy", "not necessarily", "invalid"],
+        explanation: "No. This is the fallacy of affirming the consequent: Publish -> PassTribunal does not imply PassTribunal -> Publish. Others can pass the Tribunal without publishing.",
         difficulty: "hard",
     },
 
@@ -278,39 +329,260 @@ const DOMAIN_QUESTIONS = [
     },
 ];
 
-// ── Question Selection ────────────────────────────────────────────────────────
+// ── Category Table (paper §4) ───────────────────────────────────────────────
+// The paper's table header claims "total 26" but its own per-category rows
+// sum to 30 (3+3+2+4+3+4+6+5). We implement the 30-question pool the rows
+// actually describe, and note the discrepancy here rather than silently
+// under-building the pool.
+
+export const CATEGORY_TABLE = [
+    { id: "pattern", name: "Pattern", internalCategory: "PATTERN", target_pool_size: 3 },
+    { id: "verbal", name: "Verbal", internalCategory: "VERBAL", target_pool_size: 3 },
+    { id: "spatial", name: "Spatial", internalCategory: "SPATIAL", target_pool_size: 2 },
+    { id: "mathematical", name: "Mathematical", internalCategory: "MATH", target_pool_size: 4 },
+    { id: "logical", name: "Logical", internalCategory: "LOGIC", target_pool_size: 3 },
+    { id: "psychology", name: "Psychology", internalCategory: "PSYCHOLOGY", target_pool_size: 4 },
+    { id: "domain", name: "Domain", internalCategory: "DOMAIN", target_pool_size: 6 },
+    { id: "trick", name: "Trick", internalCategory: "TRICK", target_pool_size: 5 },
+];
+
+export function getCategoryTable() {
+    const categories = CATEGORY_TABLE.map(c => ({
+        id: c.id,
+        name: c.name,
+        pool_size: poolSizeFor(c.internalCategory),
+        selected: 1,
+    }));
+    const pool_total = categories.reduce((sum, c) => sum + c.pool_size, 0);
+    return {
+        categories,
+        pool_total,
+        questions_per_exam: CATEGORY_TABLE.length,
+        pass_threshold: 0.6,
+    };
+}
+
+function poolSizeFor(internalCategory) {
+    const builtin = internalCategory === "DOMAIN"
+        ? DOMAIN_QUESTIONS.length
+        : IQ_QUESTIONS.filter(q => q.category === internalCategory).length;
+    const community = COMMUNITY_QUESTIONS.filter(q => q.category === internalCategory && q.status === "accepted").length;
+    return builtin + community;
+}
+
+// ── Question Selection (stratified: exactly 1 per category = 8) ────────────
+
+function pick(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
 
 function selectQuestions(projectDescription) {
     const lower = (projectDescription || "").toLowerCase();
+    const selected = [];
 
-    // Always include exactly 2 trick questions (randomly selected)
-    const trickPool = IQ_QUESTIONS.filter(q => q.is_trick);
-    const shuffledTricks = trickPool.sort(() => Math.random() - 0.5).slice(0, 2);
+    for (const cat of CATEGORY_TABLE) {
+        if (cat.internalCategory === "DOMAIN") {
+            const domainQ = DOMAIN_QUESTIONS.find(d => d.domains.some(kw => lower.includes(kw))) || DOMAIN_QUESTIONS[0];
+            selected.push({ ...domainQ, type: "domain", category: "DOMAIN" });
+            continue;
+        }
 
-    // Select 3 IQ questions (pattern/verbal/math/logic/spatial)
-    const iqPool = IQ_QUESTIONS.filter(q =>
-        ["PATTERN", "VERBAL", "SPATIAL", "MATH", "LOGIC"].includes(q.category)
-    );
-    const shuffledIQ = iqPool.sort(() => Math.random() - 0.5).slice(0, 3);
-
-    // Select 2 psychology questions
-    const psychPool = IQ_QUESTIONS.filter(q => q.category === "PSYCHOLOGY");
-    const shuffledPsych = psychPool.sort(() => Math.random() - 0.5).slice(0, 2);
-
-    // Select 1 domain-specific question
-    let domainQ = DOMAIN_QUESTIONS.find(d =>
-        d.domains.some(kw => lower.includes(kw))
-    ) || DOMAIN_QUESTIONS[0]; // default: CS
-
-    // Total: 3 IQ + 2 psychology + 1 domain + 2 trick = 8 questions
-    const selected = [
-        ...shuffledIQ.map(q => ({ ...q, type: "iq" })),
-        ...shuffledPsych.map(q => ({ ...q, type: "psychology" })),
-        { ...domainQ, type: "domain", category: "DOMAIN" },
-        ...shuffledTricks.map(q => ({ ...q, type: "trick" })),
-    ];
+        const builtinPool = IQ_QUESTIONS.filter(q => q.category === cat.internalCategory);
+        const communityPool = COMMUNITY_QUESTIONS.filter(q => q.category === cat.internalCategory && q.status === "accepted");
+        const pool = [...builtinPool, ...communityPool];
+        const chosen = pick(pool);
+        const type = cat.internalCategory === "PSYCHOLOGY" ? "psychology"
+            : cat.internalCategory === "TRICK" ? "trick"
+                : "iq";
+        selected.push({ ...chosen, type });
+    }
 
     return selected;
+}
+
+// ── Examiner eligibility & conflict-of-interest ─────────────────────────────
+
+let examinerStatsProvider = null;
+
+export function registerExaminerStatsProvider(fn) {
+    examinerStatsProvider = typeof fn === "function" ? fn : null;
+}
+
+function examinerCriteria() {
+    const min_papers = Number(process.env.TRIBUNAL_EXAMINER_MIN_PAPERS) || 3;
+    const min_avg_score = Number(process.env.TRIBUNAL_EXAMINER_MIN_AVG) || 7.0;
+    return { min_papers, min_avg_score };
+}
+
+const eligibleSince = new Map(); // agentId -> ISO timestamp of first observed eligibility
+
+export function listExaminers() {
+    const { min_papers, min_avg_score } = examinerCriteria();
+    const stats = examinerStatsProvider ? (examinerStatsProvider() || []) : [];
+    const examiners = [];
+
+    for (const s of stats) {
+        if (!s || !s.agentId) continue;
+        const papers = Number(s.papers) || 0;
+        const avg_score = Number(s.avg_score) || 0;
+        if (papers >= min_papers && avg_score >= min_avg_score) {
+            if (!eligibleSince.has(s.agentId)) eligibleSince.set(s.agentId, new Date().toISOString());
+            examiners.push({
+                agentId: s.agentId,
+                papers,
+                avg_score,
+                eligible_since: eligibleSince.get(s.agentId),
+            });
+        }
+    }
+
+    return { examiners, criteria: { min_papers, min_avg_score } };
+}
+
+export function isEligibleExaminer(agentId) {
+    if (!agentId) return false;
+    return listExaminers().examiners.some(e => e.agentId === agentId);
+}
+
+/**
+ * Conflict-of-interest rule: an examiner can never endorse/review items
+ * where they are the author/proposer, or where they are the examinee.
+ * Throws if there is a conflict; returns true otherwise.
+ */
+export function assertNoConflict(examinerId, subjectAgentId) {
+    if (examinerId && subjectAgentId && examinerId === subjectAgentId) {
+        throw new Error("CONFLICT_OF_INTEREST: an examiner cannot review/endorse their own item or examine themselves");
+    }
+    return true;
+}
+
+// ── Dynamic agent-curated question bank (paper Future Work) ────────────────
+
+const questionProposals = new Map(); // proposal_id -> proposal
+let questionBankPersistence = null; // { load(): Promise<array>|array, save(proposals): void }
+
+export function setQuestionBankPersistence(hooks) {
+    questionBankPersistence = hooks && typeof hooks.save === "function" ? hooks : null;
+    if (hooks && typeof hooks.load === "function") {
+        try {
+            const loaded = hooks.load();
+            const apply = (arr) => {
+                if (!Array.isArray(arr)) return;
+                for (const p of arr) {
+                    if (p && p.id) questionProposals.set(p.id, { ...p, endorsers: new Set(p.endorsers || []) });
+                }
+            };
+            if (loaded && typeof loaded.then === "function") loaded.then(apply).catch(() => {});
+            else apply(loaded);
+        } catch (_) {
+            // persistence load is best-effort
+        }
+    }
+}
+
+function persistQuestionBank() {
+    if (!questionBankPersistence) return;
+    try {
+        const serializable = [...questionProposals.values()].map(p => ({ ...p, endorsers: [...p.endorsers] }));
+        questionBankPersistence.save(serializable);
+    } catch (_) {
+        // persistence save is best-effort, never throws
+    }
+}
+
+// Live pool of community-accepted questions, eligible for selection.
+const COMMUNITY_QUESTIONS = [];
+
+const VALID_CATEGORY_IDS = new Set(CATEGORY_TABLE.map(c => c.internalCategory));
+
+export function proposeQuestion(agentId, { category, question, expected_keywords, rationale } = {}) {
+    if (!isEligibleExaminer(agentId)) {
+        return { error: true, message: "Only eligible examiners may propose tribunal questions." };
+    }
+    const cat = String(category || "").toUpperCase();
+    if (!VALID_CATEGORY_IDS.has(cat)) {
+        return { error: true, message: `Invalid category. Must be one of: ${[...VALID_CATEGORY_IDS].join(", ")}` };
+    }
+    const q = String(question || "").trim();
+    if (q.length < 20 || q.length > 800) {
+        return { error: true, message: "question must be 20..800 characters" };
+    }
+    const keywords = Array.isArray(expected_keywords) ? expected_keywords.filter(k => typeof k === "string" && k.trim()) : [];
+    if (keywords.length < 2 || keywords.length > 12) {
+        return { error: true, message: "expected_keywords must have between 2 and 12 entries" };
+    }
+
+    const proposal_id = `qprop-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const proposal = {
+        id: proposal_id,
+        category: cat,
+        question: q,
+        expected_keywords: keywords,
+        rationale: rationale ? String(rationale).slice(0, 500) : "",
+        proposer: agentId,
+        status: "pending",
+        endorsers: new Set(),
+        created_at: new Date().toISOString(),
+    };
+    questionProposals.set(proposal_id, proposal);
+    persistQuestionBank();
+
+    return { proposal_id, status: "pending" };
+}
+
+export function endorseQuestion(proposalId, agentId) {
+    const proposal = questionProposals.get(proposalId);
+    if (!proposal) return { error: true, message: "Proposal not found" };
+    if (!isEligibleExaminer(agentId)) {
+        return { error: true, message: "Only eligible examiners may endorse tribunal questions." };
+    }
+    try {
+        assertNoConflict(agentId, proposal.proposer);
+    } catch (e) {
+        return { error: true, message: e.message };
+    }
+    if (proposal.status === "accepted") {
+        return { status: "accepted", endorsements: proposal.endorsers.size };
+    }
+    if (proposal.endorsers.has(agentId)) {
+        return { error: true, message: "This examiner has already endorsed this proposal" };
+    }
+
+    proposal.endorsers.add(agentId);
+
+    if (proposal.endorsers.size >= 2) {
+        proposal.status = "accepted";
+        COMMUNITY_QUESTIONS.push({
+            id: proposal.id,
+            category: proposal.category,
+            question: proposal.question,
+            correct_keywords: proposal.expected_keywords,
+            explanation: proposal.rationale,
+            difficulty: "medium",
+            source: "community",
+            proposal_id: proposal.id,
+            status: "accepted",
+        });
+    }
+
+    persistQuestionBank();
+
+    return { status: proposal.status, endorsements: proposal.endorsers.size };
+}
+
+export function listQuestionProposals() {
+    const proposals = [...questionProposals.values()].map(p => ({
+        id: p.id,
+        category: p.category,
+        question: p.question,
+        expected_keywords: p.expected_keywords,
+        rationale: p.rationale,
+        proposer: p.proposer,
+        status: p.status,
+        endorsements: p.endorsers.size,
+        created_at: p.created_at,
+    }));
+    return { proposals };
 }
 
 // ── Phase 1: Present ──────────────────────────────────────────────────────────
@@ -342,6 +614,8 @@ export function startPresentation(agentId, presentation) {
         questions,
         createdAt: Date.now(),
     });
+
+    emitTribunalEvent("tribunal_session", { agentId, sessionId });
 
     return {
         success: true,
@@ -462,6 +736,7 @@ export async function evaluateExamination(sessionId, answers) {
         });
 
         session.phase = "CLEARED";
+        emitTribunalEvent("tribunal_pass", { agentId: session.agentId, sessionId, grade, percentage });
     } else {
         session.phase = "FAILED";
     }

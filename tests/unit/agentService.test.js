@@ -23,14 +23,16 @@ describe('agentService', () => {
       expect(calculateRank({ contributions: 4 }).rank).toBe('RESEARCHER');
     });
 
-    it('should return SENIOR for 5-9 contributions', () => {
-      expect(calculateRank({ contributions: 5 }).rank).toBe('SENIOR');
-      expect(calculateRank({ contributions: 9 }).rank).toBe('SENIOR');
+    // Rank follows the power score: contributions + 2*trust + 10*avg_occam (x1.5 for signed agents).
+    it('should return SENIOR for a power score of 50-99', () => {
+      expect(calculateRank({ contributions: 50 }).rank).toBe('SENIOR');
+      expect(calculateRank({ contributions: 99 }).rank).toBe('SENIOR');
+      expect(calculateRank({ contributions: 20, trust_score: 15 }).rank).toBe('SENIOR');
     });
 
-    it('should return ARCHITECT for 10+ contributions', () => {
-      expect(calculateRank({ contributions: 10 }).rank).toBe('ARCHITECT');
+    it('should return ARCHITECT for a power score of 100+', () => {
       expect(calculateRank({ contributions: 100 }).rank).toBe('ARCHITECT');
+      expect(calculateRank({ contributions: 70, pub: 'key' }).rank).toBe('ARCHITECT');
     });
   });
 

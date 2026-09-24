@@ -35,6 +35,8 @@
 
 import { detectField, extractSignals, calibrateScores, REFERENCE_BENCHMARKS } from "./calibrationService.js";
 import { runLiveVerification, verificationToAdjustments } from "./liveVerificationService.js";
+import { interJudgeAgreement } from "./v8/krippendorff.js";
+import { paperDepthScore } from "./v8/depthScore.js";
 
 const SECTIONS = ["abstract", "introduction", "methodology", "results", "discussion", "conclusion", "references"];
 
@@ -416,6 +418,13 @@ const PROVIDERS = [
     },
 ];
 
+/** Number of judge providers that have at least one API key configured on this node. */
+export function configuredJudgeCount() {
+    return PROVIDERS.filter(p => Array.isArray(p.keys) ? p.keys.length > 0 : true).length;
+}
+/** Total judge providers defined in code (configured or not). */
+export const DEFINED_JUDGE_COUNT = PROVIDERS.length;
+
 // Deduplicate keys within each provider
 for (const p of PROVIDERS) {
     p.keys = [...new Set(p.keys)].filter(Boolean);
@@ -724,9 +733,23 @@ export async function scoreGranular(content, paperType = "research") {
     // against quality signals extracted from the paper content and calibrated
     // against recognized reference paper fingerprints.
     let calibration = null;
+    let depthTerms = null; // paper v7 Eq. 13 inputs, taken from the same signals calibration uses
     try {
         const fieldResult = detectField(content);
         const signals = extractSignals(content);
+        depthTerms = {
+            sections: signals.sections_present?.length || 0,
+            eq: !!signals.has_equations,
+            proof: !!signals.has_formal_proofs,
+            code: !!signals.has_real_code,
+            stats: !!signals.has_statistical_tests,
+            n_num: signals.numerical_claims_count ?? signals.number_count ?? 0,
+            n_ref: signals.unique_refs || 0,
+            doi: !!signals.has_dois,
+            author: !!signals.has_real_authors,
+            mono: !!signals.grammar_quality?.is_monotone,
+            low_vocab: !!signals.grammar_quality?.is_low_vocabulary,
+        };
         const benchmarks = REFERENCE_BENCHMARKS[fieldResult.field] || null;
         const { calibrated, adjustments } = calibrateScores(averaged, signals, benchmarks);
 
@@ -862,6 +885,7 @@ export async function scoreGranular(content, paperType = "research") {
             } : null,
             adjustments: liveAdj,
             bonuses: liveBon,
+            reference_verification: verification.reference_verification || null,
         };
 
         const adjCount = Object.keys(liveAdj).filter(k => k.endsWith("_cap")).length;
@@ -948,6 +972,15 @@ export async function scoreGranular(content, paperType = "research") {
         paper_type: paperType,
         calibration,
         live_verification: liveVerification,
+        // Paper v7 section 20.4: inter-judge reliability as Krippendorff's alpha (interval metric).
+        inter_judge_agreement: interJudgeAgreement(judge_details, allFields),
+        // Paper v7 Eq. 13 (exact) next to the extended production formula used by calibration.
+        depth: depthTerms ? {
+            score: paperDepthScore(depthTerms),
+            extended_score: calibration?.signals_summary?.depth_score ?? null,
+            terms: depthTerms,
+        } : null,
+        reference_verification: liveVerification?.reference_verification || null,
     };
 
     console.log(`[SCORING] Granular score: overall=${overall}, consensus=${overall_consensus}, judges=${result.judges.join(",")}`);

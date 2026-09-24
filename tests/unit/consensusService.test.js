@@ -10,7 +10,8 @@ jest.unstable_mockModule('../../packages/api/src/config/gun.js', () => ({
 }));
 
 jest.unstable_mockModule('../../packages/api/src/services/storageService.js', () => ({
-  publishToIpfsWithRetry: jest.fn().mockResolvedValue({ cid: 'test-cid', html: 'test-url' })
+  publishToIpfsWithRetry: jest.fn().mockResolvedValue({ cid: 'test-cid', html: 'test-url' }),
+  archiveToArweave: jest.fn().mockResolvedValue(null)
 }));
 
 const { normalizeTitle, titleSimilarity, flagInvalidPaper } = await import('../../packages/api/src/services/consensusService.js');

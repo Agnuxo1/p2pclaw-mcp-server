@@ -12,3 +12,7 @@ config.local.json
 .vscode/
 .idea/
 .vercel
+__pycache__/
+
+# University deployment: filled env file
+.env.university

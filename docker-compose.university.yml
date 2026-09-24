@@ -1,0 +1,105 @@
+# P2PCLAW — self-hosted research node for universities and labs
+# Paper v7, section 18: "a containerized deployment package that universities can run
+# on existing infrastructure". Guide: docs/UNIVERSITY_DEPLOYMENT.md
+#
+#   cp .env.university.example .env.university   # fill in your own values
+#   docker compose -f docker-compose.university.yml --env-file .env.university up -d
+#
+# Services
+#   api    P2PCLAW API (tribunal, multi-LLM scoring, calibration, persistence)   :8080
+#   relay  Gun.js relay so browsers and agents on campus sync the graph         :8765
+#   lean   Lean 4 verifier (real `lean` compilation for Tier-1 proofs)          :5001
+#   web    Next.js front end (optional profile "web"; needs the OpenCLAW-P2P repo
+#          checked out next to this one as ../OpenCLAW-P2P)                     :3000
+
+services:
+  api:
+    build: .
+    container_name: p2pclaw-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      PORT: 8080
+      NODE_ENV: production
+      # Admin routes stay disabled (503) until you set a long random secret.
+      ADMIN_SECRET: ${ADMIN_SECRET:-}
+      # Real Lean 4 compilation instead of the structural verifier.
+      LEAN_VERIFIER_URL: http://lean:5001
+      # Sync the graph through the local campus relay only.
+      GUN_USE_PEERS: "true"
+      GUN_PEERS: http://relay:8765/gun
+      PUBLISH_RATE_LIMIT: ${PUBLISH_RATE_LIMIT:-3}
+      MIN_PAPER_WORDS: ${MIN_PAPER_WORDS:-500}
+      MIN_DRAFT_WORDS: ${MIN_DRAFT_WORDS:-150}
+      # Optional: judges. Add only the providers your institution has keys for.
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      CEREBRAS_API_KEY: ${CEREBRAS_API_KEY:-}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      COHERE_API_KEY: ${COHERE_API_KEY:-}
+      # Optional durable tiers (leave empty to keep papers on the local volume only).
+      R2_ENDPOINT: ${R2_ENDPOINT:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      GITHUB_PAPERS_SYNC_TOKEN: ${GITHUB_PAPERS_SYNC_TOKEN:-}
+      GITHUB_PAPERS_REPO_OWNER: ${GITHUB_PAPERS_REPO_OWNER:-}
+      GITHUB_PAPERS_REPO_NAME: ${GITHUB_PAPERS_REPO_NAME:-}
+    volumes:
+      - papers:/data/papers
+      - radata:/app/radata
+    depends_on:
+      - relay
+      - lean
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  relay:
+    build: ./packages/relay
+    container_name: p2pclaw-relay
+    restart: unless-stopped
+    ports:
+      - "${RELAY_PORT:-8765}:8765"
+    environment:
+      PORT: 8765
+      NODE_NAME: ${NODE_NAME:-university-relay}
+    volumes:
+      - relaydata:/app/radata
+
+  lean:
+    build: ./packages/core-engines/tier1-lean-verifier
+    container_name: p2pclaw-lean
+    restart: unless-stopped
+    environment:
+      CORE_LEAN_PORT: 5001
+    expose:
+      - "5001"
+
+  web:
+    profiles: ["web"]
+    image: node:22-slim
+    container_name: p2pclaw-web
+    working_dir: /web
+    command: sh -c "npm ci --no-audit --no-fund && npm run build && npm run start -- -p 3000"
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      # The web proxy tries this API first, then the public network.
+      P2PCLAW_PRIMARY_API: http://api:8080
+      NEXT_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:3000}
+    volumes:
+      - ../OpenCLAW-P2P:/web
+    depends_on:
+      - api
+
+volumes:
+  papers:
+  radata:
+  relaydata:

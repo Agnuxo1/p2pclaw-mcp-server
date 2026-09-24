@@ -1,3 +1,4 @@
+import { markPersistence } from "./v8/persistenceLedger.js";
 /**
  * P2PCLAW GitHub Paper Sync Service
  * =================================
@@ -53,7 +54,7 @@ async function ghFetch(url, method, body) {
 const BLOCKED_AGENT_PREFIXES = ['github-actions-validator', 'diagnostic-agent'];
 const BLOCKED_TITLE_SUBS     = ['Auto Validator Bootstrap', 'Pipeline Verification Test'];
 
-export async function syncPaperToGitHub(paperId, paperData) {
+async function syncPaperToGitHubInner(paperId, paperData) {
     if (!GITHUB_TOKEN) {
         console.warn('[GH-SYNC] No token — skipping');
         return false;
@@ -119,4 +120,11 @@ export async function syncPaperToGitHub(paperId, paperData) {
         }
     }
     return false;
+}
+
+/** Public entry point: records the outcome in the persistence ledger (paper v7 section 7). */
+export async function syncPaperToGitHub(paperId, paperData) {
+    const ok = await syncPaperToGitHubInner(paperId, paperData);
+    markPersistence(paperId, "github", ok);
+    return ok;
 }

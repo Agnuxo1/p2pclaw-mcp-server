@@ -26,6 +26,68 @@ import vm from "vm";
  *
  * Returns: { total, verified, unverified, results: [...], verification_rate }
  */
+// ── Match guard ────────────────────────────────────────────────────────────
+// Free-text search always returns *some* top hit, so a hit alone proves nothing:
+// a fabricated reference would be "verified" by whatever CrossRef ranks first.
+// A reference counts as verified only when the returned work's title is contained
+// in the citation text (and the year agrees when both are known).
+const TITLE_STOPWORDS = new Set(["the","and","for","with","from","into","that","this","are","via","using","towards","toward","over","under","between","based","its","their","our","your","not","all","any","new","one","two"]);
+
+function significantWords(text) {
+    return String(text || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/).filter(w => w.length >= 3 && !TITLE_STOPWORDS.has(w));
+}
+
+export function titleMatchesCitation(citation, title, year = null) {
+    const titleWords = significantWords(title);
+    if (titleWords.length === 0) return false;
+    const citationWords = new Set(significantWords(citation));
+    const hits = titleWords.filter(w => citationWords.has(w)).length;
+    const coverage = hits / titleWords.length;
+    const needed = titleWords.length <= 3 ? 1 : 0.7;
+    if (coverage < needed) return false;
+    // A full-title match on a long title survives a year mismatch (reprints, re-issued DOIs);
+    // partial matches must agree on the year when both sides state one.
+    if (coverage === 1 && titleWords.length >= 4) return true;
+    const citedYears = (String(citation).match(/\b(?:19|20)\d{2}\b/g) || []).map(Number);
+    if (year && citedYears.length > 0 && !citedYears.some(y => Math.abs(y - Number(year)) <= 1)) return false;
+    return true;
+}
+
+/** Best-effort title of a formatted reference: the sentence after "(2017)." or "2017.". */
+export function extractCitedTitle(citation) {
+    const text = String(citation).replace(/^\s*\[?\d+\]?\s*/, "");
+    const m = text.match(/\(?\b(?:19|20)\d{2}[a-z]?\)?[.,]\s*["\u201c]?(.+?)["\u201d]?(?:\.\s|\.$|\?\s|$)/);
+    const title = m ? m[1].trim() : "";
+    return significantWords(title).length >= 2 ? title : null;
+}
+
+/** DOI existence at the registration agency level (CrossRef, DataCite, mEDRA...). */
+async function doiRegistered(doi) {
+    try {
+        const resp = await fetch(`https://doi.org/api/handles/${encodeURIComponent(doi)}`, { signal: AbortSignal.timeout(8000) });
+        const data = await resp.json().catch(() => null);
+        if (data && data.responseCode === 1) return true;
+        if (data && data.responseCode === 100) return false;
+        return null;
+    } catch { return null; }
+}
+
+function extractArxivId(citation) {
+    const m = String(citation).match(/arxiv[:.\s/]*(?:abs\/)?(\d{4}\.\d{4,5})/i);
+    return m ? m[1] : null;
+}
+
+/** Resolve a DOI directly. Returns {found, title, year} or {found:false, reason:"doi_not_found"}. */
+async function crossRefResolveDoi(doi) {
+    const url = `https://api.crossref.org/works/${encodeURIComponent(doi)}?mailto=p2pclaw@p2pclaw.com`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (resp.status === 404) return { found: false, reason: "doi_not_found" };
+    if (!resp.ok) return { found: false, reason: `http_${resp.status}` };
+    const item = (await resp.json())?.message;
+    return { found: !!item, doi, title: (item?.title || [])[0] || null, year: item?.issued?.["date-parts"]?.[0]?.[0] || item?.published?.["date-parts"]?.[0]?.[0] || null };
+}
+
 async function verifyCitations(content) {
     // Extract references section
     const refMatch = content.match(/##?\s*references([\s\S]*?)$/i);
@@ -67,7 +129,7 @@ async function verifyCitations(content) {
                 continue;
             }
 
-            const url = `https://api.crossref.org/works?query=${encodeURIComponent(cleanCitation)}&rows=1&mailto=p2pclaw@p2pclaw.com`;
+            const url = `https://api.crossref.org/works?query.bibliographic=${encodeURIComponent(cleanCitation)}&rows=3&mailto=p2pclaw@p2pclaw.com`;
             const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
 
             if (!resp.ok) {
@@ -76,9 +138,13 @@ async function verifyCitations(content) {
             }
 
             const data = await resp.json();
-            const items = data?.message?.items || [];
+            const rawItems = data?.message?.items || [];
+            const yearOfItem = (it) => it?.published?.["date-parts"]?.[0]?.[0] || it?.issued?.["date-parts"]?.[0]?.[0] || null;
+            const matched = rawItems.find(it => it && it.score > 40 && titleMatchesCitation(citation, (it.title || [])[0], yearOfItem(it)));
+            const items = matched ? [matched, ...rawItems.filter(it => it !== matched)] : rawItems;
 
-            if (items.length > 0 && items[0].score > 40) {
+            const topYear = items[0]?.published?.["date-parts"]?.[0]?.[0] || items[0]?.issued?.["date-parts"]?.[0]?.[0] || null;
+            if (items.length > 0 && items[0].score > 40 && titleMatchesCitation(citation, (items[0].title || [])[0], topYear)) {
                 const item = items[0];
                 results.push({
                     citation: citation.substring(0, 80),
@@ -92,7 +158,7 @@ async function verifyCitations(content) {
                 results.push({
                     citation: citation.substring(0, 80),
                     found: false,
-                    reason: items.length === 0 ? "no_match" : `low_score_${items[0]?.score}`,
+                    reason: items.length === 0 ? "no_match" : (items[0]?.score > 40 ? "title_mismatch" : `low_score_${items[0]?.score}`),
                 });
             }
         } catch (e) {
@@ -111,6 +177,301 @@ async function verifyCitations(content) {
         unverified: results.length - verified,
         verification_rate: results.length > 0 ? Math.round((verified / results.length) * 100) : 0,
         results,
+    };
+}
+
+// ── 1b. Reference multi-source verification (CrossRef -> arXiv -> Semantic Scholar) ──
+// Paper §6.4: Semantic Scholar is the secondary/tertiary verification source,
+// used only when CrossRef (and a per-reference arXiv lookup) fail to confirm
+// a reference. Never throws — failures count as "unverifiable".
+
+const HOST_MIN_INTERVAL_MS = {
+    "api.semanticscholar.org": 1000, // 1 req/s per Semantic Scholar's public rate limit
+};
+const hostLastCallAt = new Map();
+
+async function throttleHost(host) {
+    const minInterval = HOST_MIN_INTERVAL_MS[host];
+    if (!minInterval) return;
+    const now = Date.now();
+    const last = hostLastCallAt.get(host) || 0;
+    const wait = Math.max(0, minInterval - (now - last));
+    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    hostLastCallAt.set(host, Date.now());
+}
+
+function cleanCitationText(citation) {
+    return citation
+        .replace(/^\[?\d+\]?\s*/, "")
+        .replace(/[()[\]]/g, "")
+        .substring(0, 150)
+        .replace(/[^\w\s]/g, " ")
+        .trim();
+}
+
+function extractDoi(citation) {
+    const m = citation.match(/10\.\d{4,9}\/[^\s,;]+/);
+    return m ? m[0].replace(/[.,;]+$/, "") : null;
+}
+
+function extractReferenceLines(content) {
+    const refMatch = content.match(/##?\s*references([\s\S]*?)$/i);
+    if (!refMatch) return [];
+    return refMatch[1]
+        .split("\n")
+        .map(l => l.trim())
+        .filter(l => /^\[?\d+\]?\s*.{15,}/.test(l) || /^[-•]\s*.{15,}/.test(l));
+}
+
+/**
+ * CrossRef lookup for a single reference. Never throws.
+ */
+async function crossRefVerify(citation) {
+    try {
+        const doi = extractDoi(citation);
+        if (doi) {
+            const byDoi = await crossRefResolveDoi(doi);
+            if (byDoi.found) {
+                return titleMatchesCitation(citation, byDoi.title, null)
+                    ? { found: true, doi, title: byDoi.title }
+                    : { found: false, reason: "doi_title_mismatch", doi };
+            }
+            if (byDoi.reason === "doi_not_found") {
+                const registered = await doiRegistered(doi);
+                if (registered === false) return { found: false, reason: "doi_not_found", doi };
+                // Registered elsewhere (e.g. DataCite for arXiv DOIs): let the next sources confirm it.
+                if (registered === true) return { found: false, reason: "doi_not_in_crossref", doi };
+            }
+        }
+        const query = cleanCitationText(citation);
+        if (query.length < 10) return { found: false, reason: "too_short" };
+        const url = `https://api.crossref.org/works?query.bibliographic=${encodeURIComponent(query)}&rows=3&mailto=p2pclaw@p2pclaw.com`;
+        const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (!resp.ok) return { found: false, reason: `http_${resp.status}` };
+        const data = await resp.json();
+        const yearOf = (it) => it?.issued?.["date-parts"]?.[0]?.[0] || it?.published?.["date-parts"]?.[0]?.[0] || null;
+        const item = (data?.message?.items || []).find(it => it && it.score > 40 && titleMatchesCitation(citation, (it.title || [])[0], yearOf(it)));
+        if (item) {
+            return {
+                found: true,
+                doi: item.DOI || null,
+                title: (item.title || [])[0] || "Unknown",
+            };
+        }
+        return { found: false, reason: "no_match" };
+    } catch (e) {
+        return { found: false, reason: e.name === "TimeoutError" ? "timeout" : (e.message || "error").substring(0, 60) };
+    }
+}
+
+/**
+ * arXiv lookup for a single reference (title-word search). Never throws.
+ */
+async function arxivVerify(citation) {
+    try {
+        const query = cleanCitationText(citation);
+        if (query.length < 10) return { found: false, reason: "too_short" };
+        const arxivId = extractArxivId(citation);
+        const url = arxivId
+            ? `http://export.arxiv.org/api/query?id_list=${encodeURIComponent(arxivId)}`
+            : `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=1`;
+        const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (!resp.ok) return { found: false, reason: `http_${resp.status}` };
+        const xml = await resp.text();
+        const entryMatch = xml.match(/<entry>[\s\S]*?<\/entry>/);
+        if (!entryMatch) return { found: false, reason: "no_match" };
+        const titleMatch = entryMatch[0].match(/<title>([\s\S]*?)<\/title>/);
+        const idMatch = entryMatch[0].match(/<id>([\s\S]*?)<\/id>/);
+        const foundTitle = titleMatch ? titleMatch[1].replace(/\s+/g, " ").trim() : "";
+        if (arxivId && (!foundTitle || /^error$/i.test(foundTitle))) return { found: false, reason: "arxiv_id_not_found" };
+        if (!arxivId && !titleMatchesCitation(citation, foundTitle, null)) return { found: false, reason: "title_mismatch" };
+        return {
+            found: true,
+            title: titleMatch ? titleMatch[1].replace(/\s+/g, " ").trim() : "Unknown",
+            arxiv_id: idMatch ? idMatch[1].replace("http://arxiv.org/abs/", "") : null,
+        };
+    } catch (e) {
+        return { found: false, reason: e.name === "TimeoutError" ? "timeout" : (e.message || "error").substring(0, 60) };
+    }
+}
+
+/**
+ * Semantic Scholar lookup for a single reference — secondary verification
+ * source per paper §6.4. DOI lookup when a DOI is present in the citation
+ * text, otherwise a title/keyword search. Respects 1 req/s and an 8s
+ * timeout. Never throws.
+ */
+async function semanticScholarVerify(citation) {
+    try {
+        await throttleHost("api.semanticscholar.org");
+        const doi = extractDoi(citation);
+
+        if (doi) {
+            const url = `https://api.semanticscholar.org/graph/v1/paper/DOI:${encodeURIComponent(doi)}?fields=title,year,externalIds,citationCount,authors`;
+            const resp = await fetch(url, { headers: semanticScholarHeaders(), signal: AbortSignal.timeout(8000) });
+            if (!resp.ok) return { found: false, reason: `http_${resp.status}` };
+            const data = await resp.json();
+            if (data && data.title && titleMatchesCitation(citation, data.title, null)) {
+                return { found: true, doi, title: data.title, year: data.year || null };
+            }
+            return { found: false, reason: "no_match" };
+        }
+
+        const query = cleanCitationText(citation);
+        if (query.length < 10) return { found: false, reason: "too_short" };
+        const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&fields=title,year,externalIds,citationCount,authors&limit=3`;
+        const resp = await fetch(url, { headers: semanticScholarHeaders(), signal: AbortSignal.timeout(8000) });
+        if (!resp.ok) return { found: false, reason: `http_${resp.status}` };
+        const data = await resp.json();
+        const item = (data?.data || []).find(d => d && d.title && titleMatchesCitation(citation, d.title, d.year));
+        if (item) {
+            return {
+                found: true,
+                doi: item.externalIds?.DOI || null,
+                title: item.title,
+                year: item.year || null,
+            };
+        }
+        return { found: false, reason: "no_match" };
+    } catch (e) {
+        return { found: false, reason: e.name === "TimeoutError" ? "timeout" : (e.message || "error").substring(0, 60) };
+    }
+}
+
+/**
+ * Verify a single reference against CrossRef, then arXiv, then Semantic
+ * Scholar (only reached if both prior sources fail). Never throws.
+ */
+function semanticScholarHeaders() {
+    return process.env.SEMANTIC_SCHOLAR_API_KEY ? { "x-api-key": process.env.SEMANTIC_SCHOLAR_API_KEY } : {};
+}
+
+/**
+ * OpenAlex lookup (open catalogue, no key). Used after Semantic Scholar because the
+ * public Semantic Scholar pool is frequently rate limited. Never throws.
+ */
+async function openAlexVerify(citation) {
+    try {
+        const doi = extractDoi(citation);
+        const mailto = "mailto=p2pclaw@p2pclaw.com";
+        if (doi) {
+            const resp = await fetch(`https://api.openalex.org/works/doi:${encodeURIComponent(doi)}?${mailto}`, { signal: AbortSignal.timeout(8000) });
+            if (resp.status === 404) return { found: false, reason: "doi_not_found" };
+            if (!resp.ok) return { found: false, reason: `http_${resp.status}` };
+            const w = await resp.json();
+            return w?.title && titleMatchesCitation(citation, w.title, null)
+                ? { found: true, doi, title: w.title }
+                : { found: false, reason: "doi_title_mismatch" };
+        }
+        const citedTitle = extractCitedTitle(citation);
+        const query = cleanCitationText(citation);
+        if (!citedTitle && query.length < 10) return { found: false, reason: "too_short" };
+        const oaUrl = citedTitle
+            ? `https://api.openalex.org/works?filter=title.search:${encodeURIComponent(citedTitle.replace(/[,:|]/g, " "))}&per-page=5&${mailto}`
+            : `https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=3&${mailto}`;
+        const resp = await fetch(oaUrl, { signal: AbortSignal.timeout(8000) });
+        if (!resp.ok) return { found: false, reason: `http_${resp.status}` };
+        const data = await resp.json();
+        const w = (data?.results || []).find(r => r && r.title && titleMatchesCitation(citation, r.title, r.publication_year));
+        if (w) return { found: true, doi: w.doi ? w.doi.replace(/^https:\/\/doi\.org\//, "") : null, title: w.title };
+        return { found: false, reason: "no_match" };
+    } catch (e) {
+        return { found: false, reason: e.name === "TimeoutError" ? "timeout" : (e.message || "error").substring(0, 60) };
+    }
+}
+
+// A negative is definitive only when a source actually answered and nothing matched.
+// Rate limits, timeouts and server errors mean the reference was never really checked.
+const DEFINITIVE_NEGATIVE = new Set(["no_match", "title_mismatch", "doi_title_mismatch", "doi_not_found", "arxiv_id_not_found", "too_short"]);
+
+async function verifyReferenceMultiSource(citation) {
+    const reasons = [];
+    const cr = await crossRefVerify(citation);
+    if (cr.found) return { status: "verified", source: "crossref", doi: cr.doi || null, title: cr.title || null };
+    reasons.push(cr.reason);
+    // A DOI that CrossRef says does not exist is fabricated; no other source can rescue it.
+    if (cr.reason === "doi_not_found") return { status: "unverifiable", source: null, doi: cr.doi || null, title: null, reason: "doi_not_found" };
+
+    const ax = await arxivVerify(citation);
+    if (ax.found) return { status: "verified", source: "arxiv", doi: null, title: ax.title || null };
+    reasons.push(ax.reason);
+
+    const ss = await semanticScholarVerify(citation);
+    if (ss.found) return { status: "verified", source: "semantic_scholar", doi: ss.doi || null, title: ss.title || null };
+    reasons.push(ss.reason);
+
+    const oa = await openAlexVerify(citation);
+    if (oa.found) return { status: "verified", source: "openalex", doi: oa.doi || null, title: oa.title || null };
+    reasons.push(oa.reason);
+
+    const anyDefinitive = reasons.some(r => DEFINITIVE_NEGATIVE.has(r));
+    return { status: anyDefinitive ? "unverifiable" : "unchecked", source: null, doi: null, title: null, reason: reasons.filter(Boolean).join(",") };
+}
+
+/**
+ * Compute the `reference_verification` summary object exactly per CONTRACT:
+ * { total, verified, unverifiable, unverifiable_ratio, sources, ghost_citation_flag, items[] }
+ * `items` is capped at 40. Never throws.
+ */
+async function computeReferenceVerification(content) {
+    const lines = extractReferenceLines(content).slice(0, 40);
+
+    if (lines.length === 0) {
+        return {
+            total: 0,
+            verified: 0,
+            unverifiable: 0,
+            unchecked: 0,
+            unverifiable_ratio: 0,
+            sources: { crossref: 0, arxiv: 0, semantic_scholar: 0, openalex: 0 },
+            ghost_citation_flag: false,
+            items: [],
+        };
+    }
+
+    const items = [];
+    const sources = { crossref: 0, arxiv: 0, semantic_scholar: 0, openalex: 0 };
+    let verified = 0;
+    let unchecked = 0;
+
+    for (const line of lines) {
+        let result;
+        try {
+            result = await verifyReferenceMultiSource(line);
+        } catch (_) {
+            result = { status: "unverifiable", source: null, doi: null, title: null };
+        }
+        if (result.status === "unchecked") unchecked++;
+        if (result.status === "verified") {
+            verified++;
+            if (result.source && sources[result.source] !== undefined) sources[result.source]++;
+        }
+        items.push({
+            ref: line.substring(0, 150),
+            status: result.status,
+            source: result.source,
+            doi: result.doi,
+            title: result.title,
+            reason: result.reason || null,
+        });
+    }
+
+    // Paper v7 section 6.4: > 50% unverifiable references => ghost-citations flag.
+    // The ratio is over references that were actually checked; unchecked ones are reported apart.
+    const total = lines.length;
+    const unverifiable = total - verified - unchecked;
+    const checked = verified + unverifiable;
+    const unverifiable_ratio = checked > 0 ? Math.round((unverifiable / checked) * 100) / 100 : 0;
+
+    return {
+        total,
+        verified,
+        unverifiable,
+        unchecked,
+        unverifiable_ratio,
+        sources,
+        ghost_citation_flag: unverifiable_ratio > 0.5,
+        items: items.slice(0, 40),
     };
 }
 
@@ -533,12 +894,13 @@ async function verifyLean4Blocks(content, tier1Url) {
 async function runLiveVerification(content) {
     const startMs = Date.now();
 
-    // Run all 4 verifications in parallel
-    const [citationResult, noveltyResult, codeResult, lean4Result] = await Promise.allSettled([
+    // Run all verifications in parallel (additive: reference_verification never blocks the rest)
+    const [citationResult, noveltyResult, codeResult, lean4Result, refVerificationResult] = await Promise.allSettled([
         verifyCitations(content),
         searchNovelty(content),
         executeCodeBlocks(content),
         verifyLean4Blocks(content),
+        computeReferenceVerification(content),
     ]);
 
     const elapsed = Date.now() - startMs;
@@ -549,6 +911,9 @@ async function runLiveVerification(content) {
         novelty: noveltyResult.status === "fulfilled" ? noveltyResult.value : { error: noveltyResult.reason?.message },
         code_execution: codeResult.status === "fulfilled" ? codeResult.value : { error: codeResult.reason?.message },
         lean4: lean4Result.status === "fulfilled" ? lean4Result.value : { error: lean4Result.reason?.message },
+        reference_verification: refVerificationResult.status === "fulfilled"
+            ? refVerificationResult.value
+            : { total: 0, verified: 0, unverifiable: 0, unverifiable_ratio: 0, sources: { crossref: 0, arxiv: 0, semantic_scholar: 0 }, ghost_citation_flag: false, items: [], error: refVerificationResult.reason?.message },
     };
 }
 
@@ -638,4 +1003,9 @@ export {
     verifyLean4Blocks,
     runLiveVerification,
     verificationToAdjustments,
+    computeReferenceVerification,
+    verifyReferenceMultiSource,
+    crossRefVerify,
+    arxivVerify,
+    semanticScholarVerify,
 };

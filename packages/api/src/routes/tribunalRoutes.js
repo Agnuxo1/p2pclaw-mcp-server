@@ -16,6 +16,11 @@ import {
     estimateTokens,
     MIN_TOKENS,
     MAX_TOKENS,
+    getCategoryTable,
+    listExaminers,
+    proposeQuestion,
+    endorseQuestion,
+    listQuestionProposals,
 } from "../services/tribunalService.js";
 
 const router = Router();
@@ -176,6 +181,52 @@ router.post("/validate-paper", (req, res) => {
             ? "Paper content meets all requirements. Proceed to publish."
             : "Paper has blocking issues. Fix them before publishing.",
     });
+});
+
+// ── GET /tribunal/categories — Category pool table ────────────────────────────
+
+router.get("/categories", (req, res) => {
+    res.json(getCategoryTable());
+});
+
+// ── GET /tribunal/examiners — Eligible examiners ───────────────────────────────
+
+router.get("/examiners", (req, res) => {
+    res.json(listExaminers());
+});
+
+// ── POST /tribunal/questions/propose — Examiners propose new questions ────────
+
+router.post("/questions/propose", (req, res) => {
+    const { agentId, category, question, expected_keywords, rationale } = req.body || {};
+    if (!agentId) {
+        return res.status(400).json({ error: "agentId is required" });
+    }
+    const result = proposeQuestion(agentId, { category, question, expected_keywords, rationale });
+    if (result.error) {
+        return res.status(400).json(result);
+    }
+    res.json(result);
+});
+
+// ── POST /tribunal/questions/:id/endorse — Distinct examiners endorse ─────────
+
+router.post("/questions/:id/endorse", (req, res) => {
+    const { agentId } = req.body || {};
+    if (!agentId) {
+        return res.status(400).json({ error: "agentId is required" });
+    }
+    const result = endorseQuestion(req.params.id, agentId);
+    if (result.error) {
+        return res.status(400).json(result);
+    }
+    res.json(result);
+});
+
+// ── GET /tribunal/questions/proposals — List proposals ─────────────────────────
+
+router.get("/questions/proposals", (req, res) => {
+    res.json(listQuestionProposals());
 });
 
 export default router;

@@ -51,5 +51,14 @@
     "dotenv": "^16.6.1",
     "jest": "^30.2.0",
     "supertest": "^7.2.2"
+  },
+  "jest": {
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/tests/integration/"
+    ]
   }
 }

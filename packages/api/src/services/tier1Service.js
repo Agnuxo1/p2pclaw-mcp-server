@@ -4,6 +4,17 @@ import { verifyPaperInProcess } from './heytingVerifier.js';
 const VERIFIER_URL = process.env.TIER1_VERIFIER_URL || 'https://agnuxo-lean4-proof-checker.hf.space';
 
 /**
+ * Paper §3.3 — which verification mode Tier-1 is configured to use.
+ * 'lean4' when a real Lean compile service is configured (LEAN_VERIFIER_URL),
+ * else 'structural' (the in-process Heyting Nucleus fallback).
+ * This reflects CONFIGURATION, not necessarily the outcome of a given call —
+ * individual results are labeled with the mode actually used (see below).
+ */
+export function verificationMode() {
+    return process.env.LEAN_VERIFIER_URL ? 'lean4' : 'structural';
+}
+
+/**
  * Sends research content and claims to the Lean 4 proof engine container.
  * Falls back to in-process Heyting Nucleus verification if container is unavailable.
  * 
@@ -47,12 +58,18 @@ export async function verifyWithTier1(title, content, claims, agentId) {
     }
     
     console.log(`[TIER1] External verifier result: ${result.verified ? 'VERIFIED' : 'UNVERIFIED'}`);
-    return result; // { verified, proof_hash, lean_proof, occam_score, violations[] }
-    
+    // Honest labeling: this branch actually compiled/checked via the external
+    // Lean 4 service, so it is labeled 'lean4' regardless of configuration.
+    return { ...result, verification_mode: 'lean4' }; // { verified, proof_hash, lean_proof, occam_score, violations[] }
+
   } catch (err) {
-    // External verifier unavailable â€” use in-process Heyting Nucleus engine
+    // External verifier unavailable â€” use in-process Heyting Nucleus engine.
+    // Honest labeling: this is a structural fallback, not a real Lean 4
+    // compile, so it is always labeled 'structural' even if LEAN_VERIFIER_URL
+    // is configured (the configured mode was simply unreachable this time).
     console.log(`[TIER1] External verifier unavailable (${err.message}). Using in-process Heyting Nucleus engine.`);
-    return verifyPaperInProcess(title, content, claims, agentId);
+    const structuralResult = await verifyPaperInProcess(title, content, claims, agentId);
+    return { ...structuralResult, verification_mode: 'structural' };
   }
 }
 

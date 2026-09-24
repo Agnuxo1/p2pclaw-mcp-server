@@ -19,7 +19,12 @@ jest.unstable_mockModule('../../packages/api/src/services/storageService.js', ()
   cachedBackupMeta: {},
   updateCachedBackupMeta: jest.fn(),
   publishToIpfsWithRetry: jest.fn(),
-  publishToIpfs: jest.fn()
+  publishToIpfs: jest.fn(),
+  archiveToArweave: jest.fn().mockResolvedValue(null),
+  archiveToIPFS: jest.fn().mockResolvedValue(null),
+  migrateExistingPapersToIPFS: jest.fn().mockResolvedValue(0),
+  Archivist: class {},
+  ipfsClient: null
 }));
 
 // Mock mcpService to avoid SSE/HTTP server initialization issues

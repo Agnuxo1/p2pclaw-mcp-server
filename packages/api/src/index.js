@@ -108,6 +108,9 @@ import { synthesisService } from "./services/synthesisService.js";
 import { discoveryService } from "./services/discoveryService.js";
 import { syncService } from "./services/syncService.js";
 import { requireTier2 } from "./middleware/auth.js";
+import { checkAdmin } from "./middleware/adminAuth.js";
+import { installV8 } from "./v8Integration.js";
+import { configuredJudgeCount } from "./services/granularScoringService.js";
 import { spawnAgent, getSpawnedAgents } from "./services/evolutionService.js";
 import { getAgentMemory, saveMemory, loadMemory } from "./services/agentMemoryService.js";
 import { dhtAnnounce, dhtFindPeers, dhtStats, bootstrapDHT, LOCAL_NODE_ID } from "./services/kademliaService.js";
@@ -516,6 +519,45 @@ app.use('/workflow', workflowRoutes);
 app.use('/lab', labRoutes);
 app.use('/calibration', calibrationRoutes);
 app.use('/tribunal', tribunalRoutes);
+
+// ── v8: OpenCLAW-P2P v7 paper conformance layer (docs/PAPER_CONFORMANCE.md) ──
+// Installed before the publication routes so it can verify signatures, verify proof-of-work
+// on /quick-join, count publish outcomes and decorate paper responses. Later declarations
+// (paperCache, swarmCache, podium, CITIZEN_IDS, limits) are read through getters at request time.
+installV8(app, {
+    db,
+    gunSafe,
+    checkAdmin,
+    getPaperCache: () => paperCache,
+    getAgents: () => swarmCache.agents,
+    getSimulatedIds: () => CITIZEN_IDS,
+    isSimulatedAgent: (id, data) => isSimulatedAgent(id, data),
+    getPodium: () => podium,
+    judgesConfigured: () => configuredJudgeCount(),
+    blockedTitle: /quality.gate|session.report|diagnostic|bootstrap|daily.digest|pipeline.verification|test.fix/i,
+    minWords: () => MIN_PAPER_WORDS,
+    rateLimit: () => PUBLISH_RATE_LIMIT,
+    getReputation: (agentId) => new Promise(resolve => {
+        // Reputation-weighted votes (Table 21): rank weight normalised to [0, 1] (ARCHITECT = 10).
+        const timer = setTimeout(() => resolve(0.1), 2000);
+        db.get("agents").get(agentId).once(data => {
+            clearTimeout(timer);
+            const { weight } = calculateRank(data || {});
+            resolve(Math.max(0.1, Math.min(1, (weight || 0) / 10)));
+        });
+    }),
+    getSiliconStats: () => {
+        let verified = 0, mempool = 0;
+        const latest = [];
+        for (const [id, p] of paperCache.entries()) {
+            if (!p || !p.title) continue;
+            if (p.status === 'MEMPOOL') mempool++; else verified++;
+            latest.push({ id, title: p.title, author: p.author, status: p.status, timestamp: p.timestamp || 0 });
+        }
+        latest.sort((a, b) => b.timestamp - a.timestamp);
+        return { agents: swarmCache.agents.size, verified, mempool, latest: latest.slice(0, 8) };
+    },
+});
 app.use('/silicon/admin', siliconAdminRoutes);
 console.log(`[Server] Silicon Admin routes mounted at /silicon/admin`);
 
@@ -1979,6 +2021,10 @@ function isAbraxasPaper(data) {
         .some(value => isAbraxasAgent(value));
 }
 
+function isSimulatedAgent(id, data) {
+  return CITIZEN_IDS.has(id) || String(id).startsWith('citizen-') || !!data?.simulated || data?.type === 'SIMULATED';
+}
+
 app.get('/swarm-status', (req, res) => {
   // GitHub is a historical baseline; durable publications accepted after the
   // manifest was generated must increase the live total.
@@ -1992,8 +2038,8 @@ app.get('/swarm-status', (req, res) => {
   // Honest counts: separate real agents from simulated citizens
   let real_agents = 0;
   let simulated_agents = 0;
-  for (const [id] of swarmCache.agents) {
-    if (CITIZEN_IDS.has(id)) simulated_agents++;
+  for (const [id, data] of swarmCache.agents) {
+    if (isSimulatedAgent(id, data)) simulated_agents++;
     else real_agents++;
   }
 
@@ -2127,7 +2173,9 @@ app.get("/agents", (req, res) => {
             lastSeen: data.lastSeen,
             contributions: data.contributions || 0,
             rank: calculateRank(data).rank,
-            simulated: !!data.simulated
+            simulated: isSimulatedAgent(id, data),
+            // Paper v7 section 20.3: simulated citizens are labelled explicitly and reported separately.
+            agent_class: isSimulatedAgent(id, data) ? "SIMULATED" : "REAL"
         };
 
         if (interest) {
@@ -2686,7 +2734,10 @@ function buildAgentFeedback(paperId, authorId, wordCount, tribunalData, paperCon
 }
 
 const agentPublishLog = new Map(); // authorId -> [timestamp, ...]
-const PUBLISH_RATE_LIMIT = 500; // Increased temporarily for GitHub restore
+// Paper v7 section 10: 3 papers per hour per agent. Operators can raise it temporarily (e.g. bulk restore) via env.
+const MIN_PAPER_WORDS = Math.max(30, parseInt(process.env.MIN_PAPER_WORDS || "500", 10) || 500);
+const MIN_DRAFT_WORDS = Math.max(30, parseInt(process.env.MIN_DRAFT_WORDS || "150", 10) || 150);
+const PUBLISH_RATE_LIMIT = Math.max(1, parseInt(process.env.PUBLISH_RATE_LIMIT || "3", 10) || 3);
 const PUBLISH_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 function checkPublishRateLimit(authorId, consume = true) {
@@ -2835,13 +2886,7 @@ async function runDuplicatePurge() {
 
 // â"€â"€ Admin: Proactive Cleanup (Consolidated) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 app.post("/admin/purge-duplicates", async (req, res) => {
-    const adminSecret = req.header('x-admin-secret') || req.headers['x-admin-secret'] || req.body?.secret;
-    const validSecret = process.env.ADMIN_SECRET || 'p2pclaw-purge-2026';
-
-    if (adminSecret !== validSecret) {
-        console.warn("[ADMIN] Purge REJECTED: Invalid secret.");
-        return res.status(403).json({ error: "Forbidden" });
-    }
+    if (!checkAdmin(req, res)) return;
 
     const purged = await runDuplicatePurge();
     res.json({ success: true, purged: purged.length, details: purged.slice(0, 20) });
@@ -2851,9 +2896,7 @@ app.post("/admin/purge-duplicates", async (req, res) => {
 // This endpoint is intentionally scoped to Abraxas and requires an explicit
 // confirm flag, so a typo cannot erase another author's work.
 app.post("/admin/purge-agent", async (req, res) => {
-    const adminSecret = req.header('x-admin-secret') || req.body?.secret;
-    const validSecret = process.env.ADMIN_SECRET || 'p2pclaw-purge-2026';
-    if (adminSecret !== validSecret) return res.status(403).json({ error: "Forbidden" });
+    if (!checkAdmin(req, res)) return;
 
     const requested = String(req.body?.agent || req.body?.agentId || req.body?.author || "");
     if (!isAbraxasAgent(requested)) {
@@ -2905,11 +2948,7 @@ app.post("/admin/purge-agent", async (req, res) => {
 
 // ── Admin: Set runtime env vars (for LLM keys etc.) ──────────────────
 app.post("/admin/set-env", (req, res) => {
-    const adminSecret = req.header('x-admin-secret') || req.body?.secret;
-    const validSecret = process.env.ADMIN_SECRET || 'p2pclaw-purge-2026';
-    if (adminSecret !== validSecret) {
-        return res.status(403).json({ error: "Forbidden" });
-    }
+    if (!checkAdmin(req, res)) return;
     const vars = req.body?.vars;
     if (!vars || typeof vars !== 'object') {
         return res.status(400).json({ error: "vars object required" });
@@ -3146,7 +3185,8 @@ app.post("/publish-paper", async (req, res) => {
 
     const wordCount = content.trim().split(/\s+/).length;
 
-    const minimumWords = isDraftSubmission ? 150 : 500;
+    // Protocol floor is 30 words (paper v7 section 11.2); this node's policy is configurable.
+    const minimumWords = isDraftSubmission ? Math.min(MIN_DRAFT_WORDS, MIN_PAPER_WORDS) : MIN_PAPER_WORDS;
     if (wordCount < minimumWords) {
         return res.status(400).json({
             success: false,
@@ -4124,10 +4164,7 @@ app.get("/dataset/v2/entry/:paperId", async (req, res) => {
 
 // POST /dataset/v2/build-export — Build full export file (admin)
 app.post("/dataset/v2/build-export", async (req, res) => {
-    const adminSecret = req.headers["x-admin-secret"] || req.body.admin_secret;
-    if (adminSecret !== process.env.ADMIN_SECRET && adminSecret !== "p2pclaw-dataset-2026") {
-        return res.status(403).json({ error: "Admin secret required" });
-    }
+    if (!checkAdmin(req, res)) return;
 
     const filters = {
         min_score: parseFloat(req.body.min_score) || 0,
@@ -4157,10 +4194,7 @@ app.get("/benchmark", async (req, res) => {
 
 // POST /benchmark/publish — Publish to HF + GitHub (admin or periodic)
 app.post("/benchmark/publish", async (req, res) => {
-    const adminSecret = req.headers["x-admin-secret"] || req.body.admin_secret;
-    if (adminSecret !== process.env.ADMIN_SECRET && adminSecret !== "p2pclaw-benchmark-2026") {
-        return res.status(403).json({ error: "Admin secret required" });
-    }
+    if (!checkAdmin(req, res)) return;
 
     const { benchmark, results } = await publishBenchmark(paperCache, podium);
     res.json({
@@ -4870,6 +4904,7 @@ app.get("/leaderboard", (req, res) => {
                 agent.best_score = scoreData.scores.length > 0 ? Math.round(Math.max(...scoreData.scores) * 100) / 100 : 0;
                 agent.avg_score = scoreData.scores.length > 0 ? Math.round((scoreData.scores.reduce((s,v) => s+v, 0) / scoreData.scores.length) * 100) / 100 : 0;
                 agent.iq = scoreData.iq || estimateIQ(agent.best_score);
+                agent.iq_source = scoreData.iq ? "tribunal" : (agent.iq ? "estimated_from_score" : null);
             }
         }
 
@@ -4886,6 +4921,7 @@ app.get("/leaderboard", (req, res) => {
                     best_score: scoreData.scores.length > 0 ? Math.round(Math.max(...scoreData.scores) * 100) / 100 : 0,
                     avg_score: scoreData.scores.length > 0 ? Math.round((scoreData.scores.reduce((s,v) => s+v, 0) / scoreData.scores.length) * 100) / 100 : 0,
                     iq: scoreData.iq || estimateIQ(scoreData.scores.length > 0 ? Math.max(...scoreData.scores) : 0),
+                    iq_source: scoreData.iq ? "tribunal" : (scoreData.scores.length > 0 ? "estimated_from_score" : null),
                 });
             }
         }
@@ -6275,6 +6311,7 @@ app.get("/admin/papers-status", async (req, res) => {
 
 // â"€â"€ Manual trigger: restore mis-purged papers (can be called via GET) â"€â"€â"€â"€â"€â"€â"€â"€
 app.get("/admin/restore-purged", async (req, res) => {
+    if (!checkAdmin(req, res)) return;
     let restoredPapers = 0, restoredMempool = 0;
     const log = [];
     await new Promise(resolve => {

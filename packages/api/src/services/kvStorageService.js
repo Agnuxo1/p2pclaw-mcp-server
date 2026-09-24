@@ -20,6 +20,7 @@
  */
 
 import crypto from 'crypto';
+import { markPersistence } from "./v8/persistenceLedger.js";
 
 // ── R2 Configuration ─────────────────────────────────────────────────────
 
@@ -228,7 +229,7 @@ async function kvList(prefix, limit = 100) {
 /**
  * Store a paper. Tries R2 first, falls back to KV.
  */
-export async function storePaper(paperId, paperData) {
+async function storePaperInner(paperId, paperData) {
     const key = `papers/${paperId}.json`;
     const payload = { ...paperData, stored_at: new Date().toISOString() };
 
@@ -308,4 +309,11 @@ export async function checkHealth() {
         kv: { configured: kvAvailable, namespace: CF_KV_NS_ID() },
         primary: r2available ? 'r2' : (kvAvailable ? 'kv' : 'none'),
     };
+}
+
+/** Public entry point: records the outcome in the persistence ledger (paper v7 section 7). */
+export async function storePaper(paperId, paperData) {
+    const ok = await storePaperInner(paperId, paperData);
+    markPersistence(paperId, "r2", ok);
+    return ok;
 }

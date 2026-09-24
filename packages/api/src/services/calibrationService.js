@@ -989,7 +989,9 @@ function extractSignals(content) {
         has_good_tables,
         deception_matches,
         deception_count: deception_matches.length,
-        depth_score: Math.min(10, Math.round(
+        // Extended production formula. Clamped to [0, 10] (paper v7 correction); the previous
+        // parenthesisation rounded before scaling and capped every paper at 1.0.
+        depth_score: Math.max(0, Math.min(10, Math.round((
             (sections_present.length / 7 * 2) +
             (has_equations ? 1 : 0) +
             (has_formal_proofs ? 1.5 : 0) +
@@ -1003,7 +1005,7 @@ function extractSignals(content) {
             (has_good_tables ? 0.5 : 0) +
             (grammar_quality.is_monotone ? -1 : 0) +
             (grammar_quality.is_low_vocabulary ? -1 : 0)
-        ) * 10) / 10,
+        ) * 10) / 10)),
     };
 }
 

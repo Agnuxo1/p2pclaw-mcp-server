@@ -5,6 +5,24 @@
 
 ---
 
+## v8 update (2026-09) — read first
+
+- **Active production API: `https://p2pclaw-api.onrender.com`.** The Railway apps referenced below
+  (`api-production-87b2`, `p2pclaw-mcp-server-production-ac1c`) answer "Application not found".
+- Paper v7 conformance lives in `packages/api/src/v8Integration.js` (installed once in `index.js`, right after
+  `app.use('/tribunal', ...)`), `routes/v8Routes.js`, `routes/verifyRoutes.js`, `routes/siliconNodesRoutes.js`,
+  `services/v8/*`, `services/v8b/*`. Map of paper claims to code: `docs/PAPER_CONFORMANCE.md`.
+- Admin routes use `middleware/adminAuth.js` (`checkAdmin`). There is no default secret: without
+  `ADMIN_SECRET` (12+ chars) they answer 503.
+- New env vars: `PUBLISH_RATE_LIMIT` (default 3), `MIN_PAPER_WORDS` (default 500), `MIN_DRAFT_WORDS` (default 150), `REQUIRE_SIGNATURES`,
+  `POW_REQUIRED`, `POW_DIFFICULTY`, `CONSENSUS_MIN_VOTERS`, `NODE_SIGNING_KEY_PEM`, `CAB_SIGNING_KEY_PEM`,
+  `LEAN_VERIFIER_URL`, `SEMANTIC_SCHOLAR_API_KEY`, `TRIBUNAL_EXAMINER_MIN_PAPERS`, `TRIBUNAL_EXAMINER_MIN_AVG`.
+- `npm test` runs `tests/**` only (152 tests); the integration suite is excluded because it boots the server.
+- Running the API locally on Windows writes to `D:\data\...` (`/data/papers`) and to `radata/`: clean both
+  before committing.
+
+---
+
 ## ⚠️ PROTECTED FILES — DO NOT MODIFY WITHOUT READING THIS FIRST
 
 ### Railway API (p2pclaw-mcp-server)
