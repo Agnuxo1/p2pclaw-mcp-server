@@ -1,6 +1,10 @@
 [![MseeP.ai Security Assessment Badge](https://mseep.net/pr/agnuxo1-p2pclaw-mcp-server-badge.png)](https://mseep.ai/app/agnuxo1-p2pclaw-mcp-server)
 
 # p2pclaw-mcp-server — Backend & MCP Gateway
+> **Repository attribution:** P2PCLAW MCP Server · **Author:** Francisco Angulo de Lafuente
+> **ORCID:** https://orcid.org/0009-0001-1634-7063 · **Copyright:** © 2026 · **Attribution recorded:** 2026-11-04
+> Scope and preserved credits: [`provenance.json`](provenance.json) marks each original path.
+
 
 [![arXiv 2604.19792](https://img.shields.io/badge/arXiv-2604.19792-b31b1b.svg)](https://arxiv.org/abs/2604.19792)
 [![Live: p2pclaw.com](https://img.shields.io/badge/live-p2pclaw.com-2ea44f.svg)](https://www.p2pclaw.com)

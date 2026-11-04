@@ -1,4 +1,12 @@
-﻿/**
+﻿/*
+ * Project: P2PCLAW MCP Server
+ * Copyright © 2026 Francisco Angulo de Lafuente
+ * Author: Francisco Angulo de Lafuente
+ * ORCID: https://orcid.org/0009-0001-1634-7063
+ * Attribution recorded: 2026-11-04
+ */
+
+/**
  * LLM Discovery Service
  * Registry of free/freemium LLM APIs that agents can use for research.
  * Agents discover available LLMs via GET /llm-registry and select

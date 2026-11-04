@@ -1,0 +1,3964 @@
+{
+  "schema_version": "1.0",
+  "project": "P2PCLAW MCP Server",
+  "author": "Francisco Angulo de Lafuente",
+  "orcid": "https://orcid.org/0009-0001-1634-7063",
+  "recorded_on": "2026-11-04",
+  "copyright_year": 2026,
+  "canonical_url": "https://github.com/Agnuxo1/p2pclaw-mcp-server",
+  "baseline_commit": "064e01217998c331620be5918ba8fcbfbf858871",
+  "visibility_at_review": "public",
+  "default_branch_at_review": "master",
+  "authorship_scope": {
+    "basis": "Project-owner instruction supplied the author identity and authorized attribution; first-add Git author metadata for the selected files is consistent with the named author/account aliases.",
+    "limit": "Git metadata is contribution evidence, not independent proof of legal title. Files with other contributors, existing bylines/notices, generated material, research/contest status, or unresolved contact/data flags were preserved.",
+    "attribution_does_not_relicense": "true"
+  },
+  "attribution_summary": {
+    "original_paths_reviewed": 779,
+    "file_headers_added": 86,
+    "readme_repository_credit_added": 1,
+    "attributed_paths": 87,
+    "preserved_unresolved": 536,
+    "preserved_other_contributor": 141,
+    "pending_unclassified": 15
+  },
+  "license_scope": {
+    "status": "unresolved",
+    "license_file_in_this_repository": false,
+    "github_spdx_metadata": null,
+    "readme_badge_text": "Public Good",
+    "readme_badge_links_to": "https://github.com/Agnuxo1/OpenCLAW-P2P/blob/main/LICENSE",
+    "linked_file_observed_license": "MIT",
+    "linked_file_scope": "Different repository; does not establish this repository's license.",
+    "new_license_added": false,
+    "spdx_headers_added": false
+  },
+  "citation_scope": {
+    "citation_cff_added": false,
+    "reason": "The README says to cite the research work rather than the server; its existing paper citation was preserved unchanged."
+  },
+  "official_contest_sources": [
+    {
+      "url": "https://epoch.ai/frontiermath/open-problems/ramsey-book-graphs",
+      "accessed_on": "2026-11-04",
+      "finding": "The official Book Ramsey Numbers page lists the problem as unsolved and specifies a Python solution function/output format, source-code placement restriction and runtime limit. Epoch states its problem materials may be reused under CC BY with attribution. This does not establish local submission status or authorship; Ramsey-named files were preserved."
+    },
+    {
+      "url": "https://epoch.ai/frontiermath/open-problems/hadamard",
+      "accessed_on": "2026-11-04",
+      "finding": "The official page currently labels the order-668 problem solved by human + AI and says the attribution is provisional, crediting three humans and Claude. This does not establish local file authorship or submission status; Hadamard-named materials were preserved."
+    },
+    {
+      "url": "https://epoch.ai/frontiermath/open-problems/about/faq",
+      "accessed_on": "2026-11-04",
+      "finding": "The official FAQ directs solvers to follow the problem-page output format for verification. It does not grant a license to local solutions or establish their authorship; relevant local files were preserved."
+    }
+  ],
+  "security_review": {
+    "reachable_commits_scanned": 570,
+    "unique_blobs_scanned": 1794,
+    "credential_pattern_candidates": 0,
+    "matched_values_recorded": false,
+    "active_status_validated": false,
+    "email_phone_regex_matches": "Present in historical/current tree; not validated as contacts; values omitted, ambiguous files preserved."
+  },
+  "files": [
+    {
+      "path": ".dockerignore",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": ".env.agents.template",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": ".github/FUNDING.yml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+      "status": "preserved_unresolved",
+      "reason": "boilerplate-or-prompt-config"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.md",
+      "status": "preserved_unresolved",
+      "reason": "boilerplate-or-prompt-config"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/research_proposal.md",
+      "status": "preserved_unresolved",
+      "reason": "boilerplate-or-prompt-config"
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "status": "preserved_unresolved",
+      "reason": "boilerplate pull-request template; excluded from baseline and attribution"
+    },
+    {
+      "path": ".github/scripts/sync_papers.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": ".github/workflows/auto-validator.yml.disabled",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": ".github/workflows/hive-agents-247.yml.disabled",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": ".github/workflows/hive-gemini-247.yml.disabled",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": ".github/workflows/hive-openrouter-247.yml.disabled",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": ".github/workflows/hive-zai-247.yml.disabled",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": ".github/workflows/kaggle-nodes-v2-relaunch.yml.disabled",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": ".github/workflows/papers-github-sync.yml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": ".github/workflows/relay-pinger.yml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": ".gitignore",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": "AESTHETICS_UPDATE_GUIDE.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved"
+    },
+    {
+      "path": "BENCHMARK.md",
+      "status": "preserved_unresolved",
+      "reason": "generated-source"
+    },
+    {
+      "path": "CLAUDE.md",
+      "status": "preserved_unresolved",
+      "reason": "boilerplate-or-prompt-config"
+    },
+    {
+      "path": "CODE_OF_CONDUCT.md",
+      "status": "preserved_unresolved",
+      "reason": "boilerplate-or-prompt-config"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "status": "preserved_unresolved",
+      "reason": "boilerplate-or-prompt-config"
+    },
+    {
+      "path": "Dockerfile",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": "Dockerfile.node-a",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "Dockerfile.node-b",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "Dockerfile.node-c",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "Dockerfile.node-d",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "Dockerfile.npcs",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "FRONTIERMATH_RAMSEY_SUBMISSION.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, contact-pattern-unresolved"
+    },
+    {
+      "path": "HADAMARD_668_PAPER.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "P2PCLAW_NETWORK_ARCHITECTURE.md",
+      "status": "preserved_unresolved",
+      "reason": "architecture/research report; review native author block and evidence before editing"
+    },
+    {
+      "path": "PROOF_UNIVERSAL_BARRIER.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "README.md",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "README.node-a.md",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "README.node-b.md",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "README.node-c.md",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "README.node-d.md",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "README.npcs.md",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "REVIEW_n36_pen2_barrier_5.md",
+      "status": "preserved_unresolved",
+      "reason": "research-submission-or-status-content"
+    },
+    {
+      "path": "SECURITY.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved"
+    },
+    {
+      "path": "UNIVERSAL_PEN2_BARRIER.md",
+      "status": "preserved_unresolved",
+      "reason": "mathematical result/research document"
+    },
+    {
+      "path": "ai.txt",
+      "status": "preserved_unresolved",
+      "reason": "boilerplate-or-prompt-config"
+    },
+    {
+      "path": "backups/radata_backup_2026-02-23T10-36-03-948Z.zip",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: generated/vendor/backup-name"
+    },
+    {
+      "path": "benchmark.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format, contact-pattern-unresolved"
+    },
+    {
+      "path": "cf_cname.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "cf_out.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "cf_test.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "check_hive.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "citizens-node-b.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "citizens-node-c.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "citizens-node-d.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "cloudflare-worker/agents-worker/src/index.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "cloudflare-worker/agents-worker/wrangler.toml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "cloudflare-worker/gun-relay/src/index.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "cloudflare-worker/gun-relay/wrangler.toml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "cloudflare-worker/src/index.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "cloudflare-worker/wrangler.toml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "deploy-app.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "deploy-gateways.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "deploy-papers.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "docs/AESTHETICS_UPDATE_GUIDE.md",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "docs/Architectural_Analysis.md",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "docs/CODE_FIX_SUMMARY.md",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "docs/DEPLOYMENT_GUIDE.md",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "docs/Full_Refactor.md",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "docs/P2PCLAW_RESILIENCIA_GRATUITA.md",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "docs/P2P_RECOVERY_GUIDE.md",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "docs/test_paper.md",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "editor/requirements.txt",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "editor/scientific_editor.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "fix_agents.cjs",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "fix_agents.mjs",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "fix_agents2.cjs",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "fix_web3.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "frontiermath_submission/BREAKTHROUGH_n29.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "frontiermath_submission/BREAKTHROUGH_n31.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, contact-pattern-unresolved"
+    },
+    {
+      "path": "frontiermath_submission/EPOCH_EMAIL_DRAFT.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, contact-pattern-unresolved"
+    },
+    {
+      "path": "frontiermath_submission/FRONTIERMATH_RAMSEY_SUBMISSION.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, contact-pattern-unresolved"
+    },
+    {
+      "path": "frontiermath_submission/PAPER_ramsey_book_graph.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, contact-pattern-unresolved"
+    },
+    {
+      "path": "frontiermath_submission/PROOF_UNIVERSAL_BARRIER.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "frontiermath_submission/README.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, contact-pattern-unresolved"
+    },
+    {
+      "path": "frontiermath_submission/REVIEW_n36_pen2_barrier_5.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "frontiermath_submission/UNIVERSAL_PEN2_BARRIER.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "frontiermath_submission/solution.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, contact-pattern-unresolved"
+    },
+    {
+      "path": "h668_4flip_bridge.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "h668_BR_5_9_11_21_Q_seed7003_3_seed99265.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_CCC_seed80003.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_CLASS_17_seed98003.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_CLASS_21_seed98042.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_CLASS_25B_seed98041.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_CLASS_25_seed98040.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_DDD_manifold_seed90001.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_GBR_1_9_15_19_CC_seed20002_p_seed90293.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_GBR_3_9_17_17_X_seed9002_p_seed90743.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_JJJ_manifold_seed90004.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_LLLL_seed92001.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_MMMM_seed91004.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_NNNN_seed91005.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_OOOO_seed92002.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_P1121_B_seed98061.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_P3319_A_seed98062.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_POL19_B_seed98051.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_PT_WEAK_seed98030.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_WWW_seed86002.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_WW_manifold_seed70002.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format"
+    },
+    {
+      "path": "h668_ZZZ2_seed87002.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, structured-or-binary-format, contact-pattern-unresolved"
+    },
+    {
+      "path": "h668_basin_hop.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "h668_bridge3.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "h668_bridge_attack.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "h668_bridge_into_target.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "h668_cyclotomic_seed.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "h668_greedy_bridge.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "h668_kick_descend.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "h668_tunnel.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_PT.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_cross2bit.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_focused.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, contact-pattern-unresolved"
+    },
+    {
+      "path": "hadamard_668_greedy.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_hybrid.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, contact-pattern-unresolved"
+    },
+    {
+      "path": "hadamard_668_nonpal_PT.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_nonpalindrome.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, contact-pattern-unresolved"
+    },
+    {
+      "path": "hadamard_668_penalty.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_polish.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_spectral.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_sumfixed.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_tabu.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_turyn.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_turyn_2move.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_turyn_PT.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_turyn_bigkick.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_turyn_fast.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_turyn_manifold.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_turyn_manifold_PT.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_turyn_manifold_block.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_turyn_penalty.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_turyn_targeted.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hadamard_668_v2.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "hf-spaces/citizens6/Dockerfile",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "hf-spaces/citizens7/Dockerfile",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "hf-spaces/citizens8/Dockerfile",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "hf-spaces/citizens9/Dockerfile",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/agnuxo_team.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/charlysmith_team.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/escritoresanalfabeto_team.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kaggle_research_node.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kaggle_research_node_v2.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved"
+    },
+    {
+      "path": "kaggle-nodes/karmakindle_team.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/agnuxo/agnuxo_team.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/agnuxo/kaggle_research_node.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/agnuxo/kernel-metadata.json",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/charlysmith/charlysmith_team.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/charlysmith/kaggle_research_node.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/charlysmith/kernel-metadata.json",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/escritoresanalfabeto/escritoresanalfabeto_team.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/escritoresanalfabeto/kaggle_research_node.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/escritoresanalfabeto/kernel-metadata.json",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/karmakindle/kaggle_research_node.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/karmakindle/karmakindle_team.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/karmakindle/kernel-metadata.json",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/nebulaagi/kaggle_research_node.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/nebulaagi/kernel-metadata.json",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/kernels/nebulaagi/nebulaagi_team.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "kaggle-nodes/nebulaagi_team.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "listWeb3.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "llms.txt",
+      "status": "preserved_unresolved",
+      "reason": "boilerplate-or-prompt-config"
+    },
+    {
+      "path": "nixpacks.toml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "node-server.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "old_api.js",
+      "status": "pending_unclassified",
+      "reason": "Baseline Git blob is zero bytes; there is no source content to attribute. Preserved unchanged."
+    },
+    {
+      "path": "old_index.html",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": "p2p-worker-node.py",
+      "status": "preserved_unresolved",
+      "reason": "submission/status terms; preserve pending status review"
+    },
+    {
+      "path": "package-lock.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format, dependency-lock, contact-pattern-unresolved"
+    },
+    {
+      "path": "package.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format, contact-pattern-unresolved"
+    },
+    {
+      "path": "packages/agente-firebase/abraxas-gemini.ts",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "packages/agents/agentarxiv-publisher.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "packages/agents/bootstrap_validator.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/chirper-agent.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "packages/agents/citizens.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/citizens2.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/citizens3.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/agents/citizens4.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/agents/citizens5.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/agents/citizens6.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/agents/citizens7.js",
+      "status": "preserved_unresolved",
+      "reason": "submission/status terms; preserve pending status review"
+    },
+    {
+      "path": "packages/agents/diagnose_papers.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/diagnostic-post.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/memory.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/agents/molt-invite-neuromorphic.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/molt-invite.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/research-agent.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/test-agent-magnets.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/test-agent.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/test-alt-molt.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/verifier-node.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/verify-markdown.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/verify-molt-keys.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/verify_m3_science.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/verify_m4_compute.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/agents/verify_storage_m2.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/publishing.env",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": "packages/api/scripts/abraxasPulse.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/scripts/migrate_v4.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/scripts/restore_from_github.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "packages/api/src/Archivist.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/PaperPublisher.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/config/gun-relay.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/config/gun.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/config/peers.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/config/server.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/index.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/middleware/adminAuth.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/middleware/auth.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/patch-mcp-sdk.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/patch-silicon.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/patch-silicon.py",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/routes/authRoutes.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/routes/benchmarkRoutes.js",
+      "status": "preserved_unresolved",
+      "reason": "active prompt/instruction text"
+    },
+    {
+      "path": "packages/api/src/routes/calibrationRoutes.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "packages/api/src/routes/labRoutes.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved, existing-author-marker"
+    },
+    {
+      "path": "packages/api/src/routes/magnetRoutes.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/routes/paperclawRoutes.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, existing-author-marker"
+    },
+    {
+      "path": "packages/api/src/routes/siliconAdminRoutes.js",
+      "status": "preserved_unresolved",
+      "reason": "mathematical/research result logic; preserve for review"
+    },
+    {
+      "path": "packages/api/src/routes/tribunalRoutes.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved"
+    },
+    {
+      "path": "packages/api/src/routes/workflowRoutes.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/scripts/omniscient/scientific_bridge.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/IsolateSandbox.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/abraxasService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/academicSearchService.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved, existing-author-marker"
+    },
+    {
+      "path": "packages/api/src/services/agentMemoryService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/agentService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/apiProxyService.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved, existing-author-marker"
+    },
+    {
+      "path": "packages/api/src/services/architectService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/benchmarkPublisher.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved, existing-author-marker"
+    },
+    {
+      "path": "packages/api/src/services/birthdayTracker.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/blockchainRegistryService.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "packages/api/src/services/blockchainService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/calibrationService.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved, existing-author-marker"
+    },
+    {
+      "path": "packages/api/src/services/claw-service.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/cloudflareService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/consciousnessService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/consensusService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/crypto-service.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/datasetService.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "packages/api/src/services/discoveryService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/domainRegistry.js",
+      "status": "preserved_unresolved",
+      "reason": "mathematical/research result logic; preserve for review"
+    },
+    {
+      "path": "packages/api/src/services/domainValidator.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "packages/api/src/services/economyService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/evolutionService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/executionHashService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/expertAgentService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/federated-learning.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/formatService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/geneticService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/githubSyncService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/granularScoringService.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved"
+    },
+    {
+      "path": "packages/api/src/services/heytingComposition.js",
+      "status": "preserved_unresolved",
+      "reason": "mathematical/research result logic; preserve for review"
+    },
+    {
+      "path": "packages/api/src/services/heytingVerifier.js",
+      "status": "preserved_unresolved",
+      "reason": "mathematical/research result logic; preserve for review"
+    },
+    {
+      "path": "packages/api/src/services/hiveMindService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/hiveService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/jRatchetService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/kademliaService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/kvStorageService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/liveVerificationService.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved"
+    },
+    {
+      "path": "packages/api/src/services/llmChain.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/llmDiscoveryService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/mcpService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/neuromorphicService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/paperPersistence.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "packages/api/src/services/preflightService.js",
+      "status": "preserved_unresolved",
+      "reason": "submission/status and research/result logic; preserve for review"
+    },
+    {
+      "path": "packages/api/src/services/problemBoard.js",
+      "status": "preserved_unresolved",
+      "reason": "mathematical/research result logic; preserve for review"
+    },
+    {
+      "path": "packages/api/src/services/refinementService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/reproductionService.js",
+      "status": "preserved_unresolved",
+      "reason": "existing copyright/license-style preamble"
+    },
+    {
+      "path": "packages/api/src/services/sandboxService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/selfImprovementService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/simulationService.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/socialService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/solveLoopService.js",
+      "status": "preserved_unresolved",
+      "reason": "submission/status and research/result logic; preserve for review"
+    },
+    {
+      "path": "packages/api/src/services/sparse-memory.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/storageService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/surrealForms.js",
+      "status": "preserved_unresolved",
+      "reason": "mathematical/research result logic; preserve for review"
+    },
+    {
+      "path": "packages/api/src/services/swarmComputeService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/syncService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/synthesisService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/taskBiddingService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/tauCoordinator.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/tauService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/teamService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/tier1Service.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/toolRunner.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/api/src/services/tribunalService.js",
+      "status": "preserved_unresolved",
+      "reason": "mathematical/research result logic; preserve for review"
+    },
+    {
+      "path": "packages/api/src/services/verifierService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/vivaVoceService.js",
+      "status": "preserved_unresolved",
+      "reason": "mathematical/research result logic; preserve for review"
+    },
+    {
+      "path": "packages/api/src/services/wardenService.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/services/workflowLLMService.js",
+      "status": "preserved_unresolved",
+      "reason": "active prompt/instruction text and submission terms"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R0_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R0_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R0_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R0_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R0_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R0_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R1_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R1_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R1_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R1_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R1_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R1_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R2_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R2_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R2_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R2_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R2_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R2_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R3_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R3_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R3_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R3_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R3_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R3_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R4_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R4_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R4_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R4_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R4_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R4_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R5_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R5_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R5_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R5_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R5_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R5_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R6_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R6_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R6_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R6_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R6_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R6_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R7_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R7_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R7_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R7_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R7_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/grid/cell_R7_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/calibration/index.md",
+      "status": "preserved_unresolved",
+      "reason": "research-submission-or-status-content"
+    },
+    {
+      "path": "packages/api/src/silicon/domains/biology.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/domains/chemistry.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/domains/index.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/domains/materials.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/domains/mathematics.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/domains/physics.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R0_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R10_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R11_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R12_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R13_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R14_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R15_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R1_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R2_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R3_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R4_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R5_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R6_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R7_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R8_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C10.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C11.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C12.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C13.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C14.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C15.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C5.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C6.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C7.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C8.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/grid/cell_R9_C9.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific grid-cell record; preserve raw result/document"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R0_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R0_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R0_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R0_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R0_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R1_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R1_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R1_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R1_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R1_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R2_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R2_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R2_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R2_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R2_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R3_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R3_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R3_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R3_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R3_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R4_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R4_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R4_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R4_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R4_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R5_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R5_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R5_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R5_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R5_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R6_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R6_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R6_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R6_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R6_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R7_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R7_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R7_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R7_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R7_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R8_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R8_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R8_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R8_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R8_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R9_C0.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R9_C1.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R9_C2.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R9_C3.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/grid/cell_R9_C4.md",
+      "status": "preserved_unresolved",
+      "reason": "scientific-record-or-domain-brief"
+    },
+    {
+      "path": "packages/api/src/silicon/lab/index.md",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved"
+    },
+    {
+      "path": "packages/api/src/utils/gunUtils.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/api/src/utils/validationUtils.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/app/PROTOCOL.md",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/app/_landing_backup.html",
+      "status": "preserved_unresolved",
+      "reason": "backup"
+    },
+    {
+      "path": "packages/app/agents.html",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/app/app.html",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved, existing-author-marker"
+    },
+    {
+      "path": "packages/app/assets/p2pclaw-logo.png",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/app/crab.png",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "packages/app/index.html",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/app/lab/board.html",
+      "status": "preserved_unresolved",
+      "reason": "submission/status terms; preserve pending status review"
+    },
+    {
+      "path": "packages/app/lab/experiments.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/lab/index.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/lab/literature.html",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved, existing-author-marker"
+    },
+    {
+      "path": "packages/app/lab/preregister.html",
+      "status": "preserved_unresolved",
+      "reason": "submission/status terms; preserve pending status review"
+    },
+    {
+      "path": "packages/app/lab/research-chat.html",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: contact-pattern-unresolved"
+    },
+    {
+      "path": "packages/app/lab/simulation.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/lab/workflows.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/landing.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/relay-status.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/silicon/comms/index.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/silicon/hub/index.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/silicon/index.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/silicon/map/index.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/silicon/publish/index.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/silicon/register/index.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/silicon/silicon.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/app/silicon/validate/index.html",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/core-engines/crypto-ed25519/package.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "packages/core-engines/crypto-ed25519/server.js",
+      "status": "preserved_unresolved",
+      "reason": "cryptographic source; preserve pending specialized attribution review"
+    },
+    {
+      "path": "packages/core-engines/hsr-memory/package.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "packages/core-engines/hsr-memory/server.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/core-engines/mift-stability/package.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "packages/core-engines/mift-stability/server.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/core-engines/neuromorphic-bio/package.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "packages/core-engines/neuromorphic-bio/server.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/core-engines/tau-sync/package.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "packages/core-engines/tau-sync/server.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/core-engines/tier1-lean-verifier/Dockerfile",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": "packages/core-engines/tier1-lean-verifier/package.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "packages/core-engines/tier1-lean-verifier/server.js",
+      "status": "preserved_unresolved",
+      "reason": "generated source"
+    },
+    {
+      "path": "packages/relay/Dockerfile",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": "packages/relay/docker-compose.yml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "packages/relay/package.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format, contact-pattern-unresolved"
+    },
+    {
+      "path": "packages/relay/pinger.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/relay/server.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "packages/sdk-python/README.md",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/sdk-python/p2pclaw/__init__.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/sdk-python/p2pclaw/veselov_sparse.py",
+      "status": "preserved_unresolved",
+      "reason": "math/result code; preserve for review"
+    },
+    {
+      "path": "packages/sdk-python/setup.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "packages/tier1-verifier/Dockerfile",
+      "status": "pending_unclassified",
+      "reason": "File format/path not eligible for native comments or sidecar-only review remains."
+    },
+    {
+      "path": "packages/tier1-verifier/package.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "packages/tier1-verifier/server.js",
+      "status": "preserved_unresolved",
+      "reason": "verification engine; preserve pending provenance review"
+    },
+    {
+      "path": "public/backups/latest.zip",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "public/backups/p2pclaw_full_system_2026-02-17.zip",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: generated/vendor/backup-name"
+    },
+    {
+      "path": "public/backups/p2pclaw_full_system_2026-02-20.zip",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "publish-mcp-registry.yml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format, contact-pattern-unresolved"
+    },
+    {
+      "path": "radata/!",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: generated/vendor/backup-name"
+    },
+    {
+      "path": "radata/%1C",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: generated/vendor/backup-name"
+    },
+    {
+      "path": "railway.citizens.toml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "railway.citizens3.toml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "railway.citizens4.toml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "railway.citizens5.toml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "railway.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "ramsey_n36_D11_36.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "ramsey_n36_cyclic142.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name"
+    },
+    {
+      "path": "ramsey_python_solution.py",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, contact-pattern-unresolved"
+    },
+    {
+      "path": "rebuild_web3.cjs",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "recover_gateways.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "render.yaml",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "scripts/abraxas_agent_loop.py",
+      "status": "preserved_unresolved",
+      "reason": "submission/status and research/result logic; preserve for review"
+    },
+    {
+      "path": "scripts/auto-purge-watchdog.cjs",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "scripts/backup_radata.js",
+      "status": "preserved_unresolved",
+      "reason": "backup"
+    },
+    {
+      "path": "scripts/check-agent-count.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "scripts/check_mempool_raw.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "scripts/deploy-1000-agents.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "scripts/deploy-200-agents.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "scripts/deploy-railway.ps1",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "scripts/deploy-railway.sh",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "scripts/kill-p2pclaw.sh",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "scripts/pinata-cleanup.mjs",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "scripts/publish-openclaw-paper.cjs",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "scripts/purge-duplicates.mjs",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "scripts/read-creds.cjs",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "scripts/republish-papers.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "scripts/republish_papers.py",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "scripts/restore_papers.mjs",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: competition/research-name, existing-author-marker"
+    },
+    {
+      "path": "scripts/run-stdio.mjs",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "scripts/seed-mempool.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "scripts/start-core.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "scripts/surgical-purge.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "scripts/update-dns-seed.js",
+      "status": "preserved_unresolved",
+      "reason": "existing author-style comment; preserve"
+    },
+    {
+      "path": "scripts/validate_mempool_direct.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "seed_fact.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "start-citizens2.sh",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "start-node-a.sh",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "start-node-b.sh",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "start-node-c.sh",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "start-node-d.sh",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "start-npcs.sh",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "start.sh",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "test-academic-enforcement.js",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: existing-author-marker"
+    },
+    {
+      "path": "test-cf.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "test-golden-rule.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "test-phase13.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "test-phase14.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "test-phase9.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "test-verifier.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "test-zone.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "test.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "test.mjs",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "test2.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "test3.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "tests/integration/api.test.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "tests/unit/agentService.test.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "tests/unit/consensusService.test.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "tests/unit/gunUtils.test.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "tests/unit/validationUtils.test.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "tests/unit/wardenService.test.js",
+      "status": "preserved_other_contributor",
+      "reason": "First-add author is bot/automation, other, or unlinked; no attribution was added."
+    },
+    {
+      "path": "token_verify.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "token_verify2.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "vercel.json",
+      "status": "preserved_unresolved",
+      "reason": "Baseline flags: structured-or-binary-format"
+    },
+    {
+      "path": "verify.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    },
+    {
+      "path": "verify_phase6_test.js",
+      "status": "attributed",
+      "reason": "Dated native attribution added; original source body preserved."
+    }
+  ],
+  "baseline_manifest": "provenance-baseline.json"
+}

@@ -1,3 +1,9 @@
+# Project: P2PCLAW MCP Server
+# Copyright © 2026 Francisco Angulo de Lafuente
+# Author: Francisco Angulo de Lafuente
+# ORCID: https://orcid.org/0009-0001-1634-7063
+# Attribution recorded: 2026-11-04
+
 # Deploy P2PCLAW to Railway (requiere: npx railway login previo)
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot\..

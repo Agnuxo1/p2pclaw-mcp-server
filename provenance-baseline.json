@@ -1,0 +1,920 @@
+{
+  "schema_version": "1.0",
+  "repository": "Agnuxo1/p2pclaw-mcp-server",
+  "canonical_url": "https://github.com/Agnuxo1/p2pclaw-mcp-server",
+  "baseline_commit": "064e01217998c331620be5918ba8fcbfbf858871",
+  "recorded_on": "2026-11-04",
+  "hash_algorithm": "SHA-256",
+  "source_bytes": "Git blob bytes at baseline commit (not CRLF-converted worktree bytes)",
+  "scope": "Original files receiving attribution in this update; boilerplate, generated, third-party, data, contest and unresolved files are excluded.",
+  "files": [
+    {
+      "path": "README.md",
+      "git_blob": "9c829188585c8cc898914d7c4381aa5e9c2ae049",
+      "sha256": "6ea2945053a07941d5f26cb837b96fa054883eccc3be3ed1398640c0393db3ec",
+      "size_bytes": 7905,
+      "first_add_commit": "465f49a81baf1bebd0ec5d24761c27e3e253fd16",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-19T14:42:37+01:00",
+      "first_add_committer_date": "2026-02-19T14:42:37+01:00"
+    },
+    {
+      "path": "cf_test.js",
+      "git_blob": "b6b411024f2a815e6dd133a7a7f9fb831e74ed8c",
+      "sha256": "fd6f3ab5bb40208732f927327e2b1701c603e12fcc0de03ae47dd1041a3b4067",
+      "size_bytes": 2300,
+      "first_add_commit": "948997e749a5fb4d322d05b12867b4db742b3f11",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T12:17:37+01:00",
+      "first_add_committer_date": "2026-02-23T12:17:37+01:00"
+    },
+    {
+      "path": "check_hive.js",
+      "git_blob": "9e4444e1ea4273f2c0eecebc841313d6967e3678",
+      "sha256": "a9a1829d00725eafa96be8e6f9c70ec59e2e4573fcecb3cf8aabcef66d9d6f16",
+      "size_bytes": 806,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "cloudflare-worker/agents-worker/src/index.js",
+      "git_blob": "db9461f9659b5855fa333abd859a5d652de0a847",
+      "sha256": "50319ce6c0535e167d21c08e913f09ec52a04cd5275dac1f7113ff17cb3d61f7",
+      "size_bytes": 23261,
+      "first_add_commit": "ad909b07e546264ace2423e92ec8cd74a5941c72",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-26T19:22:08+01:00",
+      "first_add_committer_date": "2026-02-26T19:22:08+01:00"
+    },
+    {
+      "path": "cloudflare-worker/gun-relay/src/index.js",
+      "git_blob": "b69e9762e8bfb366fa5638744c9c712834eec57a",
+      "sha256": "a6d678824df5626d3d260cffecd065e019093d52cb5250d029f7d00de3f580c6",
+      "size_bytes": 6005,
+      "first_add_commit": "0073dbe7cee6128069adc4367d56c3ef6005a3b0",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-20T13:46:14+01:00",
+      "first_add_committer_date": "2026-03-20T13:46:14+01:00"
+    },
+    {
+      "path": "cloudflare-worker/src/index.js",
+      "git_blob": "93e9f0d3e3c31e611c6a8890cfe3125cb6a0b4e0",
+      "sha256": "2804e0e9ebb145d20b210b51d011f8e45dca4b63eb61050de5686adc579a478b",
+      "size_bytes": 7422,
+      "first_add_commit": "6b6fd37b7b152c01c0fa407b4d7d33f9d56844f1",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-26T14:46:57+01:00",
+      "first_add_committer_date": "2026-02-26T14:46:57+01:00"
+    },
+    {
+      "path": "docs/AESTHETICS_UPDATE_GUIDE.md",
+      "git_blob": "0274f01e7d741338fe913b0ed51bfd231d2546f4",
+      "sha256": "32d595324107123aff966f95eea76c6b504adce97ea9a25c87184c752fe6da1c",
+      "size_bytes": 6988,
+      "first_add_commit": "777e8e5bf3cbd6e6e4bd8f138fc465ba60163733",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T21:41:52+01:00",
+      "first_add_committer_date": "2026-02-23T21:41:52+01:00"
+    },
+    {
+      "path": "docs/DEPLOYMENT_GUIDE.md",
+      "git_blob": "9ee3358f6efd0b51b0fc539ec0295c1f8acaf3ae",
+      "sha256": "6b2da699e57cb41746df03219604502287b2679a9af529c7a31f9af5c83d4c17",
+      "size_bytes": 2303,
+      "first_add_commit": "19f8d43cc967b7681233ae13961e60e22df4233a",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T10:30:56+01:00",
+      "first_add_committer_date": "2026-02-23T11:25:59+01:00"
+    },
+    {
+      "path": "docs/P2PCLAW_RESILIENCIA_GRATUITA.md",
+      "git_blob": "09d269f6669c131819e94c30f0e92f91a255bd99",
+      "sha256": "9a455a3b4a9ff90268595bd3db97e6375a51f6ae48333406eaaf3026369b17cf",
+      "size_bytes": 1531,
+      "first_add_commit": "5dfa72b79a97d63f45be7a6b0a5d1e5b30a1e1c4",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T10:22:53+01:00",
+      "first_add_committer_date": "2026-02-23T11:25:59+01:00"
+    },
+    {
+      "path": "docs/P2P_RECOVERY_GUIDE.md",
+      "git_blob": "5e639a46572756dc37a06de582c1b168893cbfd5",
+      "sha256": "fd36833a67104bd07016beed4f862545f9e4260cbc80c026420ed75ec24eefec",
+      "size_bytes": 3062,
+      "first_add_commit": "777e8e5bf3cbd6e6e4bd8f138fc465ba60163733",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T21:41:52+01:00",
+      "first_add_committer_date": "2026-02-23T21:41:52+01:00"
+    },
+    {
+      "path": "fix_agents.cjs",
+      "git_blob": "713b18d11d526a777f4daa49cd2ef99d9136709a",
+      "sha256": "cf0b22fbf3508cdd205ca253573075d05176c56b91e4a2853b4a4ab5748221a9",
+      "size_bytes": 2393,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "fix_agents.mjs",
+      "git_blob": "d15576cad862f4537f01ebc1a3fd151d10687cc3",
+      "sha256": "7f19954f070803474cfe93bde6bb45a5a3bfc2724f66da777906b65d890dd65a",
+      "size_bytes": 1829,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "fix_agents2.cjs",
+      "git_blob": "6cbcebe013eea432eb5c77abea62ba52ef684b67",
+      "sha256": "f04adc5623c386b4c7c3e9b7598aaf31936150db7aaeab8746254826800e704b",
+      "size_bytes": 2284,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "fix_web3.js",
+      "git_blob": "8dbacf7117ae1abbbc94c3bb07167a6f944c98a7",
+      "sha256": "909ab03fc8c9f2771bb6d4dd498301dce950a0858bde7c2c8a5b824655c07cfa",
+      "size_bytes": 1806,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "listWeb3.js",
+      "git_blob": "482d91dc479f78352bf99f32e0cc1206b3c6cf96",
+      "sha256": "b40f6a9d707c7dcf0b237dc9ddf8044e77e6cfbf18cca54711faa134cd24fce4",
+      "size_bytes": 397,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "packages/agents/citizens3.js",
+      "git_blob": "38e0dadf07810f681d39870713b72abbb85f4419",
+      "sha256": "0b857a3f69af151a57478acd6738402d89f096e0d18600dfd4f0ca8c78c6f8e2",
+      "size_bytes": 16276,
+      "first_add_commit": "5dfa72b79a97d63f45be7a6b0a5d1e5b30a1e1c4",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T10:22:53+01:00",
+      "first_add_committer_date": "2026-02-23T11:25:59+01:00"
+    },
+    {
+      "path": "packages/agents/citizens4.js",
+      "git_blob": "3506c84fea6d8de6a150d826d674358fc2988cb6",
+      "sha256": "6a9c13c82ca3cd515c9ae6053ab6a6b593d7cd50e90ae33301a7e88107485c04",
+      "size_bytes": 12104,
+      "first_add_commit": "5dfa72b79a97d63f45be7a6b0a5d1e5b30a1e1c4",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T10:22:53+01:00",
+      "first_add_committer_date": "2026-02-23T11:25:59+01:00"
+    },
+    {
+      "path": "packages/agents/citizens5.js",
+      "git_blob": "49bec9df7925db6c9d8b4c12361810b748a04b7d",
+      "sha256": "873962970dfbbbff1141a0f3afeba6c86050235318d921f39d7820ea9119d22b",
+      "size_bytes": 11692,
+      "first_add_commit": "5dfa72b79a97d63f45be7a6b0a5d1e5b30a1e1c4",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T10:22:53+01:00",
+      "first_add_committer_date": "2026-02-23T11:25:59+01:00"
+    },
+    {
+      "path": "packages/agents/citizens6.js",
+      "git_blob": "56b4780bb5df60a93628881896ee0b3b5f3c50ff",
+      "sha256": "688b0603f79256b15e4f9e6a7624549c5be49412a19457d88bc39d672109cf44",
+      "size_bytes": 35986,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "packages/agents/memory.js",
+      "git_blob": "58d17e980100c23619270d10c235d49788620b41",
+      "sha256": "30fc36a874693aa836ac459c82e44944a7a53e687297c043973f21f299da3342",
+      "size_bytes": 5137,
+      "first_add_commit": "6b6fd37b7b152c01c0fa407b4d7d33f9d56844f1",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-26T14:46:57+01:00",
+      "first_add_committer_date": "2026-02-26T14:46:57+01:00"
+    },
+    {
+      "path": "packages/api/scripts/migrate_v4.js",
+      "git_blob": "a6a1bd06886472f6a462fce2526ab3e3f6fa2407",
+      "sha256": "48c930b13e0108cea47e01f4423cd0b3f0235ac860a7d4e2d7c1d2cfc71e463d",
+      "size_bytes": 1976,
+      "first_add_commit": "de6d8ec32dd6380e0faa70c93b1ef2a00107b915",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-04T15:45:35+01:00",
+      "first_add_committer_date": "2026-03-04T15:45:35+01:00"
+    },
+    {
+      "path": "packages/api/src/config/gun-relay.js",
+      "git_blob": "bce30d0c809be4828cf66a505879613e222bf47f",
+      "sha256": "71b628740708c79f1157cc262310a541113021ebfa3222d999453a1248560d81",
+      "size_bytes": 382,
+      "first_add_commit": "cc2638f85161dda8f8967ea29975240d764ce44d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-25T18:26:56+01:00",
+      "first_add_committer_date": "2026-02-25T18:26:56+01:00"
+    },
+    {
+      "path": "packages/api/src/config/peers.js",
+      "git_blob": "f3775cfa76404571089c05ba0e271ca5534efdeb",
+      "sha256": "902eeb8ae4b43f6ae41bb1dd354d69269690185a0038912540490391c9fc873f",
+      "size_bytes": 1542,
+      "first_add_commit": "5dfa72b79a97d63f45be7a6b0a5d1e5b30a1e1c4",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T10:22:53+01:00",
+      "first_add_committer_date": "2026-02-23T11:25:59+01:00"
+    },
+    {
+      "path": "packages/api/src/middleware/adminAuth.js",
+      "git_blob": "be88017b002fee649dba419541cb269cd600fb6c",
+      "sha256": "16ee4dd03aa970b4a1d9fb9b99583ae24b93963eba42c57fe5169ed901d5cc48",
+      "size_bytes": 527,
+      "first_add_commit": "e33f7fa5c8bcca75a712350229c9005c7374eb03",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-04-07T21:21:16+02:00",
+      "first_add_committer_date": "2026-04-07T21:21:31+02:00"
+    },
+    {
+      "path": "packages/api/src/middleware/auth.js",
+      "git_blob": "19476a6f9c11a70a20186f21007541bb2dcf12f5",
+      "sha256": "ef345096b5bfafa0d89edb06a1c96c015754f49e470854150321e6de70f5a7eb",
+      "size_bytes": 1490,
+      "first_add_commit": "b196281411e52226ec7083f2c87ce5e81970c1ff",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T22:09:35+01:00",
+      "first_add_committer_date": "2026-02-23T22:09:35+01:00"
+    },
+    {
+      "path": "packages/api/src/patch-silicon.js",
+      "git_blob": "6a0b2d373110a135c21358f8f2756e721d560e3a",
+      "sha256": "04e64ad575cdc065861001e389c9e7eada6c7a2573ac41cfa54cc7c9030c083d",
+      "size_bytes": 4795,
+      "first_add_commit": "f93e23833a9f2b3fd1df1f72b64b90d57caba074",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-12T20:34:37+01:00",
+      "first_add_committer_date": "2026-03-12T20:34:37+01:00"
+    },
+    {
+      "path": "packages/api/src/patch-silicon.py",
+      "git_blob": "501d076895fc5d8b207bd37a4dbe50bdb4feb814",
+      "sha256": "84f13f9c37cee4dc726f7091853c83757df80214c86fcce6ed8cfdf40596fef9",
+      "size_bytes": 4735,
+      "first_add_commit": "f93e23833a9f2b3fd1df1f72b64b90d57caba074",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-12T20:34:37+01:00",
+      "first_add_committer_date": "2026-03-12T20:34:37+01:00"
+    },
+    {
+      "path": "packages/api/src/routes/workflowRoutes.js",
+      "git_blob": "95f7df839b3ccc2f26b464ef6d04f8dc332a5dcd",
+      "sha256": "c0fc289237ffdd31f94de087ba7d615cbd09b40151ed096d71c06e7c749bf959",
+      "size_bytes": 10675,
+      "first_add_commit": "fd82b835b9d9848fd9fec4e5d0cb961780661f92",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-28T15:58:46+01:00",
+      "first_add_committer_date": "2026-03-28T15:58:46+01:00"
+    },
+    {
+      "path": "packages/api/src/services/agentMemoryService.js",
+      "git_blob": "6236cd2caeadb29be8ee31a6d08fe7fb7b4d63ff",
+      "sha256": "196436ab1c05961d579b3fd14090a16319631428aaccb0c37b0f716bd0d303eb",
+      "size_bytes": 5534,
+      "first_add_commit": "a90219cbb2aee1c6cae0ff6dcbb9fd1573fd7d32",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-02-27T15:59:27+01:00",
+      "first_add_committer_date": "2026-02-27T15:59:27+01:00"
+    },
+    {
+      "path": "packages/api/src/services/architectService.js",
+      "git_blob": "98cbc543afd17d5355f8290bb486343f388cbd0a",
+      "sha256": "9dd3036ec76a34fa8e05e0c2dbada83f27d919d7d3094c8df97fb2ded3b88083",
+      "size_bytes": 5984,
+      "first_add_commit": "ce0047b176c4abc727fa9b345fad31461211657f",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-01T22:55:55+01:00",
+      "first_add_committer_date": "2026-03-01T22:55:55+01:00"
+    },
+    {
+      "path": "packages/api/src/services/birthdayTracker.js",
+      "git_blob": "369a954e134e29f56d91c297059584a5079a3cd2",
+      "sha256": "a93bd3129bce578c0bdeed20e067a2eb9331a86d59517d113e0866dfcd8bab6c",
+      "size_bytes": 5101,
+      "first_add_commit": "1199515cbffa543d12884fc0d303693be8cacaa2",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-31T21:49:50+02:00",
+      "first_add_committer_date": "2026-03-31T21:49:50+02:00"
+    },
+    {
+      "path": "packages/api/src/services/claw-service.js",
+      "git_blob": "e7df70a6e8aa90b6a13479c3e0a696da4e2e730d",
+      "sha256": "d46d5da5dcfa9e566b98c0f63436603ac221e4c859a6fbc89cbc2f25a8398865",
+      "size_bytes": 5480,
+      "first_add_commit": "6b6fd37b7b152c01c0fa407b4d7d33f9d56844f1",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-26T14:46:57+01:00",
+      "first_add_committer_date": "2026-02-26T14:46:57+01:00"
+    },
+    {
+      "path": "packages/api/src/services/crypto-service.js",
+      "git_blob": "0f000e3d9a1e5920004400609b54899586a5063d",
+      "sha256": "484480fc9c06d38763e8f8f42f1a4f92a8124db3b3028484dd5ec48ac6a1a040",
+      "size_bytes": 4249,
+      "first_add_commit": "6b6fd37b7b152c01c0fa407b4d7d33f9d56844f1",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-26T14:46:57+01:00",
+      "first_add_committer_date": "2026-02-26T14:46:57+01:00"
+    },
+    {
+      "path": "packages/api/src/services/evolutionService.js",
+      "git_blob": "01938b0063319b101f38218a260b1bc189784fcb",
+      "sha256": "3d43ed59a1e661fe9de05592592ddd69fa849edaad8c68c4d32f1b24b3e9318e",
+      "size_bytes": 4419,
+      "first_add_commit": "99440ce37cfcfd623512ea64b2eee63ecfe05450",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-06T22:34:57+01:00",
+      "first_add_committer_date": "2026-03-06T22:34:57+01:00"
+    },
+    {
+      "path": "packages/api/src/services/executionHashService.js",
+      "git_blob": "8dc884d5432b8d4b8d885fe20ecd038f0476a0fa",
+      "sha256": "4e2c82251886ad46d4b79fd6ac7f023db37cdd5b76be2e6d3c3da185aca68aaf",
+      "size_bytes": 6514,
+      "first_add_commit": "99e40ca7b79177592065d72f978a59bef82c4939",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-04-05T23:34:23+02:00",
+      "first_add_committer_date": "2026-04-05T23:34:35+02:00"
+    },
+    {
+      "path": "packages/api/src/services/expertAgentService.js",
+      "git_blob": "88446b05efeb50630170ce76f67c2d2716540cea",
+      "sha256": "4502153ae544f7f0c9aae4421cbf01179c7be1c87c34a18fb60101dcc73f9a19",
+      "size_bytes": 17249,
+      "first_add_commit": "e33f7fa5c8bcca75a712350229c9005c7374eb03",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-04-07T21:21:16+02:00",
+      "first_add_committer_date": "2026-04-07T21:21:31+02:00"
+    },
+    {
+      "path": "packages/api/src/services/federated-learning.js",
+      "git_blob": "7e3034daa41c12da3d331c0a1d960dd33c237578",
+      "sha256": "39b5010cccae09cd044b25ddf7a50365e84c4a1289b2ed187f4dd11a5799396e",
+      "size_bytes": 12863,
+      "first_add_commit": "6b6fd37b7b152c01c0fa407b4d7d33f9d56844f1",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-26T14:46:57+01:00",
+      "first_add_committer_date": "2026-02-26T14:46:57+01:00"
+    },
+    {
+      "path": "packages/api/src/services/formatService.js",
+      "git_blob": "a383a18ab5cb6954c247d37017bb2586a9ca1835",
+      "sha256": "72ac7fe33aa3c3c3cb035d56a2059e6456f875d101c9c93cd874362530b6778a",
+      "size_bytes": 4059,
+      "first_add_commit": "2d0673f8a5e41cfaae2be1eb5ec402b4613b4ded",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-31T10:54:24+02:00",
+      "first_add_committer_date": "2026-03-31T10:54:24+02:00"
+    },
+    {
+      "path": "packages/api/src/services/githubSyncService.js",
+      "git_blob": "a72967753f0f4c808277d516f56a04f56e6766f8",
+      "sha256": "c8c9eba79f10afffff83ff57bc822a1c7255137d482faa7123e4443bf8cc42d6",
+      "size_bytes": 5631,
+      "first_add_commit": "2b3247e819cddcc98490da7eab0f56d38e64b927",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-02T09:16:44+01:00",
+      "first_add_committer_date": "2026-03-02T09:22:31+01:00"
+    },
+    {
+      "path": "packages/api/src/services/jRatchetService.js",
+      "git_blob": "a68ef525bfc4e42c8c4a058885b11873037dd086",
+      "sha256": "e7f6e357a06392ec071ca876c712fb4939f79fd0ed646f96618cb55f518a12ea",
+      "size_bytes": 1760,
+      "first_add_commit": "001fa8fb6a7a84b39e427db162bb21a2906880e0",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-01T22:44:37+01:00",
+      "first_add_committer_date": "2026-03-01T22:44:37+01:00"
+    },
+    {
+      "path": "packages/api/src/services/kademliaService.js",
+      "git_blob": "d44044cc34a16db212dc86b232d49d763a862165",
+      "sha256": "0e74990b88ae9460030f42da9977ec490dd38adc3822135b0264d74590d1b80d",
+      "size_bytes": 6746,
+      "first_add_commit": "a90219cbb2aee1c6cae0ff6dcbb9fd1573fd7d32",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-02-27T15:59:27+01:00",
+      "first_add_committer_date": "2026-02-27T15:59:27+01:00"
+    },
+    {
+      "path": "packages/api/src/services/kvStorageService.js",
+      "git_blob": "e7f01bb364f04af66eeb8174aad3df866ce5bc7a",
+      "sha256": "41781cce34017278dc0f6af539da5ee77715917939a9711b6a1253715bb51a26",
+      "size_bytes": 10564,
+      "first_add_commit": "191204b8795b123aaf7e2de1d3e246a74f5c4400",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-31T22:18:07+02:00",
+      "first_add_committer_date": "2026-03-31T22:18:07+02:00"
+    },
+    {
+      "path": "packages/api/src/services/llmChain.js",
+      "git_blob": "759c11223e3b1d088265b7cddb31398be06e92c8",
+      "sha256": "1329bc9df63da73c988a9c86e56a2bbfaad7bb6115dc0d85dd1b8a4db46d4a5e",
+      "size_bytes": 11005,
+      "first_add_commit": "f36773e073d47dd801460c73db4f3e7cf3e4ec25",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-04-02T18:49:03+02:00",
+      "first_add_committer_date": "2026-04-02T18:49:03+02:00"
+    },
+    {
+      "path": "packages/api/src/services/llmDiscoveryService.js",
+      "git_blob": "7cdafaafb5c9cff9fcac5bd0e19ea09968f94ed7",
+      "sha256": "1ed26bdf0f7841fdfb821ca2a8d56215e383c089ebd5c7d7c42f1e5a1ce42789",
+      "size_bytes": 4303,
+      "first_add_commit": "001fa8fb6a7a84b39e427db162bb21a2906880e0",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-01T22:44:37+01:00",
+      "first_add_committer_date": "2026-03-01T22:44:37+01:00"
+    },
+    {
+      "path": "packages/api/src/services/neuromorphicService.js",
+      "git_blob": "3dff2dedc6946eb04bbfaee0fb09203f2e8d3a11",
+      "sha256": "a3044bfdcf5e85e5e75c68510535943489eb3f56f8e3dff92da6fd63f5376064",
+      "size_bytes": 3278,
+      "first_add_commit": "001fa8fb6a7a84b39e427db162bb21a2906880e0",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-01T22:44:37+01:00",
+      "first_add_committer_date": "2026-03-01T22:44:37+01:00"
+    },
+    {
+      "path": "packages/api/src/services/selfImprovementService.js",
+      "git_blob": "571428d2244f682000ffc9877172a09ad2c4db38",
+      "sha256": "505f3e3887afac809e40dcb2d06273690beeda1430fc39b5e1edf18258f2ead6",
+      "size_bytes": 3755,
+      "first_add_commit": "cdcbbda5cd6b51c1f3df6ca409b1cd37e92a5fd8",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-02T02:19:20+01:00",
+      "first_add_committer_date": "2026-03-02T02:19:20+01:00"
+    },
+    {
+      "path": "packages/api/src/services/simulationService.js",
+      "git_blob": "f691cea8c0e1b887ec42ce1ceedef80d8618c81e",
+      "sha256": "5043af2f858f3aa49c6c77f298623e4c39bb4e11671b69205a7f9764b845b6cd",
+      "size_bytes": 6598,
+      "first_add_commit": "dbf12b8702821f90f33905816588ca5240c33e03",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-17T10:50:16+01:00",
+      "first_add_committer_date": "2026-03-17T10:50:16+01:00"
+    },
+    {
+      "path": "packages/api/src/services/sparse-memory.js",
+      "git_blob": "e5596471e2756ee0f9924354dd599c1321c00c4f",
+      "sha256": "7c70381bf3c8086c29f171eee038b23b8b2b8552286fedd311fdfa75e170ff19",
+      "size_bytes": 6645,
+      "first_add_commit": "6b6fd37b7b152c01c0fa407b4d7d33f9d56844f1",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-26T14:46:57+01:00",
+      "first_add_committer_date": "2026-02-26T14:46:57+01:00"
+    },
+    {
+      "path": "packages/api/src/services/toolRunner.js",
+      "git_blob": "9908960bbe83dc72880f56197b300cc6375fad9b",
+      "sha256": "438c6a9b3c3110460a303e011989378f1cbd787ac0c6f97714bee9458b193efe",
+      "size_bytes": 14686,
+      "first_add_commit": "8766ebcd092e111d1e08b74c2f3a9cf021ab7c85",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-04-05T12:55:03+02:00",
+      "first_add_committer_date": "2026-04-05T12:55:21+02:00"
+    },
+    {
+      "path": "packages/app/lab/experiments.html",
+      "git_blob": "d356f2a2a749c8b03879302b08bb0d1e4601d8e3",
+      "sha256": "6113b276d7673e9fbd39230782ff32bcaa25fe122e3c98a35e4b19513dd6f77f",
+      "size_bytes": 34930,
+      "first_add_commit": "a98cd6ef3776f093ffb0fdeb300c5ab4f991b02e",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-02-28T04:17:23+01:00",
+      "first_add_committer_date": "2026-02-28T04:17:23+01:00"
+    },
+    {
+      "path": "packages/app/lab/index.html",
+      "git_blob": "4bcb64554c92e84a042a135e9dd04ca910fd2200",
+      "sha256": "08396215720ce9817f38671467da5d8ef13c622f757318e5cdbe7ba963eb133c",
+      "size_bytes": 44175,
+      "first_add_commit": "a98cd6ef3776f093ffb0fdeb300c5ab4f991b02e",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-02-28T04:17:23+01:00",
+      "first_add_committer_date": "2026-02-28T04:17:23+01:00"
+    },
+    {
+      "path": "packages/app/lab/simulation.html",
+      "git_blob": "ebbed975f64e534fa60f84386a5bd3eb3cda6b21",
+      "sha256": "e827d4770f5ceb8e99703ca76214655428c259df101c47d8b1d7ba1dfb16b90d",
+      "size_bytes": 34667,
+      "first_add_commit": "a5c349c9ca4d2f219f8d24af6c948dc3996c6391",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-02-28T14:20:31+01:00",
+      "first_add_committer_date": "2026-02-28T14:20:31+01:00"
+    },
+    {
+      "path": "packages/app/lab/workflows.html",
+      "git_blob": "19821cf621ab1f4abd2efaf6142b868c2a6c5b14",
+      "sha256": "355202bd5bf19eb31325897eacc24b8ea5443b7cbaca002ffaaf8872c59fef95",
+      "size_bytes": 52282,
+      "first_add_commit": "a5c349c9ca4d2f219f8d24af6c948dc3996c6391",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-02-28T14:20:31+01:00",
+      "first_add_committer_date": "2026-02-28T14:20:31+01:00"
+    },
+    {
+      "path": "packages/app/landing.html",
+      "git_blob": "6165c6fa949a90375fa81e3695356080dcd9bd7a",
+      "sha256": "eeb33aa432bd8018f6b6b974c9408c56507f6d8e0dd7da968a7b3f86258ee559",
+      "size_bytes": 9965,
+      "first_add_commit": "59893f5029226b95e495b0b50d14e8047e776c56",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-25T16:36:45+01:00",
+      "first_add_committer_date": "2026-02-25T16:36:45+01:00"
+    },
+    {
+      "path": "packages/app/relay-status.html",
+      "git_blob": "4c7f26c54c15bba081cae4a71ae3b850a5d31c8f",
+      "sha256": "56ff6d09b62761b7fa215035abe7a8ba7b532262c6279e7a1ba6c70cfef668c8",
+      "size_bytes": 2713,
+      "first_add_commit": "140da2e46dca806cf906860ee2efb28ab5e5144f",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-20T11:24:23+01:00",
+      "first_add_committer_date": "2026-03-20T11:24:23+01:00"
+    },
+    {
+      "path": "packages/app/silicon/comms/index.html",
+      "git_blob": "331fe4649132a1486166f9da7b0ef86be5da9514",
+      "sha256": "1886a5f3cffadab26dd461973fb92e4176233b07e3e0000c1c493732acd12dde",
+      "size_bytes": 564,
+      "first_add_commit": "5ab1f70c62f390d2a3c6feeca004594ef5275f9a",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-25T17:52:32+01:00",
+      "first_add_committer_date": "2026-02-25T17:52:32+01:00"
+    },
+    {
+      "path": "packages/app/silicon/hub/index.html",
+      "git_blob": "1a0cde602a7b0651ed62a7b751c2530204d1262b",
+      "sha256": "4267eae9af6ddb6f5fbe88754cb6d7b5b2d91e79a2af4fb14b029be129b1ae93",
+      "size_bytes": 558,
+      "first_add_commit": "5ab1f70c62f390d2a3c6feeca004594ef5275f9a",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-25T17:52:32+01:00",
+      "first_add_committer_date": "2026-02-25T17:52:32+01:00"
+    },
+    {
+      "path": "packages/app/silicon/index.html",
+      "git_blob": "dd18ccad51c56b6adfe678c5e1572f315f261489",
+      "sha256": "e411c079a6e09ace2b3b4a485a3d898e0295a2298be8f6e2075e8b93c5261e51",
+      "size_bytes": 562,
+      "first_add_commit": "5ab1f70c62f390d2a3c6feeca004594ef5275f9a",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-25T17:52:32+01:00",
+      "first_add_committer_date": "2026-02-25T17:52:32+01:00"
+    },
+    {
+      "path": "packages/app/silicon/map/index.html",
+      "git_blob": "ebd28142dd336a9ad5fb061ea47639c3a01f8cad",
+      "sha256": "2d4b2bce45fecb9f3784c1f388dc8bbd9047c146d9eaccf0edcf051444c60b15",
+      "size_bytes": 558,
+      "first_add_commit": "5ab1f70c62f390d2a3c6feeca004594ef5275f9a",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-25T17:52:32+01:00",
+      "first_add_committer_date": "2026-02-25T17:52:32+01:00"
+    },
+    {
+      "path": "packages/app/silicon/publish/index.html",
+      "git_blob": "e0c317d0763b902c3ceb233ed35f9d5f66c87d67",
+      "sha256": "7121c6e069b7a222901d20562e02d302c34e6e913aabc55cf3fec90f465282de",
+      "size_bytes": 570,
+      "first_add_commit": "5ab1f70c62f390d2a3c6feeca004594ef5275f9a",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-25T17:52:32+01:00",
+      "first_add_committer_date": "2026-02-25T17:52:32+01:00"
+    },
+    {
+      "path": "packages/app/silicon/register/index.html",
+      "git_blob": "30e97036f6728eb023d5fa56247d132ed606bcfa",
+      "sha256": "4a949ceadc215e8b3587d6a298b53caaa8b0229420599ec9efb7352487ab8bc2",
+      "size_bytes": 573,
+      "first_add_commit": "5ab1f70c62f390d2a3c6feeca004594ef5275f9a",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-25T17:52:32+01:00",
+      "first_add_committer_date": "2026-02-25T17:52:32+01:00"
+    },
+    {
+      "path": "packages/app/silicon/silicon.js",
+      "git_blob": "49aaa1386b91aa4609344758c79279de1f4fb2a6",
+      "sha256": "4e45d47aac532137df7cfc5b5e8b053f96e1ba080525fa9957dd085e011d5a55",
+      "size_bytes": 7624,
+      "first_add_commit": "f653399e24012f0488359c1da7e3deaa2b6bb4d9",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-25T17:56:39+01:00",
+      "first_add_committer_date": "2026-02-25T17:56:39+01:00"
+    },
+    {
+      "path": "packages/app/silicon/validate/index.html",
+      "git_blob": "ce01f107735250a8a1679a73d58b10f7096a947f",
+      "sha256": "e4ed85c594d8ab403df2393535ad625b2bba4179957cb896b4155474063dd688",
+      "size_bytes": 573,
+      "first_add_commit": "5ab1f70c62f390d2a3c6feeca004594ef5275f9a",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-25T17:52:32+01:00",
+      "first_add_committer_date": "2026-02-25T17:52:32+01:00"
+    },
+    {
+      "path": "packages/core-engines/hsr-memory/server.js",
+      "git_blob": "b01c801bfdac5964ebdac916adb47e5082a57a05",
+      "sha256": "19eb209beeba4a85e77bb8cfc98e0c59ad871de5d2eb18360c3df6ba95cd2ccd",
+      "size_bytes": 2237,
+      "first_add_commit": "89e3281a8f234e61ba412501815f3dfa31b4ba9f",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-03T20:28:53+01:00",
+      "first_add_committer_date": "2026-03-03T20:28:53+01:00"
+    },
+    {
+      "path": "packages/core-engines/mift-stability/server.js",
+      "git_blob": "1300d4c1d62775436fa683934f33ec75b113c55d",
+      "sha256": "3e7be6b4473c579c153d1989d1cfb8d9224a3d8bac26391ece640aa4f0fb35b3",
+      "size_bytes": 2447,
+      "first_add_commit": "89e3281a8f234e61ba412501815f3dfa31b4ba9f",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-03T20:28:53+01:00",
+      "first_add_committer_date": "2026-03-03T20:28:53+01:00"
+    },
+    {
+      "path": "packages/core-engines/neuromorphic-bio/server.js",
+      "git_blob": "a7805bb1ce080976a3dc7ceba5f44b36289af5e0",
+      "sha256": "1246365a0b5bc568201457ad17bf3e8a274461c408165922f130bc0df99fdce2",
+      "size_bytes": 1929,
+      "first_add_commit": "89e3281a8f234e61ba412501815f3dfa31b4ba9f",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-03T20:28:53+01:00",
+      "first_add_committer_date": "2026-03-03T20:28:53+01:00"
+    },
+    {
+      "path": "packages/core-engines/tau-sync/server.js",
+      "git_blob": "05943876f02a3a2a61f4afb899cfabfb92681a3b",
+      "sha256": "11838e340bfff9de30a747042d68ef4256149d6fd26eb9e73bb9da133acf4f7f",
+      "size_bytes": 2345,
+      "first_add_commit": "89e3281a8f234e61ba412501815f3dfa31b4ba9f",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-03T20:28:53+01:00",
+      "first_add_committer_date": "2026-03-03T20:28:53+01:00"
+    },
+    {
+      "path": "packages/relay/pinger.js",
+      "git_blob": "5da40bd33604736aa9cfd883dc6073847bc60dfa",
+      "sha256": "42f1d3392ec6846cee8b725cb008bf1b989ae586d67bfb80842cbb6252d67a88",
+      "size_bytes": 2689,
+      "first_add_commit": "140da2e46dca806cf906860ee2efb28ab5e5144f",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-20T11:24:23+01:00",
+      "first_add_committer_date": "2026-03-20T11:24:23+01:00"
+    },
+    {
+      "path": "packages/relay/server.js",
+      "git_blob": "efae7381d75dccb133eb27016b3dc2bd64fa6d9d",
+      "sha256": "e769c8f47f0035100aa9f4e42828bb0fa6b1cbb33728457ffef3cde1a6b58b0d",
+      "size_bytes": 4353,
+      "first_add_commit": "140da2e46dca806cf906860ee2efb28ab5e5144f",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-20T11:24:23+01:00",
+      "first_add_committer_date": "2026-03-20T11:24:23+01:00"
+    },
+    {
+      "path": "rebuild_web3.cjs",
+      "git_blob": "b8af01204bcf756410e9b93db3265f8df95fc92b",
+      "sha256": "263a3f4f8496e53321c6ffdc9c221a847852bcb31b2b8a3be0018549e38c9b8c",
+      "size_bytes": 2421,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "recover_gateways.js",
+      "git_blob": "e44e6d143daecde9544fde8bee2b19f851fa2c82",
+      "sha256": "5d873b3b39553e1dc4792661c0af928173ae157aa740170dd53f06cf54b0ff32",
+      "size_bytes": 2417,
+      "first_add_commit": "a6ae06e79a4592462f02b789fcf523dfdddd3a3c",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T13:41:00+01:00",
+      "first_add_committer_date": "2026-02-23T13:41:00+01:00"
+    },
+    {
+      "path": "scripts/auto-purge-watchdog.cjs",
+      "git_blob": "5cd40a82a1eea154660c8e8eaa5424009e6c8d8d",
+      "sha256": "e18acfb9ca7cd52d54bd67154166d20ad39fbd362e4cde818ad295a0d54105d2",
+      "size_bytes": 2282,
+      "first_add_commit": "9af7f59fcecca3a46bfb6a80eeb697c7e1260b45",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-26T12:59:55+01:00",
+      "first_add_committer_date": "2026-02-26T12:59:55+01:00"
+    },
+    {
+      "path": "scripts/check-agent-count.js",
+      "git_blob": "9d8941e68e913b8bddbe7d8bf033154c3524e118",
+      "sha256": "b0379205703584255980768772bc728a9cd956e25476340c393c05bec0d469af",
+      "size_bytes": 1335,
+      "first_add_commit": "5dfa72b79a97d63f45be7a6b0a5d1e5b30a1e1c4",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T10:22:53+01:00",
+      "first_add_committer_date": "2026-02-23T11:25:59+01:00"
+    },
+    {
+      "path": "scripts/deploy-railway.ps1",
+      "git_blob": "ced503935c8d936e434fe1900b21c1be60e6b531",
+      "sha256": "6aed3d2a7fae578c7bb958083b69442f4f1c5922547d20e3f71efcce70d2c0df",
+      "size_bytes": 958,
+      "first_add_commit": "19f8d43cc967b7681233ae13961e60e22df4233a",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T10:30:56+01:00",
+      "first_add_committer_date": "2026-02-23T11:25:59+01:00"
+    },
+    {
+      "path": "scripts/deploy-railway.sh",
+      "git_blob": "b3e9ae5c5b1c0666024c049d1a8b2e6841c4d7eb",
+      "sha256": "046d237ca23868df9b5bddbd79f2c368e02c4d0c2a344f4f2fe1663968afc40f",
+      "size_bytes": 790,
+      "first_add_commit": "19f8d43cc967b7681233ae13961e60e22df4233a",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T10:30:56+01:00",
+      "first_add_committer_date": "2026-02-23T11:25:59+01:00"
+    },
+    {
+      "path": "scripts/pinata-cleanup.mjs",
+      "git_blob": "7d3b784492e9039ee1a51102fc903ed271c15939",
+      "sha256": "102ff0820ac35dda6772b0483a662ee459028ba1617445a221f765cad69203e3",
+      "size_bytes": 3477,
+      "first_add_commit": "ab7370e780be2062b00ce7913d11b01237f78a76",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-14T15:52:47+01:00",
+      "first_add_committer_date": "2026-03-14T15:52:47+01:00"
+    },
+    {
+      "path": "scripts/purge-duplicates.mjs",
+      "git_blob": "5a55332a638562d87672e6dc6cc3b17985ad0dcc",
+      "sha256": "f70389c5d5328b8d88cb6c1868e8a34e4c646ba01f6c3f668e289e3098280f10",
+      "size_bytes": 1302,
+      "first_add_commit": "49290d3780e690590cf2a359a736c5a414647381",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-26T21:48:45+01:00",
+      "first_add_committer_date": "2026-02-26T21:48:45+01:00"
+    },
+    {
+      "path": "scripts/start-core.js",
+      "git_blob": "b98e2caab4a05d6c6e76c68de009c99b2b00a989",
+      "sha256": "30c93727a8fb52be91044596dab9b02953871e5c3d86bd8f02a62fed99b0c1e9",
+      "size_bytes": 1133,
+      "first_add_commit": "89e3281a8f234e61ba412501815f3dfa31b4ba9f",
+      "first_add_author": "Agnuxo1",
+      "first_add_author_date": "2026-03-03T20:28:53+01:00",
+      "first_add_committer_date": "2026-03-03T20:28:53+01:00"
+    },
+    {
+      "path": "scripts/surgical-purge.js",
+      "git_blob": "ac033044fa46a2e46c8b01c93bf9464a34df1aae",
+      "sha256": "690a6518c2eba550ef6d94eb8b4718405423764c8e095065c56f64df3cd93b72",
+      "size_bytes": 986,
+      "first_add_commit": "49290d3780e690590cf2a359a736c5a414647381",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-26T21:48:45+01:00",
+      "first_add_committer_date": "2026-02-26T21:48:45+01:00"
+    },
+    {
+      "path": "test.js",
+      "git_blob": "c6315fcf527a544b872a101c60b9582597edbab6",
+      "sha256": "68c6b970bbe2a2a8d1c21a91f218ea0d98f8046373e07eecacc0d01012ff8001",
+      "size_bytes": 347,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "test.mjs",
+      "git_blob": "0e796399df444f6668f1a579d029536693206006",
+      "sha256": "1a374874aa60c43df067ec477d1fc875e49ecb624f875eae2c42f21f2c62bcb7",
+      "size_bytes": 379,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "test2.js",
+      "git_blob": "20edb63be21a219a084a34c5dfbdbb3da9e9176e",
+      "sha256": "0fa5580153a036a22b330e4f0fb9588eabb1c55ba05d241f0421f868af15adeb",
+      "size_bytes": 366,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "test3.js",
+      "git_blob": "2513a35af99f2258f5d61d6bc7d33416300a7191",
+      "sha256": "62d29c6340050b85f14d73a7504d4982591409e986d582e6d0cf9ef89daed2f5",
+      "size_bytes": 440,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "token_verify.js",
+      "git_blob": "e2445a31c7ac9b372c73ad77666f4a14dd7aa66d",
+      "sha256": "e16d07a66d37ba996252d75e072cfeafa6e1410eee03a8f12bf6921b0cab089e",
+      "size_bytes": 411,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "token_verify2.js",
+      "git_blob": "ba759415ac20ff51d724cea6a6589c5103f546cb",
+      "sha256": "336d2cb5738bb2ed20271d44dc6d10a7c3dec40f7bc69a410cb9cc3cfbc14ac4",
+      "size_bytes": 476,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "verify.js",
+      "git_blob": "164460b15d06db1037311991181ce492dc6416de",
+      "sha256": "2e64bddf31864fa272e28fc789873b933113933286c0954d9a318442b15cc700",
+      "size_bytes": 417,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    },
+    {
+      "path": "verify_phase6_test.js",
+      "git_blob": "82a6fbab68de7cd4e1db6a0e0990cefd25c62fa3",
+      "sha256": "96027636c5220da10d8a00a1888e9432ac9709c0851c7a58e9b97fa8c732dfbf",
+      "size_bytes": 3003,
+      "first_add_commit": "f3c35c28890e261fc01aeec3d63195b510a1593d",
+      "first_add_author": "Francisco Angulo de Lafuente",
+      "first_add_author_date": "2026-02-23T23:39:08+01:00",
+      "first_add_committer_date": "2026-02-23T23:39:08+01:00"
+    }
+  ],
+  "distinctive_original_passages": [
+    {
+      "path": "packages/api/src/middleware/auth.js",
+      "line_start": 10,
+      "line_end": 14,
+      "text": "export async function requireTier2(req, res, next) {\n    const agentId = req.headers['x-agent-id'] || req.body.agentId || req.query.agentId || req.body.leaderId;\n    if (!agentId) {\n        return res.status(401).json({ error: \"Unauthorized: Missing Agent ID for Tier 2 endpoint\" });\n    }",
+      "excerpt_sha256": "0e5e61801fcc4234a8f9265f4a759d2bbd06240a60c9e7124f49c42e5b3203ee"
+    },
+    {
+      "path": "packages/api/src/routes/workflowRoutes.js",
+      "line_start": 21,
+      "line_end": 25,
+      "text": "function cacheTrace(traceId, traceObj) {\n  if (traceCache.size >= 500) {\n    const firstKey = traceCache.keys().next().value;\n    traceCache.delete(firstKey);\n  }",
+      "excerpt_sha256": "88e7d2f105cb4f1b1fc4ef8c69217c5808e45428e7b939066a960b806f0db1e5"
+    },
+    {
+      "path": "docs/DEPLOYMENT_GUIDE.md",
+      "line_start": 3,
+      "line_end": 7,
+      "text": "## Resumen\n| Plataforma | Servicios | Coste | Pasos |\n|------------|-----------|-------|-------|\n| **Railway** | API, Relay, citizens, citizens3, citizens4, citizens5 | Free tier / usage | Dashboard o CLI |",
+      "excerpt_sha256": "d61e0269cf8795bd0d9cc760ed99ebed10de861da364f593960162e41070922c"
+    },
+    {
+      "path": "docs/P2P_RECOVERY_GUIDE.md",
+      "line_start": 3,
+      "line_end": 9,
+      "text": "Esta guía documenta los parámetros críticos de red y los procesos de recuperación en caso de que los agentes de inteligencia artificial desaparezcan de la interfaz (Efecto Fantasma) o si se corrompe el estado de la base de datos Gun.js.\n## ⏱️ Reglas de Sincronización (Heartbeat Time)\nEl problema de visibilidad de los agentes ocurre si hay un desajuste entre el tiempo en que el frontend espera ver señales de vida y la frecuencia con la que los agentes las envían.\n**Valores Correctos en Producción:**",
+      "excerpt_sha256": "14bbabe7eb95b8d2687d4e67cd2f7bb78340feb896ad8b89b0c04021dc0baa2a"
+    },
+    {
+      "path": "scripts/check-agent-count.js",
+      "line_start": 10,
+      "line_end": 15,
+      "text": "async function main() {\n    try {\n        const res = await fetch(`${GATEWAY}/swarm-status`, { signal: AbortSignal.timeout(15000) });\n        const data = await res.json();\n        const agents = data.swarm?.active_agents ?? data.active_agents ?? 0;",
+      "excerpt_sha256": "de676546d3b44016bae91fe05392b3b2758028770db8ef052ff435126da8f267"
+    }
+  ],
+  "excerpt_method": "First original heading paragraph for Markdown or first function/route block for source; selected excerpts were checked against email, phone-pattern and high-confidence credential patterns before inclusion."
+}

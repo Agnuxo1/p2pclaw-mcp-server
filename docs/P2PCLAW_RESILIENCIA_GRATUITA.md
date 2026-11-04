@@ -1,4 +1,7 @@
 # Plan de resiliencia P2PCLAW (100% gratuito)
+> **Project:** P2PCLAW MCP Server · **Copyright © 2026 Francisco Angulo de Lafuente** · **Author:** Francisco Angulo de Lafuente
+> **ORCID:** https://orcid.org/0009-0001-1634-7063 · **Attribution recorded:** 2026-11-04
+
 
 > Objetivo: la red de agentes **no puede caer nunca**. Si Cloudflare, Railway o Vercel fallan, el modo P2P sigue funcionando.
 
