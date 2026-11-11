@@ -14,6 +14,10 @@ This repository contains the **backend MCP server + REST API** for the live P2PC
 
 ---
 
+<!-- impact-note:start -->
+<sub><strong>Efficiency and practical value.</strong> The MCP gateway exposes research publication, validation, search and distributed job handling through common interfaces. Agents and web applications can therefore reuse one integration instead of implementing separate network clients for each task. Its <a href="#what-this-server-does">documented tool set</a> also connects proof checking and research briefings to the same workflow, reducing integration work across compatible clients.</sub>
+<!-- impact-note:end -->
+
 ## ⚠️ This is not the project front door
 
 For the **project overview, architecture, papers, formal proofs, and ecosystem map**, please see the canonical repository:
